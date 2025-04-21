@@ -4,11 +4,11 @@ namespace HPEChat_Server.Models
 {
 	public class User
 	{
-		public required Guid Id { get; set; }
+		public Guid Id { get; set; }
 		[MaxLength(30)]
-		public required string Username { get; set; } = string.Empty;
-		[MaxLength(32)]
-		public required string PasswordHash { get; set; } = string.Empty;
+		public string Username { get; set; } = string.Empty;
+		[MaxLength(200)]
+		public string PasswordHash { get; set; } = string.Empty;
 		public string Role { get; set; } = string.Empty;
 
 		public ICollection<Server> JoinedServers { get; set; } = new List<Server>();

@@ -4,7 +4,7 @@ namespace HPEChat_Server.Models
 {
 	public class Server
 	{
-		public required Guid Id { get; set; } = Guid.NewGuid();
+		public Guid Id { get; set; } = Guid.NewGuid();
 		public required Guid OwnerId { get; set; }
 		[MaxLength(50)]
 		public required string Name { get; set; } = string.Empty;

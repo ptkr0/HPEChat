@@ -4,7 +4,7 @@ namespace HPEChat_Server.Models
 {
 	public class ServerMessage
 	{
-		public required Guid Id { get; set; } = Guid.NewGuid();
+		public Guid Id { get; set; } = Guid.NewGuid();
 		public Guid ChannelId { get; set; }
 		public Guid? SenderId { get; set; }
 		[MaxLength(2000)]

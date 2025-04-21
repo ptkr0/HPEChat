@@ -18,21 +18,21 @@ namespace HPEChat_Server.Data
 				.HasOne(m => m.Sender)
 				.WithMany(u => u.SentMessages)
 				.HasForeignKey(m => m.SenderId)
-				.OnDelete(DeleteBehavior.SetNull);
+				.OnDelete(DeleteBehavior.ClientSetNull);
 
 			// when user is deleted, set the receiverId for all messages sent to them to null
 			modelBuilder.Entity<PrivateMessage>()
 				.HasOne(m => m.Receiver)
 				.WithMany(u => u.ReceivedMessages)
 				.HasForeignKey(m => m.ReceiverId)
-				.OnDelete(DeleteBehavior.SetNull);
+				.OnDelete(DeleteBehavior.ClientSetNull);
 
 			// when a user is deleted, set the senderId for all messages sent on server channels to null
 			modelBuilder.Entity<ServerMessage>()
 				.HasOne(m => m.Sender)
 				.WithMany(u => u.SentServerMessages)
 				.HasForeignKey(m => m.SenderId)
-				.OnDelete(DeleteBehavior.SetNull);
+				.OnDelete(DeleteBehavior.ClientSetNull);
 
 			// when a channel is deleted, delete its serverMessages
 			modelBuilder.Entity<ServerMessage>()
@@ -57,11 +57,30 @@ namespace HPEChat_Server.Data
 
 			// many to many relationship between users and servers
 			modelBuilder.Entity<Server>()
-				.HasMany(s => s.Members)
-				.WithMany(u => u.JoinedServers)
-				.UsingEntity(j => j.ToTable("ServerMembers"));
+			  .HasMany(s => s.Members)
+			  .WithMany(u => u.JoinedServers)
+			  .UsingEntity<Dictionary<string, object>>(
+				"ServerMembers",
+				// 1) when user is deleted: NO ACTION in the database
+				j => j
+				  .HasOne<User>()
+				  .WithMany()
+				  .HasForeignKey("UserId")
+				  .OnDelete(DeleteBehavior.NoAction),
+
+				// 2) when server is deleted: CASCADE so its memberships go away
+				j => j
+				  .HasOne<Server>()
+				  .WithMany()
+				  .HasForeignKey("ServerId")
+				  .OnDelete(DeleteBehavior.Cascade),
+
+				// join‑table key & table name
+				j =>
+				{
+					j.HasKey("ServerId", "UserId");
+					j.ToTable("ServerMembers");
+				});
 		}
-
-
 	}
 }

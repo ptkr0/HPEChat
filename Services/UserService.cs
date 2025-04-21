@@ -17,6 +17,7 @@ namespace HPEChat_Server.Services
 			if (await context.Users.AnyAsync(u => u.Username.ToUpper() == register.Username.ToUpper())) return null;
 
 			User user = new();
+
 			var hashedPassword = new PasswordHasher<User>()
 				.HashPassword(user, register.Password);
 
