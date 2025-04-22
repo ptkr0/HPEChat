@@ -1,4 +1,5 @@
 ﻿using HPEChat_Server.Data;
+using HPEChat_Server.Dtos.Channel;
 using HPEChat_Server.Dtos.Server;
 using HPEChat_Server.Dtos.User;
 using HPEChat_Server.Extensions;
@@ -104,8 +105,13 @@ namespace HPEChat_Server.Controllers
 		[Authorize]
 		public async Task<ActionResult<ServerDto>> GetServer(string id)
 		{
+			if (!ModelState.IsValid) return BadRequest(ModelState);
+
+			var userId = User.GetUserId();
+			if (userId == null) return BadRequest("User not found");
+
 			var server = await _context.Servers
-				.Include(s => s.Members)
+				.Where(s => s.Id.ToString() == id && s.Members.Any(m => m.Id == Guid.Parse(userId)))
 				.Select(s => new ServerDto
 				{
 					Id = s.Id.ToString(),
@@ -116,9 +122,14 @@ namespace HPEChat_Server.Controllers
 					{
 						Id = m.Id.ToString(),
 						Username = m.Username,
+					}).ToList(),
+					Channels = s.Channels.Select(c => new ChannelDto
+					{
+						Id = c.Id.ToString(),
+						Name = c.Name,
 					}).ToList()
 				})
-				.FirstOrDefaultAsync(s => s.Id.ToString() == id);
+				.FirstOrDefaultAsync();
 
 			if (server == null) return NotFound("Server not found");
 
@@ -164,7 +175,6 @@ namespace HPEChat_Server.Controllers
 			if (userId == null) return BadRequest("User not found");
 
 			var server = await _context.Servers
-				.Include(s => s.Members)
 				.FirstOrDefaultAsync(s => s.Id.ToString() == id);
 
 			if (server == null) return NotFound("Server not found");

@@ -1,4 +1,5 @@
-﻿using HPEChat_Server.Dtos.User;
+﻿using HPEChat_Server.Dtos.Channel;
+using HPEChat_Server.Dtos.User;
 
 namespace HPEChat_Server.Dtos.Server
 {
@@ -9,5 +10,6 @@ namespace HPEChat_Server.Dtos.Server
 		public string Description { get; set; } = string.Empty;
 		public string OwnerId { get; set; } = string.Empty;
 		public List<UserInfoDto> Members { get; set; } = new List<UserInfoDto>();
+		public List<ChannelDto> Channels { get; set; } = new List<ChannelDto>();
 	}
 }
