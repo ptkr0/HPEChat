@@ -28,7 +28,7 @@ namespace HPEChat_Server.Controllers
 			if (userId == null) return Unauthorized("User not found");
 
 			Guid userGuid = Guid.Parse(userId);
-			Guid serverGuid = Guid.Parse(createChannelDto.ServerId);
+			Guid serverGuid = createChannelDto.ServerId;
 
 			var server = await _context.Servers.FindAsync(serverGuid);
 			if (server == null) return NotFound("Server not found");
@@ -37,7 +37,7 @@ namespace HPEChat_Server.Controllers
 			var channel = new Channel
 			{
 				Name = createChannelDto.Name,
-				ServerId = Guid.Parse(createChannelDto.ServerId),
+				ServerId = createChannelDto.ServerId,
 			};
 
 			await _context.Channels.AddAsync(channel);
@@ -52,14 +52,14 @@ namespace HPEChat_Server.Controllers
 
 		[HttpPatch("{id}")]
 		[Authorize]
-		public async Task<ActionResult<ChannelDto>> UpdateChannel(string id, [FromBody] string name)
+		public async Task<ActionResult<ChannelDto>> UpdateChannel(Guid id, [FromBody] string name)
 		{
 			if (!ModelState.IsValid) return BadRequest(ModelState);
 
 			var userId = User.GetUserId();
 			if (userId == null) return Unauthorized("User not found");
 
-			Guid channelGuid = Guid.Parse(id);
+			Guid channelGuid = id;
 			Guid userGuid = Guid.Parse(userId);
 
 			var channel = await _context.Channels
@@ -80,14 +80,14 @@ namespace HPEChat_Server.Controllers
 
 		[HttpDelete("{id}")]
 		[Authorize]
-		public async Task<ActionResult> DeleteChannel(string id)
+		public async Task<ActionResult> DeleteChannel(Guid id)
 		{
 			if (!ModelState.IsValid) return BadRequest(ModelState);
 
 			var userId = User.GetUserId();
 			if (userId == null) return Unauthorized("User not found");
 
-			Guid channelGuid = Guid.Parse(id);
+			Guid channelGuid = id;
 			Guid userGuid = Guid.Parse(userId);
 
 			var channel = await _context.Channels
@@ -104,14 +104,14 @@ namespace HPEChat_Server.Controllers
 
 		[HttpGet("{id}")]
 		[Authorize]
-		public async Task<ActionResult<ChannelDto>> GetChannel(string id)
+		public async Task<ActionResult<ChannelDto>> GetChannel(Guid id)
 		{
 			if (!ModelState.IsValid) return BadRequest(ModelState);
 
 			var userId = User.GetUserId();
 			if (userId == null) return Unauthorized("User not found");
 
-			Guid channelGuid = Guid.Parse(id);
+			Guid channelGuid = id;
 			Guid userGuid = Guid.Parse(userId);
 
 			var channel = await _context.Channels

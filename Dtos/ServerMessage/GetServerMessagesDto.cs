@@ -2,13 +2,10 @@
 
 namespace HPEChat_Server.Dtos.ServerMessage
 {
-	public class SendServerMessageDto
+	public class GetServerMessagesDto
 	{
 		[Required]
 		public Guid ChannelId { get; set; }
-
-		[Required]
-		[MaxLength(2000)]
-		public string Message { get; set; } = string.Empty;
+		public DateTimeOffset? LastCreatedAt { get; set; }
 	}
 }

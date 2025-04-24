@@ -78,14 +78,14 @@ namespace HPEChat_Server.Controllers
 
 		[HttpPatch("{id}")]
 		[Authorize]
-		public async Task<ActionResult<ServerDto>> UpdateServer(string id, [FromBody] CreateServerDto updateServerDto)
+		public async Task<ActionResult<ServerDto>> UpdateServer(Guid id, [FromBody] CreateServerDto updateServerDto)
 		{
 			if (!ModelState.IsValid) return BadRequest(ModelState);
 
 			var userId = User.GetUserId();
 			if (userId == null) return BadRequest("User not found");
 
-			Guid serverGuid = Guid.Parse(id);
+			Guid serverGuid = id;
 
 			var server = await _context.Servers.FindAsync(serverGuid);
 			if (server == null) return NotFound("Server not found");
@@ -131,14 +131,14 @@ namespace HPEChat_Server.Controllers
 
 		[HttpGet("{id}")]
 		[Authorize]
-		public async Task<ActionResult<ServerDto>> GetServer(string id)
+		public async Task<ActionResult<ServerDto>> GetServer(Guid id)
 		{
 			if (!ModelState.IsValid) return BadRequest(ModelState);
 
 			var userId = User.GetUserId();
 			if (userId == null) return BadRequest("User not found");
 
-			Guid serverGuid = Guid.Parse(id);
+			Guid serverGuid = id;
 			Guid userGuid = Guid.Parse(userId);
 
 			var server = await _context.Servers
@@ -206,12 +206,12 @@ namespace HPEChat_Server.Controllers
 
 		[HttpPost("leave/{id}")]
 		[Authorize]
-		public async Task<ActionResult<ServerDto>> LeaveServer(string id)
+		public async Task<ActionResult<ServerDto>> LeaveServer(Guid id)
 		{
 			var userId = User.GetUserId();
 			if (userId == null) return BadRequest("User not found");
 
-			Guid serverGuid = Guid.Parse(id);
+			Guid serverGuid = id;
 			Guid userGuid = Guid.Parse(userId);
 
 			var server = await _context.Servers
@@ -239,12 +239,12 @@ namespace HPEChat_Server.Controllers
 
 		[HttpDelete("{id}")]
 		[Authorize]
-		public async Task<ActionResult> DeleteServer(string id)
+		public async Task<ActionResult> DeleteServer(Guid id)
 		{
 			var userId = User.GetUserId();
 			if (userId == null) return BadRequest("User not found");
 
-			Guid serverGuid = Guid.Parse(id);
+			Guid serverGuid = id;
 			Guid userGuid = Guid.Parse(userId);
 
 			var server = await _context.Servers
@@ -259,15 +259,15 @@ namespace HPEChat_Server.Controllers
 
 		[HttpPost("kick/{serverId}/{userId}")]
 		[Authorize]
-		public async Task<ActionResult> KickUser(string serverId, string userId)
+		public async Task<ActionResult> KickUser(Guid serverId, Guid userId)
 		{
 			if (!ModelState.IsValid) return BadRequest(ModelState);
 
 			var ownerId = User.GetUserId();
 			if (ownerId == null) return BadRequest("User not found");
 
-			Guid serverGuid = Guid.Parse(serverId);
-			Guid userGuid = Guid.Parse(userId);
+			Guid serverGuid = serverId;
+			Guid userGuid = userId;
 			Guid ownerGuid = Guid.Parse(ownerId);
 
 			var user = await _context.Users.FindAsync(userGuid);

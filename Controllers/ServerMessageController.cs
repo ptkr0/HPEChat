@@ -19,23 +19,30 @@ namespace HPEChat_Server.Controllers
 			_context = context;
 		}
 
-		[HttpGet("{channelId}")]
+		[HttpGet]
 		[Authorize]
-		public async Task<ActionResult<ICollection<ServerMessageDto>>> GetAllMessages(string channelId)
+		public async Task<ActionResult<ICollection<ServerMessageDto>>> GetMessages([FromQuery] GetServerMessagesDto messagesDto)
 		{
 			if (!ModelState.IsValid) return BadRequest(ModelState);
 
 			var userId = User.GetUserId();
 			if (userId == null) return BadRequest("User not found");
 
-			Guid channelGuid = Guid.Parse(channelId);
+			Guid channelGuid = messagesDto.ChannelId;
+			DateTimeOffset? lastCreatedAt = messagesDto.LastCreatedAt;
 			Guid userGuid = Guid.Parse(userId);
+			int pageSize = 20;
 
-			var messages = await _context.ServerMessages
+			var query = _context.ServerMessages
 				.Where(m =>
-					m.ChannelId == channelGuid && // only messages from the specified channel
-					m.Channel.Server.Members.Any(mem => mem.Id == userGuid)) // only messages from channels the user is a member of
-				.OrderBy(m => m.SentAt)
+					m.ChannelId == channelGuid && // only messages from the specified channel  
+					m.Channel.Server.Members.Any(mem => mem.Id == userGuid)); // only messages from channels the user is a member of  
+
+			if (lastCreatedAt.HasValue) query = query.Where(m => m.SentAt < lastCreatedAt.Value); // only messages sent before the last loaded message  
+
+			var messages = await query
+				.OrderByDescending(m => m.SentAt)
+				.ThenByDescending(m => m.Id)
 				.Select(m => new ServerMessageDto
 				{
 					Id = m.Id.ToString(),
@@ -45,6 +52,7 @@ namespace HPEChat_Server.Controllers
 					SentAt = m.SentAt,
 					IsEdited = m.IsEdited,
 				})
+				.Take(pageSize)
 				.ToListAsync();
 
 			return Ok(messages);
@@ -59,7 +67,7 @@ namespace HPEChat_Server.Controllers
 			var userId = User.GetUserId();
 			if (userId == null) return BadRequest("User not found");
 
-			Guid channelGuid = Guid.Parse(messageDto.ChannelId);
+			Guid channelGuid = messageDto.ChannelId;
 			Guid userGuid = Guid.Parse(userId);
 
 			var channel = await _context.Channels
@@ -91,14 +99,14 @@ namespace HPEChat_Server.Controllers
 
 		[HttpPatch("{id}")]
 		[Authorize]
-		public async Task<ActionResult<ServerMessageDto>> EditMessage(string id, [FromBody][Required][MaxLength(2000)] string message)
+		public async Task<ActionResult<ServerMessageDto>> EditMessage([Required]Guid id, [FromBody][Required][MaxLength(2000)] string message)
 		{
 			if (!ModelState.IsValid) return BadRequest(ModelState);
 
 			var userId = User.GetUserId();
 			if (userId == null) return BadRequest("User not found");
 
-			Guid messageGuid = Guid.Parse(id);
+			Guid messageGuid = id;
 			Guid userGuid = Guid.Parse(userId);
 
 			var serverMessage = await _context.ServerMessages
@@ -125,14 +133,14 @@ namespace HPEChat_Server.Controllers
 
 		[HttpDelete("{id}")]
 		[Authorize]
-		public async Task<ActionResult> DeleteMessage(string id)
+		public async Task<ActionResult> DeleteMessage(Guid id)
 		{
 			if (!ModelState.IsValid) return BadRequest(ModelState);
 
 			var userId = User.GetUserId();
 			if (userId == null) return BadRequest("User not found");
 
-			Guid messageGuid = Guid.Parse(id);
+			Guid messageGuid = id;
 			Guid userGuid = Guid.Parse(userId);
 
 			var serverMessage = await _context.ServerMessages

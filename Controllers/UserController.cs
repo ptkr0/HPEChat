@@ -49,7 +49,7 @@ namespace HPEChat_Server.Controllers
 
 		[HttpPatch("grant-admin/{id}")]
 		[Authorize(Roles = "Admin")]
-		public async Task<ActionResult<User>> GrantAdmin(string id)
+		public async Task<ActionResult<User>> GrantAdmin(Guid id)
 		{
 			if (!ModelState.IsValid) return BadRequest(ModelState);
 
@@ -77,7 +77,7 @@ namespace HPEChat_Server.Controllers
 
 		[HttpPatch("revoke-admin/{id}")]
 		[Authorize(Roles = "Admin")]
-		public async Task<ActionResult<User>> RevokeAdmin(string id)
+		public async Task<ActionResult<User>> RevokeAdmin(Guid id)
 		{
 			if (!ModelState.IsValid) return BadRequest(ModelState);
 
@@ -138,7 +138,10 @@ namespace HPEChat_Server.Controllers
 		[Authorize]
 		public IActionResult AuthTest()
 		{
-			return Ok(new { message = "You are authorized!" });
+			var userId = User.GetUserId();
+			var username = User.GetUsername();
+			var role = User.GetRole();
+			return Ok(new UserInfoDto { Id = userId!, Username = username!, Role = role! });
 		}
 
 		[HttpGet("admin-test")]

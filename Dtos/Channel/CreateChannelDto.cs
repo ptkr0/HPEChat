@@ -5,7 +5,7 @@ namespace HPEChat_Server.Dtos.Channel
 	public class CreateChannelDto
 	{
 		[Required]
-		public string ServerId { get; set; } = string.Empty;
+		public Guid ServerId { get; set; }
 
 		[Required]
 		[MaxLength(50)]
