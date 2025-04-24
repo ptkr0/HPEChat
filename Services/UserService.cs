@@ -12,6 +12,12 @@ namespace HPEChat_Server.Services
 {
 	public class UserService(ApplicationDBContext context, IConfiguration configuration)
 	{
+		public async Task<User?> GetUserByIdAsync(string id)
+		{
+			return await context.Users
+				.FirstOrDefaultAsync(u => u.Id.ToString() == id);
+		}
+
 		public async Task<User?> RegisterAsync(UserDto register)
 		{
 			if (await context.Users.AnyAsync(u => u.Username.ToUpper() == register.Username.ToUpper())) return null;
@@ -51,6 +57,43 @@ namespace HPEChat_Server.Services
 				Username = user.Username,
 				Token = token
 			};
+		}
+
+		public async Task<bool> ChangePasswordAsync(User user, ChangePasswordDto passwordDto)
+		{
+			var passwordVerificationResult = new PasswordHasher<User>()
+				.VerifyHashedPassword(user, user.PasswordHash, passwordDto.OldPassword);
+			if (passwordVerificationResult == PasswordVerificationResult.Failed) return false;
+
+			var hashedPassword = new PasswordHasher<User>()
+				.HashPassword(user, passwordDto.NewPassword);
+
+			user.PasswordHash = hashedPassword;
+			context.Users.Update(user);
+			await context.SaveChangesAsync();
+
+			return true;
+		}
+
+		public bool CheckIfRoot(string userId)
+		{
+			return configuration.GetValue<string>("RootId") == userId;
+		}
+
+		public async Task<User?> UpdateUserAsync(User user)
+		{
+			try
+			{
+				context.Users.Update(user);
+				await context.SaveChangesAsync();
+
+				return user;
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine(ex.Message);
+				return null;
+			}
 		}
 
 		public string CreateToken(User user)

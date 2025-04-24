@@ -55,6 +55,10 @@ namespace HPEChat_Server.Data
 				.HasForeignKey(c => c.OwnerId)
 				.OnDelete(DeleteBehavior.Cascade);
 
+			modelBuilder.Entity<Server>()
+				.HasIndex(s => s.Name)
+				.IsUnique();
+
 			// many to many relationship between users and servers
 			modelBuilder.Entity<Server>()
 			  .HasMany(s => s.Members)

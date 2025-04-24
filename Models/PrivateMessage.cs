@@ -11,7 +11,6 @@ namespace HPEChat_Server.Models
 		public string Message { get; set; } = string.Empty;
 		public required DateTimeOffset SentAt { get; set; } = DateTimeOffset.UtcNow;
 		public bool IsRead { get; set; } = false;
-		public bool IsDeleted { get; set; } = false;
 		public bool IsEdited { get; set; } = false;
 
 		public virtual User Sender { get; set; } = null!;

@@ -1,8 +1,8 @@
 ﻿using HPEChat_Server.Dtos.User;
+using HPEChat_Server.Extensions;
 using HPEChat_Server.Models;
 using HPEChat_Server.Services;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HPEChat_Server.Controllers
@@ -47,6 +47,80 @@ namespace HPEChat_Server.Controllers
 			return Ok(user);
 		}
 
+		[HttpPatch("grant-admin/{id}")]
+		[Authorize(Roles = "Admin")]
+		public async Task<ActionResult<User>> GrantAdmin(string id)
+		{
+			if (!ModelState.IsValid) return BadRequest(ModelState);
+
+			var userId = User.GetUserId();
+			if (userId == null) return BadRequest("User not found");
+
+			if(!userService.CheckIfRoot(userId)) return Unauthorized("You are not head admin");
+
+			var user = await userService.GetUserByIdAsync(id.ToString());
+			if (user == null) return BadRequest("User not found");
+			if (user.Role == "Admin") return BadRequest("User is already admin");
+
+			user.Role = "Admin";
+
+			var result = await userService.UpdateUserAsync(user);
+			if (result == null) return BadRequest("Error updating user privileges");
+
+			return Ok(new
+			{
+				user.Id,
+				user.Username,
+				user.Role,
+			});
+		}
+
+		[HttpPatch("revoke-admin/{id}")]
+		[Authorize(Roles = "Admin")]
+		public async Task<ActionResult<User>> RevokeAdmin(string id)
+		{
+			if (!ModelState.IsValid) return BadRequest(ModelState);
+
+			var userId = User.GetUserId();
+			if (userId == null) return BadRequest("User not found");
+
+			if (!userService.CheckIfRoot(userId)) return Unauthorized("You are not head admin");
+
+			var user = await userService.GetUserByIdAsync(id.ToString());
+			if (user == null) return BadRequest("User not found");
+			if (user.Role != "Admin") return BadRequest("User is not admin");
+
+			user.Role = "User";
+
+			var result = await userService.UpdateUserAsync(user);
+			if (result == null) return BadRequest("Error updating user privileges");
+
+			return Ok(new
+			{
+				user.Id,
+				user.Username,
+				user.Role,
+			});
+		}
+
+		[HttpPatch]
+		[Authorize]
+		public async Task<ActionResult<User>> ChangePassword([FromBody] ChangePasswordDto passwordDto)
+		{
+			if (!ModelState.IsValid) return BadRequest(ModelState);
+
+			var userId = User.GetUserId();
+			if (userId == null) return BadRequest("User not found");
+
+			var user = await userService.GetUserByIdAsync(userId);
+			if (user == null) return BadRequest("User not found");
+
+			var result = await userService.ChangePasswordAsync(user, passwordDto);
+			if (!result) return BadRequest("Error updating user");
+
+			return Ok(new { message = "Password changed"});
+		}
+
 		[HttpPost("logout")]
 		public IActionResult Logout()
 		{
@@ -57,21 +131,21 @@ namespace HPEChat_Server.Controllers
 				Secure = true
 			});
 
-			return Ok("You log out!");
+			return Ok(new { message = "You log out!" });
 		}
 
 		[HttpGet("auth-test")]
 		[Authorize]
 		public IActionResult AuthTest()
 		{
-			return Ok("You are authorized!");
+			return Ok(new { message = "You are authorized!" });
 		}
 
 		[HttpGet("admin-test")]
 		[Authorize(Roles = "Admin")]
 		public IActionResult AdminTest()
 		{
-			return Ok("You are authorized as admin!");
+			return Ok(new { message = "You are authorized as admin!" });
 		}
 	}
 }

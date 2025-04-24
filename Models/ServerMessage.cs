@@ -10,7 +10,6 @@ namespace HPEChat_Server.Models
 		[MaxLength(2000)]
 		public string Message { get; set; } = string.Empty;
 		public required DateTimeOffset SentAt { get; set; } = DateTimeOffset.UtcNow;
-		public bool IsDeleted { get; set; } = false;
 		public bool IsEdited { get; set; } = false;
 
 		public virtual Channel Channel { get; set; } = null!;

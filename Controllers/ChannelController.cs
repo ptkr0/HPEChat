@@ -27,9 +27,12 @@ namespace HPEChat_Server.Controllers
 			var userId = User.GetUserId();
 			if (userId == null) return Unauthorized("User not found");
 
-			var server = await _context.Servers.FindAsync(Guid.Parse(createChannelDto.ServerId));
+			Guid userGuid = Guid.Parse(userId);
+			Guid serverGuid = Guid.Parse(createChannelDto.ServerId);
+
+			var server = await _context.Servers.FindAsync(serverGuid);
 			if (server == null) return NotFound("Server not found");
-			if (server.OwnerId.ToString() != userId) return Unauthorized("You are not the owner of this server");
+			if (server.OwnerId != userGuid) return Unauthorized("You are not the owner of this server");
 
 			var channel = new Channel
 			{
@@ -56,9 +59,11 @@ namespace HPEChat_Server.Controllers
 			var userId = User.GetUserId();
 			if (userId == null) return Unauthorized("User not found");
 
-			var channelId = Guid.Parse(id);
+			Guid channelGuid = Guid.Parse(id);
+			Guid userGuid = Guid.Parse(userId);
+
 			var channel = await _context.Channels
-				.FirstOrDefaultAsync(c => c.Id == channelId && c.Server.OwnerId.ToString() == userId);
+				.FirstOrDefaultAsync(c => c.Id == channelGuid && c.Server.OwnerId == userGuid);
 
 			if (channel == null) return NotFound("Channel not found or access denied");
 
@@ -75,16 +80,18 @@ namespace HPEChat_Server.Controllers
 
 		[HttpDelete("{id}")]
 		[Authorize]
-		public async Task<IActionResult> DeleteChannel(string id)
+		public async Task<ActionResult> DeleteChannel(string id)
 		{
 			if (!ModelState.IsValid) return BadRequest(ModelState);
 
 			var userId = User.GetUserId();
 			if (userId == null) return Unauthorized("User not found");
 
-			var channelId = Guid.Parse(id);
+			Guid channelGuid = Guid.Parse(id);
+			Guid userGuid = Guid.Parse(userId);
+
 			var channel = await _context.Channels
-				.FirstOrDefaultAsync(c => c.Id == channelId && c.Server.OwnerId.ToString() == userId);
+				.FirstOrDefaultAsync(c => c.Id == channelGuid && c.Server.OwnerId == userGuid);
 
 			if (channel == null) return NotFound("Channel not found or access denied");
 
@@ -92,7 +99,7 @@ namespace HPEChat_Server.Controllers
 
 			await _context.SaveChangesAsync();
 
-			return NoContent();
+			return Ok(new { message = "Server deleted successfully" });
 		}
 
 		[HttpGet("{id}")]
@@ -104,10 +111,11 @@ namespace HPEChat_Server.Controllers
 			var userId = User.GetUserId();
 			if (userId == null) return Unauthorized("User not found");
 
-			var channelId = Guid.Parse(id);
+			Guid channelGuid = Guid.Parse(id);
+			Guid userGuid = Guid.Parse(userId);
 
 			var channel = await _context.Channels
-			.FirstOrDefaultAsync(c => c.Id == channelId && c.Server.Members.Any(m => m.Id == Guid.Parse(userId)));
+			.FirstOrDefaultAsync(c => c.Id == channelGuid && c.Server.Members.Any(m => m.Id == userGuid));
 
 			if (channel == null) return NotFound("Channel not found or access denied");
 
