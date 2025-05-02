@@ -50,18 +50,19 @@ builder.Services.AddDbContext<ApplicationDBContext>(options =>
 
 builder.Services.AddCors(options =>
 {
-	options.AddPolicy("AllowAll",
-		builder =>
-		{
-			builder.AllowAnyOrigin()
-				.AllowAnyMethod()
-				.AllowAnyHeader();
-		});
+	options.AddPolicy("CorsPolicy",
+		policy => policy
+			.WithOrigins("http://localhost:5173",
+				"https://localhost:5173")
+			.AllowCredentials()
+			.AllowAnyMethod()
+			.AllowAnyHeader());
 });
 
 builder.Services.AddScoped<UserService>();
 
 var app = builder.Build();
+app.UseCors("CorsPolicy");
 
 if (app.Environment.IsDevelopment())
 {

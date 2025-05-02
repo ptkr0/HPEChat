@@ -124,7 +124,7 @@ namespace HPEChat_Server.Controllers
 		[HttpPost("logout")]
 		public IActionResult Logout()
 		{
-			Response.Cookies.Delete("Authorization", new CookieOptions
+			Response.Cookies.Delete("Ciasteczko", new CookieOptions
 			{
 				HttpOnly = true,
 				SameSite = SameSiteMode.None,

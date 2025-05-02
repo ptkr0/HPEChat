@@ -10,13 +10,54 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
+import { useContext, useState } from "react"
+import AuthContext from "@/context/AuthProvider"
+import axios from "../api/axios"
+import { Navigate } from "react-router"
+const LOGIN_URL = "User/login"
 
-export function LoginForm({
-  className,
-  ...props
-}: React.ComponentPropsWithoutRef<"div">) {
+const LoginForm = () => {
+
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [success, setSuccess] = useState(false);
+
+  const { setUser } = useContext(AuthContext);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    try {
+      const response = await axios.post(LOGIN_URL, { username, password },
+        {
+          headers: { "Content-Type": "application/json" },
+          withCredentials: true,
+        }
+      );
+
+      setUser({id: response?.data.id, username: response?.data.username, role: response?.data.role});
+      setSuccess(true);
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    catch (err: any) {
+      if(err?.response?.status === 400) {
+        toast.error("Błędne dane logowania");
+      }
+      else if (err?.response?.status === 500) {
+        toast.error("Błąd serwera");
+      }
+    }
+      
+  }
+
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
+    <>
+      {success ? (
+        <div>
+          <Navigate to="/home"/>
+        </div>
+      ) : (
+    <div className={cn("flex flex-col gap-6",)}>
       <Card>
         <CardHeader>
           <CardTitle className="text-2xl">Logowanie</CardTitle>
@@ -25,7 +66,7 @@ export function LoginForm({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form>
+          <form onSubmit={handleSubmit}>
             <div className="flex flex-col gap-6">
               <div className="grid gap-2">
                 <Label htmlFor="username">Nazwa użytkownika</Label>
@@ -33,15 +74,22 @@ export function LoginForm({
                   id="username"
                   type="text"
                   required
+                  value={username} 
+                  onChange={(e)=> setUsername(e.target.value)}
                 />
               </div>
               <div className="grid gap-2">
                 <div className="flex items-center">
                   <Label htmlFor="password">Hasło</Label>
                 </div>
-                <Input id="password" type="password" required />
+                <Input 
+                  id="password" 
+                  type="password" 
+                  value={password} 
+                  onChange={(e)=> setPassword(e.target.value)} 
+                  required />
               </div>
-              <Button type="submit" className="w-full">
+              <Button type="submit" className="w-full" disabled={!username || !password}>
                 Zaloguj
               </Button>
             </div>
@@ -49,7 +97,7 @@ export function LoginForm({
               Nie masz konta?{" "}
               <a className="underline underline-offset-4 cursor-pointer"
                   onClick={() =>
-                    toast.error("Zarejestrować cię może tylko administator", {
+                    toast.info("Zarejestrować cię może tylko administator", {
                     })
                   }
                 >
@@ -60,5 +108,9 @@ export function LoginForm({
         </CardContent>
       </Card>
     </div>
+      )}
+    </>
   )
-}
+};
+
+export default LoginForm;

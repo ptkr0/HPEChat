@@ -1,23 +1,22 @@
+import { Link } from 'react-router';
 import './App.css'
-import { ThemeProvider } from './components/theme-provider'
-import { LoginForm } from './components/login-form'
-import { ModeToggle } from './components/mode-toggle';
-import { Toaster } from 'sonner';
+import { Button } from './components/ui/button';
 
 function App() {
   return (
-    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-      <Toaster richColors/>
-        <div className="fixed right-4 top-4 z-50">
-          <ModeToggle />
+    <div className='flex flex-col items-center justify-center space-y-4 text-center fixed right-0.5 top-0.5 left-0.5 bottom-0.5 p-6 md:p-10'>
+        <div className='space-y-2'>
+          <h1 className='text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl lg:text-6xl/none'>
+            Witaj w HPEChat
+          </h1>
+          <p className='mx-auto max-w-[700px] md:text-xl'>
+            Prywatny i darmowy
+          </p>
+          <Link to='/login'>
+            <Button>Zaloguj się</Button>
+          </Link>
         </div>
-
-        <div className="flex h-auto w-full items-center justify-center p-6 md:p-10">
-          <div className="w-full max-w-sm">
-            <LoginForm />
-          </div>
-        </div>
-    </ThemeProvider>
+    </div>
   );
 }
 

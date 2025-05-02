@@ -8,7 +8,7 @@ export interface ThemeContextValue {
 }
 
 const defaultValue: ThemeContextValue = {
-  theme: "system",
+  theme: "dark",
   setTheme: () => {
     /* noop */
   },
