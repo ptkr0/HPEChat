@@ -48,36 +48,6 @@ const servers: Server[] = [
         description: "Description 5",
         owner: "Owner 5",
     },
-    {
-        id: "6",
-        name: "Server 6",
-        description: "Description 6",
-        owner: "Owner 6",
-    },
-    {
-        id: "7",
-        name: "Server 7",
-        description: "Description 7",
-        owner: "Owner 7",
-    },
-    {
-        id: "8",
-        name: "Server 8",
-        description: "Description 8",
-        owner: "Owner 8",
-    },
-    {
-        id: "9",
-        name: "Server 9",
-        description: "Description 9",
-        owner: "Owner 9",
-    },
-    {
-        id: "10",
-        name: "Server 10",
-        description: "Description 10",
-        owner: "Owner 10",
-    },
 ];
 
 const users: PrivateMessageList[] = [
@@ -85,10 +55,6 @@ const users: PrivateMessageList[] = [
     { id: "2", name: "User 2", lastMessage: "Hi", time: "10:05" },
     { id: "3", name: "User 3", lastMessage: "How are you?", time: "10:10" },
     { id: "4", name: "User 4", lastMessage: "Good morning", time: "10:15" },
-    { id: "5", name: "User 5", lastMessage: "Good night", time: "10:20" },
-    { id: "6", name: "User 6", lastMessage: "See you later", time: "10:25" },
-    { id: "7", name: "User 7", lastMessage: "Take care", time: "10:30" },
-    { id: "8", name: "User 8", lastMessage: "Bye", time: "10:35" },
 ];
 
 const user = {
