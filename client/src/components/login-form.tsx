@@ -28,22 +28,17 @@ const LoginForm = () => {
     e.preventDefault();
 
     try {
-      const response = await axios.post(LOGIN_URL, { username, password },
-        {
-          headers: { "Content-Type": "application/json" },
-          withCredentials: true,
-        }
-      );
+      const response = await axios.post(LOGIN_URL, { username, password });
 
       setUser({id: response?.data.id, username: response?.data.username, role: response?.data.role});
       setSuccess(true);
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     catch (err: any) {
-      if(err?.response?.status === 400) {
+      if(err.response?.status === 400) {
         toast.error("Błędne dane logowania");
       }
-      else if (err?.response?.status === 500) {
+      else if (err.response?.status === 500) {
         toast.error("Błąd serwera");
       }
     }
