@@ -1,4 +1,4 @@
-import { axiosPrivate } from "@/api/axios";
+import { userService } from "@/services/userService"
 import { User } from "@/types/user.type";
 import { createContext, useState, ReactNode, useEffect } from "react"
 
@@ -16,14 +16,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     console.log("Fetching user data...");
-    axiosPrivate.get('/User/auth-test', {
-      withCredentials: true,
-    })
+    userService.getMe()
     .then((response) => {
       setUser({
-        id: response.data.id,
-        username: response.data.username,
-        role: response.data.role,
+        id: response.id,
+        username: response.username,
+        role: response.role,
       });
     })
     .catch((error) => {

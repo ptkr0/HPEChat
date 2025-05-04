@@ -12,9 +12,8 @@ import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import { useContext, useState } from "react"
 import AuthContext from "@/context/AuthProvider"
-import axios from "../api/axios"
 import { useNavigate } from "react-router"
-const LOGIN_URL = "User/login"
+import { userService } from "@/services/userService"
 
 const LoginForm = () => {
 
@@ -28,11 +27,9 @@ const LoginForm = () => {
     e.preventDefault();
 
     try {
-      const response = await axios.post(LOGIN_URL, { username, password }, {
-        withCredentials: true,
-      });
+      const response = await userService.login(username, password);
 
-      setUser({id: response?.data.id, username: response?.data.username, role: response?.data.role});
+      setUser({id: response.id, username: response.username, role: response.role});
       navigate("/home", { replace: true });
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

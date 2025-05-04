@@ -4,7 +4,6 @@ import { Navigate, Outlet } from 'react-router';
 
 export function ProtectedRoute({ allowedRoles }: {allowedRoles?: string[] }) {
   const { user, loading } = useContext(AuthContext);
-  console.log("User in ProtectedRoute:", user);
 
   if (loading) return <div>Ładowanie…</div>;
 

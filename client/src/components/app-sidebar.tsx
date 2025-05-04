@@ -1,4 +1,3 @@
-import { Home } from "lucide-react";
 import {
     Sidebar,
     SidebarContent,
@@ -9,46 +8,14 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
-    SidebarRail,
 } from "@/components/ui/sidebar";
 import { NavServers } from "./nav-servers";
 import { NavUsers } from "./nav-users";
-import { Server } from "@/types/server.types";
 import { PrivateMessageList } from "@/types/private-message.types";
 import { NavUser } from "./nav-user";
-
-const servers: Server[] = [
-    {
-        id: "1",
-        name: "Server 1",
-        description: "Description 1",
-        owner: "Owner 1",
-    },
-    {
-        id: "2",
-        name: "Server 2",
-        description: "Description 2",
-        owner: "Owner 2",
-    },
-    {
-        id: "3",
-        name: "Server 3",
-        description: "Description 3",
-        owner: "Owner 3",
-    },
-    {
-        id: "4",
-        name: "Server 4",
-        description: "Description 4",
-        owner: "Owner 4",
-    },
-    {
-        id: "5",
-        name: "Server 5",
-        description: "Description 5",
-        owner: "Owner 5",
-    },
-];
+import { useEffect } from "react";
+import { useAppStore } from "@/stores/appStore";
+import { useNavigate } from "react-router";
 
 const users: PrivateMessageList[] = [
     { id: "1", name: "User 1", lastMessage: "Hello", time: "10:00" },
@@ -58,27 +25,54 @@ const users: PrivateMessageList[] = [
 ];
 
 export function AppSidebar() {
+    const servers = useAppStore((state) => state.servers);
+    const selectedServerId = useAppStore((state) => state.selectedServerId);
+    const fetchServers = useAppStore((state) => state.fetchServers);
+    const selectServer = useAppStore((state) => state.selectServer);
+
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        fetchServers();
+      }, [fetchServers]);
+
+      const handleServerSelect = (serverId: string | null) => {
+        console.log("Selecting server:", serverId);
+        selectServer(serverId);
+
+        if (serverId) {
+             navigate(`/servers/${serverId}`);
+        } else {
+             navigate(`/home`);
+        }
+    };
+    
     return (
         <Sidebar collapsible='none' className='h-screen'>
             <SidebarHeader>
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton asChild>
-                            <a href={`/home`} className='flex items-center'>
-                                <Home className='size-4 shrink-0' />
-                                <span className='ml-2'>Strona Główna</span>
-                            </a>
-                        </SidebarMenuButton>
+                    <SidebarMenuButton
+                        size={"lg"}
+                        onClick={() => handleServerSelect(null)}
+                        className={`py-3 ${!selectedServerId ? "bg-accent" : ""}`}
+                        >
+                        <span className="font-medium text-lg">HPEChat</span>
+                    </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>
             </SidebarHeader>
 
-            <SidebarContent className='custom-scrollbar'>
+            <SidebarContent>
                 <SidebarGroup>
                     <SidebarGroupContent>
                         {/* Servers navigation */}
                         <SidebarMenu>
-                            <NavServers servers={servers} />
+                            <NavServers 
+                                servers={servers}
+                                selectedServerId={selectedServerId}
+                                onServerSelect={handleServerSelect}
+                                />
                         </SidebarMenu>
                     </SidebarGroupContent>
                 </SidebarGroup>
@@ -96,7 +90,6 @@ export function AppSidebar() {
             <SidebarFooter>
                 <NavUser/>
             </SidebarFooter>
-            <SidebarRail />
         </Sidebar>
     );
 }

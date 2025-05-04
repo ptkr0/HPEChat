@@ -8,7 +8,7 @@ export default function Page() {
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset>
+        <SidebarInset>
       </SidebarInset>
     </SidebarProvider>
   )

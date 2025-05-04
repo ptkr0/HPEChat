@@ -24,13 +24,11 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { axiosPrivate } from "@/api/axios"
 import AuthContext from "@/context/AuthProvider"
 import { useContext } from "react"
 import { toast } from "sonner"
 import { useNavigate } from "react-router"
-
-const LOGOUT_URL = "User/logout"
+import { userService } from "@/services/userService"
 
 export function NavUser() {
   const { isMobile } = useSidebar()
@@ -40,7 +38,7 @@ export function NavUser() {
   const logOut = async () => {
 
     try {
-      await axiosPrivate.post(LOGOUT_URL, {});
+      await userService.logout();
 
       setUser({id: '', username: '', role: ''});
       navigate("/login", { replace: true });
