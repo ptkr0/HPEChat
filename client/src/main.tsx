@@ -8,6 +8,7 @@ import { Toaster } from 'sonner'
 import LoginPage from './pages/LoginPage.tsx'
 import { AuthProvider } from './context/AuthProvider.tsx'
 import UserPage from './pages/UserPage.tsx'
+import { ProtectedRoute } from './context/ProtectedRoute.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
@@ -20,7 +21,9 @@ createRoot(document.getElementById('root')!).render(
           <Routes>
             <Route path="/" element={<App />} />
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/home" element={<UserPage />} />
+            <Route element={<ProtectedRoute />}>
+              <Route path="/home" element={<UserPage />} />
+            </Route>
           </Routes>
       </BrowserRouter>
     </AuthProvider>

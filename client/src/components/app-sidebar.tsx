@@ -57,12 +57,6 @@ const users: PrivateMessageList[] = [
     { id: "4", name: "User 4", lastMessage: "Good morning", time: "10:15" },
 ];
 
-const user = {
-    id: "1",
-    name: "User 1",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=122",
-};
-
 export function AppSidebar() {
     return (
         <Sidebar collapsible='none' className='h-screen'>
@@ -72,7 +66,7 @@ export function AppSidebar() {
                         <SidebarMenuButton asChild>
                             <a href={`/home`} className='flex items-center'>
                                 <Home className='size-4 shrink-0' />
-                                <span className='ml-2'>Dom</span>
+                                <span className='ml-2'>Strona Główna</span>
                             </a>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -100,7 +94,7 @@ export function AppSidebar() {
             </SidebarContent>
 
             <SidebarFooter>
-                <NavUser user={user} />
+                <NavUser/>
             </SidebarFooter>
             <SidebarRail />
         </Sidebar>

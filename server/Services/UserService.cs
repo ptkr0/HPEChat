@@ -101,7 +101,7 @@ namespace HPEChat_Server.Services
 			var claims = new List<Claim>
 			{
 				new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-				new Claim(ClaimTypes.Name, user.Username),
+				new Claim(ClaimTypes.GivenName, user.Username),
 				new Claim(ClaimTypes.Role, user.Role)
 			};
 

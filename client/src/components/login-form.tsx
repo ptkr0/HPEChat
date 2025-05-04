@@ -13,25 +13,27 @@ import { toast } from "sonner"
 import { useContext, useState } from "react"
 import AuthContext from "@/context/AuthProvider"
 import axios from "../api/axios"
-import { Navigate } from "react-router"
+import { useNavigate } from "react-router"
 const LOGIN_URL = "User/login"
 
 const LoginForm = () => {
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [success, setSuccess] = useState(false);
 
   const { setUser } = useContext(AuthContext);
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     try {
-      const response = await axios.post(LOGIN_URL, { username, password });
+      const response = await axios.post(LOGIN_URL, { username, password }, {
+        withCredentials: true,
+      });
 
       setUser({id: response?.data.id, username: response?.data.username, role: response?.data.role});
-      setSuccess(true);
+      navigate("/home", { replace: true });
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     catch (err: any) {
@@ -46,12 +48,6 @@ const LoginForm = () => {
   }
 
   return (
-    <>
-      {success ? (
-        <div>
-          <Navigate to="/home"/>
-        </div>
-      ) : (
     <div className={cn("flex flex-col gap-6",)}>
       <Card>
         <CardHeader>
@@ -103,8 +99,6 @@ const LoginForm = () => {
         </CardContent>
       </Card>
     </div>
-      )}
-    </>
   )
 };
 

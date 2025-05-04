@@ -141,7 +141,7 @@ namespace HPEChat_Server.Controllers
 			var userId = User.GetUserId();
 			var username = User.GetUsername();
 			var role = User.GetRole();
-			return Ok(new UserInfoDto { Id = userId!, Username = "this jwt doesn't store username", Role = role! });
+			return Ok(new UserInfoDto { Id = userId!, Username = username!, Role = role! });
 		}
 
 		[HttpGet("admin-test")]
