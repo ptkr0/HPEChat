@@ -48,7 +48,7 @@ export function AppSidebar() {
     };
     
     return (
-        <Sidebar collapsible='none' className='h-screen'>
+        <Sidebar collapsible='none' className='h-screen border-r border-r-border'>
             <SidebarHeader>
                 <SidebarMenu>
                     <SidebarMenuItem>
@@ -57,7 +57,7 @@ export function AppSidebar() {
                         onClick={() => handleServerSelect(null)}
                         className={`py-3 ${!selectedServerId ? "bg-accent" : ""}`}
                         >
-                        <span className="font-medium text-lg">HPEChat</span>
+                        <span className="font-semibold text-lg">HPEChat</span>
                     </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>

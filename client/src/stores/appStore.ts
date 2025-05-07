@@ -3,6 +3,7 @@ import { Server, ServerDetails } from '@/types/server.types';
 import { Channel } from '@/types/channel.types';
 import { serverService } from '@/services/serverService';
 import { User } from '@/types/user.type';
+import { toast } from 'sonner';
 
 
 interface AppState {
@@ -80,6 +81,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           }
         } catch (error) {
           console.error(`Error fetching details for server ${serverId}:`, error);
+          toast.error('Nie udało się pobrać szczegółów serwera.');
           if (get().selectedServerId === serverId) {
             set({ serverDetailsError: 'Nie udało się pobrać szczegółów serwera.', serverDetailsLoading: false });
           }
@@ -102,6 +104,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
       return null;
     } catch (error) {
+      toast.error('Serwer o takiej nazwie już istnieje.');
       console.error("Error creating server:", error);
       return null;
     }
@@ -116,6 +119,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
        return null;
     } catch (error) {
+      toast.error('Nie udało się dołączyć do serwera. Sprawdź nazwę serwera.');
       console.error("Error joining server:", error);
       return null;
     }
