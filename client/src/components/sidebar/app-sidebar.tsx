@@ -7,7 +7,6 @@ import {
     SidebarHeader,
     SidebarMenu,
     SidebarMenuButton,
-    SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { NavServers } from "./nav-servers";
 import { NavUsers } from "./nav-users";
@@ -36,22 +35,20 @@ export function AppSidebar() {
         fetchServers();
       }, [fetchServers]);
 
-      const handleServerSelect = (serverId: string | null) => {
+    const handleServerSelect = (serverId: string | null) => {
         console.log("Selecting server:", serverId);
         selectServer(serverId);
 
         if (serverId) {
-             navigate(`/servers/${serverId}`);
+                navigate(`/servers/${serverId}`);
         } else {
-             navigate(`/home`);
+                navigate(`/home`);
         }
     };
     
     return (
         <Sidebar collapsible='none' className='h-screen border-r border-r-border'>
             <SidebarHeader>
-                <SidebarMenu>
-                    <SidebarMenuItem>
                     <SidebarMenuButton
                         size={"lg"}
                         onClick={() => handleServerSelect(null)}
@@ -59,8 +56,6 @@ export function AppSidebar() {
                         >
                         <span className="font-semibold text-lg">HPEChat</span>
                     </SidebarMenuButton>
-                    </SidebarMenuItem>
-                </SidebarMenu>
             </SidebarHeader>
 
             <SidebarContent>

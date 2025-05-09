@@ -27,25 +27,9 @@ export function NavServers({ servers, selectedServerId, onServerSelect }: NavSer
   const[showJoinServerModal, setShowJoinServerModal] = useState(false);
   const serversLoading = useAppStore((state) => state.serversLoading);
 
-  const handleCreateServer = () => {
-    setShowCreateServerModal(true);
-  };
-
-  const handleCloseCreateServerModal = () => {
-    setShowCreateServerModal(false);
-  };
-
-  const handleCloseJoinServerModal = () => {
-    setShowJoinServerModal(false);
-  };
-
-  const handleJoinServer = () => {
-    setShowJoinServerModal(true);
-  };
-  
 
   return (
-    <div className="mt-2">
+    <div>
       <SidebarGroupLabel className="text-base font-semibold">Serwery</SidebarGroupLabel>
       <div className="mt-1 space-y-0.5">
       {serversLoading ? (
@@ -61,9 +45,9 @@ export function NavServers({ servers, selectedServerId, onServerSelect }: NavSer
                 { 'bg-accent text-accent-foreground': server.id === selectedServerId }
               )}
             >
-              <Avatar className="size-10 rounded-full flex items-center justify-center shrink-0 mr-2 overflow-hidden">
+              <Avatar className="size-10 rounded-lg flex items-center justify-center shrink-0 mr-2 overflow-hidden">
                 <AvatarImage alt={server.name} />
-                <AvatarFallback className="bg-muted text-foreground flex items-center justify-center text-sm font-medium w-full h-full">
+                <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground flex items-center justify-center text-sm font-medium w-full h-full">
                   {server.name[0].toUpperCase()}
                 </AvatarFallback>
               </Avatar>
@@ -88,7 +72,7 @@ export function NavServers({ servers, selectedServerId, onServerSelect }: NavSer
 
               <div
               className={clsx(
-                "absolute left-0 mt-1 w-full bg-popover rounded-md shadow-md p-1 z-10 transition-all duration-300 ease-in-out",
+                "absolute left-0 mt-1 w-full bg-popover rounded-md shadow-md p-1 z-10 transition-all duration-300 ease-in-out border-1 border-border",
                 {
                 "opacity-0 pointer-events-none": !dropdownMenu,
                 "opacity-100": dropdownMenu
@@ -96,13 +80,13 @@ export function NavServers({ servers, selectedServerId, onServerSelect }: NavSer
               )}
               >
                 <Button variant={"ghost"}
-                  onClick={handleJoinServer}
+                  onClick={() => setShowJoinServerModal(true)}
                   className="w-full text-left px-3 py-2 text-sm rounded-sm"
                 >
                   Dołącz do serwera
                 </Button>
                 <Button variant={"ghost"}
-                  onClick={handleCreateServer}
+                  onClick={() => setShowCreateServerModal(true)}
                   className="w-full text-left px-3 py-2 text-sm rounded-sm"
                 >
                   Załóż nowy serwer
@@ -113,12 +97,12 @@ export function NavServers({ servers, selectedServerId, onServerSelect }: NavSer
 
       <CreateServerModal
         isOpen={showCreateServerModal}
-        onClose={handleCloseCreateServerModal}
+        onClose={() => setShowCreateServerModal(false)}
       />
 
       <JoinServerModal
         isOpen={showJoinServerModal}
-        onClose={handleCloseJoinServerModal}
+        onClose={() => setShowJoinServerModal(false)}
       />
     </div>
   )

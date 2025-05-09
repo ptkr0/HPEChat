@@ -1,15 +1,7 @@
-import { AppSidebar } from "@/components/sidebar/app-sidebar"
-import {
-  SidebarInset,
-  SidebarProvider,
-} from "@/components/ui/sidebar"
-
 export default function Page() {
   return (
-    <SidebarProvider>
-      <AppSidebar />
-        <SidebarInset>
-      </SidebarInset>
-    </SidebarProvider>
+    <div className="flex-1 flex items-center justify-center p-8">
+      <h1 className="text-2xl">Witaj w HPEChat 👋</h1>
+    </div>
   )
 }

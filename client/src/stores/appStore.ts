@@ -4,6 +4,7 @@ import { Channel } from '@/types/channel.types';
 import { serverService } from '@/services/serverService';
 import { User } from '@/types/user.type';
 import { toast } from 'sonner';
+import { channelService } from '@/services/channelService';
 
 
 interface AppState {
@@ -13,6 +14,9 @@ interface AppState {
   fetchServers: () => Promise<void>;
 
   selectedServerId: string | null;
+  selectedServer: Server | null;
+  selectedServerName: string | null;
+  selectedServerDescription: string | null;
   channels: Channel[];
   members: User[];
   serverDetailsLoading: boolean;
@@ -24,6 +28,10 @@ interface AppState {
 
   createServer: (newServerData: Omit<Server, 'id' | 'owner' | 'description'> & { description?: string }) => Promise<Server | null>;
   joinServer: (inviteCode: string) => Promise<Server | null>;
+
+  createChannel: (newChannelData: Omit<Channel, 'id'>) => Promise<Channel | null>;
+
+  deleteChannel: (channelId: string) => Promise<void>;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -32,6 +40,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   serversError: null,
 
   selectedServerId: null,
+  selectedServer: null,
+  selectedServerName: null,
+  selectedServerDescription: null,
   channels: [],
   members: [],
   serverDetailsLoading: false,
@@ -59,6 +70,9 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     set({
       selectedServerId: serverId,
+      selectedServer: null,
+      selectedServerName: null,
+      selectedServerDescription: null,
       channels: [],
       members: [],
       selectedChannelId: null,
@@ -74,6 +88,9 @@ export const useAppStore = create<AppState>((set, get) => ({
 
           if (get().selectedServerId === serverId) {
             set({
+              selectedServer: serverDetails,
+              selectedServerName: serverDetails.name,
+              selectedServerDescription: serverDetails.description,
               channels: serverDetails.channels,
               members: serverDetails.members,
               serverDetailsLoading: false,
@@ -124,4 +141,40 @@ export const useAppStore = create<AppState>((set, get) => ({
       return null;
     }
   },
+
+  createChannel: async (name) => {
+    const selectedServerId = get().selectedServerId;
+    if (!selectedServerId) {
+      toast.error('Nie wybrano serwera.');
+      return null;
+    }
+
+    try {
+      const newChannel = await channelService.createChannel({ serverId: selectedServerId, ...name });
+      if (newChannel) {
+        set((state) => ({ channels: [...state.channels, newChannel] }));
+        return newChannel;
+      }
+      return null;
+    } catch (error) {
+        toast.error('Nie udało się utworzyć kanału.');
+        console.error("Error creating channel:", error);
+      return null;
+    }
+  },
+
+  deleteChannel: async (channelId: string) => {
+    try {
+      await channelService.deleteChannel(channelId);
+      set((state) => ({
+        channels: state.channels.filter((channel) => channel.id !== channelId),
+      }));
+      toast.success('Kanał został usunięty.');
+    } catch (error) {
+      toast.error('Nie udało się usunąć kanału.');
+      console.error("Error deleting channel:", error);
+    }
+  },
+
+
 }));
