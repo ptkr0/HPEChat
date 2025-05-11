@@ -5,14 +5,14 @@ export type Server = {
     id: string;
     name: string;
     description: string;
-    owner: string;
+    ownerId: string;
 }
 
 export type ServerDetails = {
     id: string;
     name: string;
     description: string;
-    owner: string;
+    ownerId: string;
     members: User[];
     channels: Channel[];
 }

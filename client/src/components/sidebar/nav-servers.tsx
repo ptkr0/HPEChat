@@ -13,6 +13,7 @@ import { useAppStore } from "@/stores/appStore";
 import { Skeleton } from "../ui/skeleton";
 import { JoinServerModal } from "../modals/join-server-modal";
 import { Avatar, AvatarImage, AvatarFallback } from "@radix-ui/react-avatar";
+import { Separator } from "../ui/separator";
 
 interface NavServersProps {
   servers: Server[];
@@ -85,6 +86,7 @@ export function NavServers({ servers, selectedServerId, onServerSelect }: NavSer
                 >
                   Dołącz do serwera
                 </Button>
+                <Separator />
                 <Button variant={"ghost"}
                   onClick={() => setShowCreateServerModal(true)}
                   className="w-full text-left px-3 py-2 text-sm rounded-sm"

@@ -21,6 +21,8 @@ interface AppState {
   members: User[];
   serverDetailsLoading: boolean;
   serverDetailsError: string | null;
+
+  cachedServers: Map<string, ServerDetails>;
   selectServer: (serverId: string | null) => void;
 
   selectedChannelId: string | null;
@@ -50,6 +52,8 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   selectedChannelId: null,
 
+  cachedServers: new Map(),
+
   fetchServers: async () => {
     set({ serversLoading: true, serversError: null });
     try {
@@ -63,48 +67,77 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   selectServer: (serverId: string | null) => {
-
     if (get().selectedServerId === serverId) {
-        return;
+      return;
     }
 
-    set({
-      selectedServerId: serverId,
-      selectedServer: null,
-      selectedServerName: null,
-      selectedServerDescription: null,
-      channels: [],
-      members: [],
-      selectedChannelId: null,
-      serverDetailsLoading: serverId !== null,
-      serverDetailsError: null,
-    });
-
     if (serverId) {
-      const fetchServerDetails = async () => {
-        try {
+      const cachedDetails = get().cachedServers.get(serverId);
 
-          const serverDetails: ServerDetails = await serverService.getById(serverId);
+      if (cachedDetails) {
+        // Cache hit
+        set({
+          selectedServerId: serverId,
+          selectedServer: cachedDetails,
+          selectedServerName: cachedDetails.name,
+          selectedServerDescription: cachedDetails.description,
+          channels: cachedDetails.channels,
+          members: cachedDetails.members,
+          selectedChannelId: null, // Reset selected channel when server changes
+          serverDetailsLoading: false,
+          serverDetailsError: null,
+        });
+      } else {
+        // Cache miss
+        set({
+          selectedServerId: serverId,
+          selectedServer: null,
+          selectedServerName: null,
+          selectedServerDescription: null,
+          channels: [],
+          members: [],
+          selectedChannelId: null, // Reset selected channel
+          serverDetailsLoading: true, // Set loading true before async fetch
+          serverDetailsError: null,
+        });
 
-          if (get().selectedServerId === serverId) {
-            set({
-              selectedServer: serverDetails,
-              selectedServerName: serverDetails.name,
-              selectedServerDescription: serverDetails.description,
-              channels: serverDetails.channels,
-              members: serverDetails.members,
-              serverDetailsLoading: false,
-            });
+        const fetchServerDetails = async () => {
+          try {
+            const serverDetails: ServerDetails = await serverService.getById(serverId);
+            if (get().selectedServerId === serverId) {
+              set((state) => ({
+                selectedServer: serverDetails,
+                selectedServerName: serverDetails.name,
+                selectedServerDescription: serverDetails.description,
+                channels: serverDetails.channels,
+                members: serverDetails.members,
+                serverDetailsLoading: false,
+                cachedServers: new Map(state.cachedServers).set(serverId, serverDetails), // Add to cache
+              }));
+            }
+          } catch (error) {
+            console.error(`Error fetching details for server ${serverId}:`, error);
+            toast.error('Nie udało się pobrać szczegółów serwera.');
+            if (get().selectedServerId === serverId) {
+              set({ serverDetailsError: 'Nie udało się pobrać szczegółów serwera.', serverDetailsLoading: false });
+            }
           }
-        } catch (error) {
-          console.error(`Error fetching details for server ${serverId}:`, error);
-          toast.error('Nie udało się pobrać szczegółów serwera.');
-          if (get().selectedServerId === serverId) {
-            set({ serverDetailsError: 'Nie udało się pobrać szczegółów serwera.', serverDetailsLoading: false });
-          }
-        }
-      };
-      fetchServerDetails();
+        };
+        fetchServerDetails();
+      }
+    } else {
+      // serverId is null (deselecting server)
+      set({
+        selectedServerId: null,
+        selectedServer: null,
+        selectedServerName: null,
+        selectedServerDescription: null,
+        channels: [],
+        members: [],
+        selectedChannelId: null,
+        serverDetailsLoading: false,
+        serverDetailsError: null,
+      });
     }
   },
 

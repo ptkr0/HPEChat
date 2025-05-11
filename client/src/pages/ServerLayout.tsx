@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router";
 import { useAppStore } from "@/stores/appStore";
 import { ServerSidebar } from "@/components/server/server-sidebar";
 import { MembersSidebar } from "@/components/server/members-sidebar";
+import ChannelLayout from "./ChannelLayout";
 
 export default function ServerLayout() {
   const { serverId, channelId } = useParams();
@@ -26,14 +27,18 @@ export default function ServerLayout() {
   return (
     <div className="flex h-screen w-full">
       <ServerSidebar />
-
-      <main className="flex-1 flex">
-        <section className="flex-1 flex items-center justify-center text-muted-foreground">
-          <p className="text-xl">Czat w budowie 🙂</p>
-        </section>
-
-        <MembersSidebar />
-      </main>
+      
+      <section className="w-full flex overflow-hidden">
+        {channelId ? (
+          <ChannelLayout />
+        ) : (
+          <div className="flex-grow flex items-center justify-center">
+            <p className="text-muted-foreground">Wybierz kanał 😅</p>
+          </div>
+        )}
+      </section>
+      
+      <MembersSidebar />
     </div>
   );
 }

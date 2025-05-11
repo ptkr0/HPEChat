@@ -34,7 +34,7 @@ export function ServerSidebar() {
     } = useAppStore();
     const navigate = useNavigate();
 
-    const { user } = useContext(AuthContext);
+    const { user, loading } = useContext(AuthContext);
     const[showCreateChannelModal, setShowCreateChannelModal] = useState(false);
     const[showDeleteChannelModal, setShowDeleteChannelModal] = useState(false);
     const[selectedChannelOptionsId, setSelectedChannelOptionsId] = useState<string>('');
@@ -44,11 +44,10 @@ export function ServerSidebar() {
     };
 
   return (
-      <Sidebar className="left-auto text-accent-foreground w-56 border-r" collapsible="none">
+      <Sidebar className="left-auto text-accent-foreground w-60 border-r" collapsible="none">
 
           <SidebarHeader>
               <SidebarMenu>
-                  <SidebarMenuItem>
                       <SidebarMenuButton size="lg">
                         {!serverDetailsLoading && selectedServer ? (
                             <>
@@ -69,59 +68,85 @@ export function ServerSidebar() {
                             </Skeleton>
                         )}
                       </SidebarMenuButton>
-                  </SidebarMenuItem>
               </SidebarMenu>
           </SidebarHeader>
 
-          <SidebarContent>
-              <SidebarGroup>
-                  <SidebarGroupLabel>Kanały</SidebarGroupLabel>
-                  {selectedServer?.owner !== user.id && selectedServer ?
-                  <SidebarGroupAction onClick={() => setShowCreateChannelModal(true)}>
-                      <Plus />
-                  </SidebarGroupAction>
-                  : null}
-
-                  <SidebarGroupContent>
-                      <SidebarMenu>
-                          {channels.map((channel) => (
-                              <SidebarMenuItem key={channel.id}>
-                                <SidebarMenuButton
-                                    onClick={() => handleChannelClick(channel.id)}
-                                    className={clsx(
-                                        "text-left flex-1 mr-2",
-                                        channel.id === selectedChannelId && "bg-accent"
-                                    )}
-                                >
-                                    <div className="flex items-center overflow-hidden">
-                                        <div className="text-lg flex-shrink-0 mr-1">#</div>
-                                        <span className="truncate">{channel.name}</span>
-                                    </div>
-                                </SidebarMenuButton>
-                                  {selectedServer?.owner !== user.id && selectedServer ?
-                                   <DropdownMenu modal={false}>
-                                        <DropdownMenuTrigger asChild>
-                                        <SidebarMenuAction>
-                                            <MoreHorizontal />
-                                        </SidebarMenuAction>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent side="right" align="start">
-                                            <DropdownMenuItem onClick={() => [setSelectedChannelOptionsId(channel.id), setShowDeleteChannelModal(true)]}>
-                                                <Settings/><span>Edytuj kanał</span>
-                                            </DropdownMenuItem>
-                                            <Separator className="my-1"></Separator>
-                                            <DropdownMenuItem onClick={() => [setSelectedChannelOptionsId(channel.id), setShowDeleteChannelModal(true)]}>
-                                                <Trash/><span>Usuń kanał</span>
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                    : null}
-                              </SidebarMenuItem>
-                          ))}
-                      </SidebarMenu>
-                  </SidebarGroupContent>
-              </SidebarGroup>
-          </SidebarContent>
+            <SidebarContent>
+                <SidebarGroup>
+                    <SidebarGroupLabel>Kanały</SidebarGroupLabel>
+                    {loading || serverDetailsLoading ? (
+                        <SidebarGroupContent>
+                            <SidebarMenu>
+                                {[...Array(3)].map((_, i) => (
+                                    <SidebarMenuItem key={i}>
+                                        <Skeleton className="h-8 w-full rounded-md my-1" />
+                                    </SidebarMenuItem>
+                                ))}
+                            </SidebarMenu>
+                        </SidebarGroupContent>
+                    ) : (
+                        selectedServer && user && (
+                            (() => {
+                                return (
+                                    <>
+                                        {selectedServer.ownerId === user.id.toUpperCase() && (
+                                            <SidebarGroupAction onClick={() => setShowCreateChannelModal(true)}>
+                                                <Plus />
+                                            </SidebarGroupAction>
+                                        )}
+                                        <SidebarGroupContent>
+                                            <SidebarMenu>
+                                                {channels && channels.length > 0 ? (
+                                                    channels.map((channel) => (
+                                                        <SidebarMenuItem key={channel.id}>
+                                                            <SidebarMenuButton
+                                                                onClick={() => handleChannelClick(channel.id)}
+                                                                className={clsx(
+                                                                    "text-left flex-1 mr-2",
+                                                                    channel.id === selectedChannelId && "bg-accent"
+                                                                )}
+                                                            >
+                                                                <div className="flex items-center overflow-hidden">
+                                                                    <div className="text-lg flex-shrink-0 mr-1">#</div>
+                                                                    <span className="truncate">{channel.name}</span>
+                                                                </div>
+                                                            </SidebarMenuButton>
+                                                            {selectedServer.ownerId === user.id.toUpperCase() && (
+                                                                <DropdownMenu modal={false}>
+                                                                    <DropdownMenuTrigger asChild>
+                                                                        <SidebarMenuAction>
+                                                                            <MoreHorizontal />
+                                                                        </SidebarMenuAction>
+                                                                    </DropdownMenuTrigger>
+                                                                    <DropdownMenuContent side="right" align="start">
+                                                                        <DropdownMenuItem onClick={() => [setSelectedChannelOptionsId(channel.id), setShowDeleteChannelModal(true)]}>
+                                                                            <Settings/><span>Edytuj kanał</span>
+                                                                        </DropdownMenuItem>
+                                                                        <Separator className="my-1"></Separator>
+                                                                        <DropdownMenuItem onClick={() => [setSelectedChannelOptionsId(channel.id), setShowDeleteChannelModal(true)]}>
+                                                                            <Trash/><span>Usuń kanał</span>
+                                                                        </DropdownMenuItem>
+                                                                    </DropdownMenuContent>
+                                                                </DropdownMenu>
+                                                            )}
+                                                        </SidebarMenuItem>
+                                                    ))
+                                                ) : (
+                                                    <SidebarMenuItem>
+                                                        <p className="p-2 text-sm text-muted-foreground text-center w-full italic">
+                                                            Brak kanałów.
+                                                        </p>
+                                                    </SidebarMenuItem>
+                                                )}
+                                            </SidebarMenu>
+                                        </SidebarGroupContent>
+                                    </>
+                                );
+                            })()
+                        )
+                    )}
+                </SidebarGroup>
+            </SidebarContent>
 
             <CreateChannelModal
                 isOpen={showCreateChannelModal}
