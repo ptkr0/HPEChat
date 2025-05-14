@@ -36,7 +36,7 @@ export function MembersSidebar() {
             <>
               {[...Array(3)].map(() => (
                   <div className="flex items-center py-1 px-2 w-full">
-                    <Skeleton className="size-8 rounded-full shrink-0" />
+                    <Skeleton className="size-6 rounded-full shrink-0" />
                     <div className="ml-3 flex-1">
                       <Skeleton className="h-5 w-3/4 rounded-md" />
                     </div>
@@ -47,7 +47,7 @@ export function MembersSidebar() {
             <>
               {sortedMembers.map((m) => (
                 <SidebarMenuButton size={"default"} key={m.id} className="mb-2">
-                  <Avatar className="size-8 shrink-0">
+                  <Avatar className="size-6 shrink-0">
                     <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${m.id}`} alt={m.username} />
                     <AvatarFallback>{m.username[0]}</AvatarFallback>
                   </Avatar>

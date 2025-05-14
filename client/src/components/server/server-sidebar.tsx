@@ -119,7 +119,7 @@ export function ServerSidebar() {
                                                                         </SidebarMenuAction>
                                                                     </DropdownMenuTrigger>
                                                                     <DropdownMenuContent side="right" align="start">
-                                                                        <DropdownMenuItem onClick={() => [setSelectedChannelOptionsId(channel.id), setShowDeleteChannelModal(true)]}>
+                                                                        <DropdownMenuItem onClick={() => [setSelectedChannelOptionsId(channel.id)]}>
                                                                             <Settings/><span>Edytuj kanał</span>
                                                                         </DropdownMenuItem>
                                                                         <Separator className="my-1"></Separator>

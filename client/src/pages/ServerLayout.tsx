@@ -7,22 +7,48 @@ import ChannelLayout from "./ChannelLayout";
 
 export default function ServerLayout() {
   const { serverId, channelId } = useParams();
-  const { selectServer, selectChannel, channels } = useAppStore();
+  const { 
+    selectServer, 
+    selectChannel, 
+    channels, 
+    serverDetailsLoading
+  } = useAppStore();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (serverId) selectServer(serverId);
+    if (serverId) {
+      selectServer(serverId);
+    }
   }, [selectServer, serverId]);
 
   useEffect(() => {
-    if (!serverId) return;
+    if (!serverId || serverDetailsLoading) {
+      return;
+    }
+
+    const serverHasChannels = channels && channels.length > 0;
+    const currentChannelIsValid = channelId && serverHasChannels && channels.some(ch => ch.id === channelId);
 
     if (channelId) {
-      selectChannel(channelId);
-    } else if (channels.length) {
-      navigate(`/servers/${serverId}/${channels[0].id}`, { replace: true });
+      if (currentChannelIsValid) {
+        selectChannel(channelId);
+      } else {
+        if (serverHasChannels) {
+          navigate(`/servers/${serverId}/${channels[0].id}`, { replace: true });
+        } else {
+          navigate(`/servers/${serverId}`, { replace: true });
+          selectChannel(null);
+        }
+      }
+    } else {
+      if (serverHasChannels) {
+        navigate(`/servers/${serverId}/${channels[0].id}`, { replace: true });
+      } else {
+        navigate(`/servers/${serverId}`, { replace: true });
+        selectChannel(null);
+      }
     }
-  }, [channelId, channels, navigate, selectChannel, serverId]);
+  }, [serverId, channelId, channels, selectChannel, navigate, serverDetailsLoading]);
   
   return (
     <div className="flex h-screen w-full">
