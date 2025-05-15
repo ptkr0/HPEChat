@@ -14,7 +14,7 @@ export const serverService = {
         return response.data;
     },
 
-    createServer: async (newServerData: Omit<Server, 'id' | 'owner'>): Promise<Server> => {
+    createServer: async (newServerData: Omit<Server, 'id' | 'ownerId'>): Promise<Server> => {
         const response = await axiosPrivate.post(SERVER_URL, newServerData);
         return response.data;
     },

@@ -13,20 +13,21 @@ import { Skeleton } from "../ui/skeleton";
 import { Crown } from "lucide-react";
 
 export function MembersSidebar() {
-  const { members } = useAppStore();
   const selectedServer = useAppStore((state) => state.selectedServer);
   const serverDetailsLoading = useAppStore((state) => state.serverDetailsLoading);
 
-  const sortedMembers = [...members].sort((a, b) => {
-    if (a.username.toLowerCase() < b.username.toLowerCase()) return -1;
-    if (a.username.toLowerCase() > b.username.toLowerCase()) return 1;
-    return 0;
-  });
+  const sortedMembers = selectedServer?.members 
+    ? [...selectedServer.members].sort((a, b) => {
+        if (a.username.toLowerCase() < b.username.toLowerCase()) return -1;
+        if (a.username.toLowerCase() > b.username.toLowerCase()) return 1;
+        return 0;
+      })
+    : [];
 
   return (
     <Sidebar className="w-60 border-l" side="right" collapsible="none">
       <SidebarHeader>
-        <SidebarGroupLabel className="font-semibold text-lg">Członkowie ({members.length})</SidebarGroupLabel>
+        <SidebarGroupLabel className="font-semibold text-lg">Członkowie ({selectedServer?.members.length})</SidebarGroupLabel>
       </SidebarHeader>
 
       <SidebarContent>
@@ -34,8 +35,8 @@ export function MembersSidebar() {
           <SidebarGroupContent>
           {serverDetailsLoading || !selectedServer ? (
             <>
-              {[...Array(3)].map(() => (
-                  <div className="flex items-center py-1 px-2 w-full">
+              {[...Array(3)].map((_, i) => (
+                  <div className="flex items-center py-1 px-2 w-full" key={i}>
                     <Skeleton className="size-6 rounded-full shrink-0" />
                     <div className="ml-3 flex-1">
                       <Skeleton className="h-5 w-3/4 rounded-md" />

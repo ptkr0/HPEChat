@@ -45,9 +45,10 @@ namespace HPEChat_Server.Controllers
 				.ThenByDescending(m => m.Id)
 				.Select(m => new ServerMessageDto
 				{
-					Id = m.Id.ToString(),
-					ChannelId = m.ChannelId.ToString(),
-					SenderId = m.SenderId.HasValue ? m.SenderId.Value.ToString() : string.Empty,
+					Id = m.Id.ToString().ToUpper(),
+					ChannelId = m.ChannelId.ToString().ToUpper(),
+					SenderId = m.SenderId.HasValue ? m.SenderId.Value.ToString().ToUpper() : string.Empty,
+					SenderName = m.Sender != null ? m.Sender.Username : string.Empty,
 					Message = m.Message,
 					SentAt = m.SentAt,
 					IsEdited = m.IsEdited,
@@ -66,6 +67,9 @@ namespace HPEChat_Server.Controllers
 
 			var userId = User.GetUserId();
 			if (userId == null) return BadRequest("User not found");
+
+			var username = User.GetUsername();
+			if (username == null) return BadRequest("Username not found");
 
 			Guid channelGuid = messageDto.ChannelId;
 			Guid userGuid = Guid.Parse(userId);
@@ -88,9 +92,10 @@ namespace HPEChat_Server.Controllers
 
 			return Ok(new ServerMessageDto
 			{
-				Id = message.Id.ToString(),
-				ChannelId = message.ChannelId.ToString(),
-				SenderId = message.SenderId.HasValue ? message.SenderId.Value.ToString() : string.Empty,
+				Id = message.Id.ToString().ToUpper(),
+				ChannelId = message.ChannelId.ToString().ToUpper(),
+				SenderId = message.SenderId.HasValue ? message.SenderId.Value.ToString().ToUpper() : string.Empty,
+				SenderName = username,
 				Message = message.Message,
 				SentAt = message.SentAt,
 				IsEdited = message.IsEdited,
@@ -125,6 +130,7 @@ namespace HPEChat_Server.Controllers
 				Id = serverMessage.Id.ToString(),
 				ChannelId = serverMessage.ChannelId.ToString(),
 				SenderId = serverMessage.SenderId.HasValue ? serverMessage.SenderId.Value.ToString() : string.Empty,
+				SenderName = serverMessage.Sender != null ? serverMessage.Sender.Username : string.Empty,
 				Message = serverMessage.Message,
 				SentAt = serverMessage.SentAt,
 				IsEdited = serverMessage.IsEdited,

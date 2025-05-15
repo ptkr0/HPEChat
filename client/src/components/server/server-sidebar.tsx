@@ -29,7 +29,6 @@ export function ServerSidebar() {
     selectedServerId,
     selectedServer,
     selectedChannelId,
-    channels,
     serverDetailsLoading,
     } = useAppStore();
     const navigate = useNavigate();
@@ -96,8 +95,8 @@ export function ServerSidebar() {
                                         )}
                                         <SidebarGroupContent>
                                             <SidebarMenu>
-                                                {channels && channels.length > 0 ? (
-                                                    channels.map((channel) => (
+                                                {selectedServer.channels && selectedServer.channels.length > 0 ? (
+                                                    selectedServer.channels.map((channel) => (
                                                         <SidebarMenuItem key={channel.id}>
                                                             <SidebarMenuButton
                                                                 onClick={() => handleChannelClick(channel.id)}

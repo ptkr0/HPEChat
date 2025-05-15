@@ -10,7 +10,7 @@ export default function ServerLayout() {
   const { 
     selectServer, 
     selectChannel, 
-    channels, 
+    selectedServer,
     serverDetailsLoading
   } = useAppStore();
   const navigate = useNavigate();
@@ -26,15 +26,15 @@ export default function ServerLayout() {
       return;
     }
 
-    const serverHasChannels = channels && channels.length > 0;
-    const currentChannelIsValid = channelId && serverHasChannels && channels.some(ch => ch.id === channelId);
+    const serverHasChannels = selectedServer && selectedServer.channels.length > 0;
+    const currentChannelIsValid = channelId && serverHasChannels && selectedServer.channels.some(ch => ch.id === channelId);
 
     if (channelId) {
       if (currentChannelIsValid) {
         selectChannel(channelId);
       } else {
         if (serverHasChannels) {
-          navigate(`/servers/${serverId}/${channels[0].id}`, { replace: true });
+          navigate(`/servers/${serverId}/${selectedServer.channels[0].id}`, { replace: true });
         } else {
           navigate(`/servers/${serverId}`, { replace: true });
           selectChannel(null);
@@ -42,13 +42,13 @@ export default function ServerLayout() {
       }
     } else {
       if (serverHasChannels) {
-        navigate(`/servers/${serverId}/${channels[0].id}`, { replace: true });
+        navigate(`/servers/${serverId}/${selectedServer.channels[0].id}`, { replace: true });
       } else {
         navigate(`/servers/${serverId}`, { replace: true });
         selectChannel(null);
       }
     }
-  }, [serverId, channelId, channels, selectChannel, navigate, serverDetailsLoading]);
+  }, [serverId, channelId, selectChannel, navigate, serverDetailsLoading, selectedServer]);
   
   return (
     <div className="flex h-screen w-full">

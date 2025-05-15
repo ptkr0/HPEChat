@@ -29,10 +29,12 @@ import { useContext } from "react"
 import { toast } from "sonner"
 import { useNavigate } from "react-router"
 import { userService } from "@/services/userService"
+import { useAppStore } from "@/stores/appStore"
 
 export function NavUser() {
   const { isMobile } = useSidebar()
   const { user, setUser } = useContext(AuthContext);
+  const clearStore = useAppStore((state) => state.clearStore);
   const navigate = useNavigate();
 
   const logOut = async () => {
@@ -55,6 +57,7 @@ export function NavUser() {
 
     finally {
       setUser({id: '', username: '', role: ''});
+      clearStore();
       navigate("/login", { replace: true });
     }
   }

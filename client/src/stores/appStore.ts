@@ -2,10 +2,10 @@ import { create } from 'zustand';
 import { Server, ServerDetails } from '@/types/server.types';
 import { Channel } from '@/types/channel.types';
 import { serverService } from '@/services/serverService';
-import { User } from '@/types/user.type';
 import { toast } from 'sonner';
 import { channelService } from '@/services/channelService';
-
+import { ServerMessage } from '@/types/server-message.type';
+import { serverMessageService } from '@/services/serverMessageService';
 
 interface AppState {
   servers: Server[]; // list of all servers that user is a member of (basic info)
@@ -15,10 +15,6 @@ interface AppState {
 
   selectedServerId: string | null; // ID of the currently selected server
   selectedServer: ServerDetails | null; // details of the currently selected server (STORES SERVER DEATILS, CHANNELS, MEMBERS AND SHOULD BE USED AS A SINGLE SOURCE OF TRUTH)
-  selectedServerName: string | null; // name of the currently selected server (DEPRECATED AND WILL BE REMOVED)
-  selectedServerDescription: string | null; // description of the currently selected server (DEPRECATED AND WILL BE REMOVED)
-  channels: Channel[]; // list of channels in the currently selected server (DEPRECATED AND WILL BE REMOVED)
-  members: User[]; // list of members in the currently selected server (DEPRECATED AND WILL BE REMOVED)
 
   serverDetailsLoading: boolean;
   serverDetailsError: string | null;
@@ -28,15 +24,23 @@ interface AppState {
 
   selectedChannelId: string | null; // ID of the currently selected channel
   selectedChannel: Channel | null; // details of the currently selected channel
+  selectedChannelMessages: ServerMessage[]; // messages of the currently selected channel
+  channelMessagesLoading: boolean; // loading state for channel messages
+  channelMessagesError: string | null; // error state for channel messages
+  cachedChannelMessages: Map<string, ServerMessage[]>; // cache for channel messages
 
   selectChannel: (channelId: string | null) => void;
 
-  createServer: (newServerData: Omit<Server, 'id' | 'owner' | 'description'> & { description?: string }) => Promise<Server | null>;
+  createServer: (newServerData: Omit<Server, 'id' | 'ownerId' | 'description'> & { description?: string }) => Promise<Server | null>;
   joinServer: (inviteCode: string) => Promise<Server | null>;
 
   createChannel: (newChannelData: Omit<Channel, 'id'>) => Promise<Channel | null>;
 
   deleteChannel: (channelId: string) => Promise<void>;
+
+  sendMessage: (channelId: string, message: string) => Promise<ServerMessage | null>;
+
+  clearStore: () => void;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -46,15 +50,16 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   selectedServerId: null,
   selectedServer: null,
-  selectedServerName: null,
-  selectedServerDescription: null,
-  channels: [],
-  members: [],
+
   serverDetailsLoading: false,
   serverDetailsError: null,
 
   selectedChannelId: null,
   selectedChannel: null,
+  selectedChannelMessages: [],
+  channelMessagesLoading: false,
+  channelMessagesError: null,
+  cachedChannelMessages: new Map(),
 
   cachedServers: new Map(),
 
@@ -83,10 +88,6 @@ export const useAppStore = create<AppState>((set, get) => ({
         set({
           selectedServerId: serverId,
           selectedServer: cachedDetails,
-          selectedServerName: cachedDetails.name,
-          selectedServerDescription: cachedDetails.description,
-          channels: cachedDetails.channels,
-          members: cachedDetails.members,
           selectedChannelId: null, // reset selected channel when server changes
           serverDetailsLoading: false,
           serverDetailsError: null,
@@ -96,10 +97,6 @@ export const useAppStore = create<AppState>((set, get) => ({
         set({
           selectedServerId: serverId,
           selectedServer: null,
-          selectedServerName: null,
-          selectedServerDescription: null,
-          channels: [],
-          members: [],
           selectedChannelId: null, // reset selected channel
           serverDetailsLoading: true, // set loading true before async fetch
           serverDetailsError: null,
@@ -108,7 +105,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         const fetchServerDetails = async () => {
           try {
             const serverDetails: ServerDetails = await serverService.getById(serverId);
-            
+
             if (get().selectedServerId === serverId) {
               set((state) => ({
                 selectedServer: serverDetails,
@@ -135,10 +132,6 @@ export const useAppStore = create<AppState>((set, get) => ({
       set({
         selectedServerId: null,
         selectedServer: null,
-        selectedServerName: null,
-        selectedServerDescription: null,
-        channels: [],
-        members: [],
         selectedChannelId: null,
         serverDetailsLoading: false,
         serverDetailsError: null,
@@ -147,13 +140,61 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   selectChannel: (channelId: string | null) => {
-    set({ selectedChannelId: channelId });
+    if (get().selectedChannelId === channelId && channelId !== null) {
+      return;
+    }
 
-    if (channelId) {
-      const selectedChannel = get().selectedServer?.channels.find((channel) => channel.id === channelId);
-      set({ selectedChannel: selectedChannel || null });
+    if (channelId && get().selectedServerId) {
+      const basicChannelInfo = get().selectedServer?.channels.find(c => c.id === channelId);
+      set({
+        selectedChannelId: channelId,
+        selectedChannel: basicChannelInfo || null,
+        channelMessagesLoading: true,
+        selectedChannelMessages: [], // clear previous messages
+        channelMessagesError: null,
+      });
+
+      const cachedMessages = get().cachedChannelMessages.get(channelId);
+
+      if (cachedMessages) {
+        // cache hit for messages
+        set({
+          selectedChannelMessages: cachedMessages,
+          channelMessagesLoading: false,
+        });
+      } else {
+        // cache miss for messages, fetch them
+        const fetchMessages = async () => {
+          try {
+            const fetchedMessages = await serverMessageService.getAll(channelId);
+
+            if (get().selectedChannelId === channelId) {
+              set((state) => ({
+                selectedChannelMessages: fetchedMessages,
+                channelMessagesLoading: false,
+                cachedChannelMessages: new Map(state.cachedChannelMessages).set(channelId, fetchedMessages),
+              }));
+            }
+          } catch (error) {
+            console.error(`Error fetching messages for channel ${channelId}:`, error);
+            toast.error('Nie udało się pobrać wiadomości kanału.');
+
+            if (get().selectedChannelId === channelId) {
+              set({ channelMessagesError: 'Nie udało się pobrać wiadomości.', channelMessagesLoading: false });
+            }
+          }
+        };
+        fetchMessages();
+      }
     } else {
-      set({ selectedChannel: null });
+      // deselecting channel
+      set({
+        selectedChannelId: null,
+        selectedChannel: null,
+        selectedChannelMessages: [],
+        channelMessagesLoading: false,
+        channelMessagesError: null,
+      });
     }
   },
 
@@ -181,7 +222,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         set((state) => ({ servers: [...state.servers, joinedServer] }));
         return joinedServer;
       }
-       return null;
+      return null;
     } catch (error) {
       toast.error('Nie udało się dołączyć do serwera. Sprawdź nazwę serwera.');
       console.error("Error joining server:", error);
@@ -201,7 +242,6 @@ export const useAppStore = create<AppState>((set, get) => ({
       const newChannel = await channelService.createChannel({ serverId: selectedServerId, ...name });
 
       if (newChannel) {
-        set((state) => ({ channels: [...state.channels, newChannel] }));
         set((state) => ({
           selectedServer: state.selectedServer ? {
             ...state.selectedServer,
@@ -227,8 +267,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
       return null;
     } catch (error) {
-        toast.error('Nie udało się utworzyć kanału.');
-        console.error("Error creating channel:", error);
+      toast.error('Nie udało się utworzyć kanału.');
+      console.error("Error creating channel:", error);
       return null;
     }
   },
@@ -236,45 +276,49 @@ export const useAppStore = create<AppState>((set, get) => ({
   deleteChannel: async (channelId: string) => {
     try {
       await channelService.deleteChannel(channelId);
-      
+
       // remove the channel from the selected server's channels
-      if (get().selectedChannelId === channelId) {
-        const remainingChannels = get().channels.filter(channel => channel.id !== channelId);
-        
+      if (get().selectedChannelId === channelId && get().selectedServer) {
+        const remainingChannels = get().selectedServer!.channels.filter(channel => channel.id !== channelId);
+
         if (remainingChannels.length > 0) {
           get().selectChannel(remainingChannels[0].id);
         } else {
           get().selectChannel(null);
         }
       }
-      
+
       // remove the channel from the cached server details
       const serverId = get().selectedServerId;
-
       if (serverId) {
         set((state) => {
           const cachedServers = new Map(state.cachedServers);
           const cachedServer = cachedServers.get(serverId);
           if (cachedServer) {
-          cachedServers.set(serverId, {
-          ...cachedServer,
-          channels: cachedServer.channels.filter((channel) => channel.id !== channelId)
-        });
+            cachedServers.set(serverId, {
+              ...cachedServer,
+              channels: cachedServer.channels.filter((channel) => channel.id !== channelId)
+            });
           }
           return { cachedServers };
         });
       }
 
+      // remove the channel from the selected server's channels
       set((state) => ({
-        channels: state.channels.filter((channel) => channel.id !== channelId),
-      }));
-
-      set((state) => ({
-          selectedServer: state.selectedServer ? {
+        selectedServer: state.selectedServer ? {
           ...state.selectedServer,
           channels: state.selectedServer.channels.filter((channel) => channel.id !== channelId)
         } : null
       }));
+
+      // filter out the messages from the cached messages
+      set((state) => {
+        const cachedChannelMessages = new Map(state.cachedChannelMessages);
+        cachedChannelMessages.delete(channelId);
+        return { cachedChannelMessages };
+      }
+      );
 
       toast.success('Kanał został usunięty.');
     } catch (error) {
@@ -283,5 +327,51 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
+  sendMessage: async (channelId, message) => {
+    try {
+      const sentMessage = await serverMessageService.send(channelId, message);
 
-}));
+      if (sentMessage) {
+        set((state) => ({
+          selectedChannelMessages: [...state.selectedChannelMessages, sentMessage]
+        }));
+
+        console.log("Sent message:", sentMessage);
+
+        // update cached messages
+        set((state) => {
+          const cachedChannelMessages = new Map(state.cachedChannelMessages);
+          const cachedMessages = cachedChannelMessages.get(channelId) || [];
+          cachedMessages.push(sentMessage);
+          cachedChannelMessages.set(channelId, cachedMessages);
+          return { cachedChannelMessages };
+        });
+        
+        return sentMessage;
+      }
+      return null;
+    } catch (error) {
+      toast.error('Nie udało się wysłać wiadomości.');
+      console.error("Error sending message:", error);
+      return null;
+    }
+  },
+
+  clearStore: () => set({
+    servers: [],
+    serversLoading: false,
+    serversError: null,
+    selectedServerId: null,
+    selectedServer: null,
+    serverDetailsLoading: false,
+    serverDetailsError: null,
+    cachedServers: new Map(),
+    selectedChannelId: null,
+    selectedChannel: null,
+    selectedChannelMessages: [],
+    channelMessagesLoading: false,
+    channelMessagesError: null,
+    cachedChannelMessages: new Map(),
+  })
+
+  }));
