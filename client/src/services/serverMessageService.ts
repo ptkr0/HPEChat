@@ -16,5 +16,14 @@ export const serverMessageService = {
     send: async (channelId: string, message: string): Promise<ServerMessage> => {
         const response = await axiosPrivate.post(SERVER_URL, { channelId: channelId, message: message });
         return response.data;
-    }
+    },
+
+    delete: async (messageId: string): Promise<void> => {
+        await axiosPrivate.delete(`${SERVER_URL}/${messageId}`);
+    },
+
+    edit: async (messageId: string, message: string): Promise<ServerMessage> => {
+        const response = await axiosPrivate.patch(`${SERVER_URL}/${messageId}`, message);
+        return response.data;
+    },
 }

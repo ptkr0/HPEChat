@@ -40,6 +40,9 @@ interface AppState {
 
   sendMessage: (channelId: string, message: string) => Promise<ServerMessage | null>;
 
+  deleteMessage: (messageId: string) => Promise<void>;
+  editMessage: (messageId: string, message: string) => Promise<ServerMessage | null>;
+
   clearStore: () => void;
 }
 
@@ -353,6 +356,67 @@ export const useAppStore = create<AppState>((set, get) => ({
     } catch (error) {
       toast.error('Nie udało się wysłać wiadomości.');
       console.error("Error sending message:", error);
+      return null;
+    }
+  },
+
+  deleteMessage: async (messageId) => {
+    try {
+      await serverMessageService.delete(messageId);
+
+      // remove the message from the selected channel's messages
+      set((state) => ({
+        selectedChannelMessages: state.selectedChannelMessages.filter(message => message.id !== messageId)
+      }));
+
+      // update cached messages
+      const channelId = get().selectedChannelId;
+      if (channelId) {
+        set((state) => {
+          const cachedChannelMessages = new Map(state.cachedChannelMessages);
+          const cachedMessages = cachedChannelMessages.get(channelId) || [];
+          cachedChannelMessages.set(channelId, cachedMessages.filter(message => message.id !== messageId));
+          return { cachedChannelMessages };
+        });
+      }
+
+      toast.success('Wiadomość została usunięta.');
+    } catch (error) {
+      toast.error('Nie udało się usunąć wiadomości.');
+      console.error("Error deleting message:", error);
+    }
+  },
+
+  editMessage: async (messageId, message) => {
+    try {
+      const editedMessage = await serverMessageService.edit(messageId, message);
+
+      if (editedMessage) {
+        set((state) => ({
+          selectedChannelMessages: state.selectedChannelMessages.map(msg =>
+            msg.id === messageId ? { ...msg, message: editedMessage.message, isEdited: true } : msg
+          )
+        }));
+
+        // update cached messages
+        const channelId = get().selectedChannelId;
+        if (channelId) {
+          set((state) => {
+            const cachedChannelMessages = new Map(state.cachedChannelMessages);
+            const cachedMessages = cachedChannelMessages.get(channelId) || [];
+            cachedChannelMessages.set(channelId, cachedMessages.map(msg =>
+              msg.id === messageId ? { ...msg, message: editedMessage.message, isEdited: true } : msg
+            ));
+            return { cachedChannelMessages };
+          });
+        }
+
+        return editedMessage;
+      }
+      return null;
+    } catch (error) {
+      toast.error('Nie udało się edytować wiadomości.');
+      console.error("Error editing message:", error);
       return null;
     }
   },

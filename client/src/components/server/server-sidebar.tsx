@@ -14,7 +14,7 @@ import {
 import { useAppStore } from "@/stores/appStore";
 import { useNavigate } from "react-router";
 import clsx from "clsx";
-import { Loader2, MoreHorizontal, Plus, Settings, Trash } from "lucide-react";
+import { MoreHorizontal, Plus, Settings, Trash } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@radix-ui/react-avatar";
 import { Skeleton } from "../ui/skeleton";
 import { useContext, useState } from "react";
@@ -63,7 +63,6 @@ export function ServerSidebar() {
                             </>
                         ) : ( 
                             <Skeleton className="h-full w-full rounded-lg mb-2 flex items-center justify-center">
-                                    <Loader2 className="animate-spin" />
                             </Skeleton>
                         )}
                       </SidebarMenuButton>

@@ -1,10 +1,10 @@
-import { MessageBubble } from "@/components/channel/message-bubble";
-import { MessageBubbleSkeleton } from "@/components/channel/message-bubble-skeleton";
+import { Message } from "@/components/channel/message";
+import { MessageBubbleSkeleton } from "@/components/channel/message-skeleton";
 import MessageInput from "@/components/channel/message-input";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbSeparator, BreadcrumbPage } from "@/components/ui/breadcrumb";
 import AuthContext from "@/context/AuthProvider";
 import { useAppStore } from "@/stores/appStore";
-import { useContext } from "react";
+import { useContext, useEffect, useRef } from "react";
 
 export default function ChannelLayout() {
   const { user, loading } = useContext(AuthContext); 
@@ -13,6 +13,8 @@ export default function ChannelLayout() {
   const serverMessagesLoading = useAppStore((state) => state.channelMessagesLoading);
   const serverMessages = useAppStore((state) => state.selectedChannelMessages);
 
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+
   // sort server messages by datetimeoffset
   const sortedMessages = serverMessages?.sort((a, b) => {
     if (a.sentAt < b.sentAt) return -1;
@@ -20,10 +22,20 @@ export default function ChannelLayout() {
     return 0;
   });
 
+  const scrollToBottom = () => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [sortedMessages]);
+
 
   return (
     <div className="mx-auto p-2 flex flex-col w-full h-full overflow-hidden">
-      <header className="flex h-8 shrink-0 items-center gap-2 px-2">
+      <header className="flex h-8 shrink-0 items-center gap-2 px-2 border-b">
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem className="hidden md:block">
@@ -41,22 +53,22 @@ export default function ChannelLayout() {
         </Breadcrumb>
       </header>
       <div className="flex flex-col flex-1 overflow-hidden">
-        <div className="rounded-lg flex-1 overflow-auto">
+        <div ref={messagesContainerRef} className="rounded-lg flex-1 overflow-auto">
           {serverMessagesLoading || !selectedServer || loading ? (
-            <div className="flex-1 overflow-y-auto p-2">
+            <div className="flex-1 overflow-y-auto p-2 w-full">
               {[...Array(6)].map((_, i) => (
-                <MessageBubbleSkeleton key={i} isCurrentUser={i % 2 === 0} />
+                <MessageBubbleSkeleton key={i} />
               ))}
             </div>
           ) : serverMessages && serverMessages.length > 0 ? (
-            <div className="flex-1 overflow-y-auto p-2">
+            <>
               {sortedMessages.map((message) => (
-                <MessageBubble key={message.id} message={message} isSenderCurrentUser={user.id.toUpperCase() === message.senderId} />
+                <Message key={message.id} message={message} isSenderCurrentUser={user.id.toUpperCase() === message.senderId} />
               ))}
-            </div>
+            </>
           ) : (
             <div className="flex items-center justify-center h-full">
-              <p className="text-muted-foreground text-center">Brak wiadomości w tym kanale.<br>
+              <p className="text-muted-foreground text-center">Brak wiadomości na tym kanale.<br>
               </br>Przywitaj się 👋</p>
             </div>
           )}

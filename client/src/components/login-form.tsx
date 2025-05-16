@@ -14,6 +14,7 @@ import { useContext, useState } from "react"
 import AuthContext from "@/context/AuthProvider"
 import { useNavigate } from "react-router"
 import { userService } from "@/services/userService"
+import { useAppStore } from "@/stores/appStore"
 
 const LoginForm = () => {
 
@@ -22,6 +23,7 @@ const LoginForm = () => {
 
   const { setUser } = useContext(AuthContext);
   const navigate = useNavigate();
+  const clearStore = useAppStore((state) => state.clearStore);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -30,6 +32,7 @@ const LoginForm = () => {
       const response = await userService.login(username, password);
 
       setUser({id: response.id, username: response.username, role: response.role});
+      clearStore();
       navigate("/home", { replace: true });
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
