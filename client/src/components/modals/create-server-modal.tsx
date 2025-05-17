@@ -19,7 +19,7 @@ const createServerSchema = z.object({
     name: z
         .string()
         .min(1, 'Nazwa jest wymagana')
-        .max(50, 'Maksymalnie 20 znaków'),
+        .max(50, 'Maksymalnie 50 znaków'),
     description: z
         .string()
         .max(1000, 'Maksymalnie 1000 znaków')

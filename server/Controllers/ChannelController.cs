@@ -45,7 +45,7 @@ namespace HPEChat_Server.Controllers
 
 			return Ok(new ChannelDto
 			{
-				Id = channel.Id.ToString(),
+				Id = channel.Id.ToString().ToUpper(),
 				Name = channel.Name,
 			});
 		}
@@ -73,7 +73,7 @@ namespace HPEChat_Server.Controllers
 
 			return Ok(new ChannelDto
 			{
-				Id = channel.Id.ToString(),
+				Id = channel.Id.ToString().ToUpper(),
 				Name = channel.Name,
 			});
 		}
@@ -121,7 +121,7 @@ namespace HPEChat_Server.Controllers
 
 			return Ok(new ChannelDto
 			{
-				Id = channel.Id.ToString(),
+				Id = channel.Id.ToString().ToUpper(),
 				Name = channel.Name,
 			});
 		}

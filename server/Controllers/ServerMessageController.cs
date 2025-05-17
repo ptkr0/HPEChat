@@ -127,9 +127,9 @@ namespace HPEChat_Server.Controllers
 
 			return Ok(new ServerMessageDto
 			{
-				Id = serverMessage.Id.ToString(),
-				ChannelId = serverMessage.ChannelId.ToString(),
-				SenderId = serverMessage.SenderId.HasValue ? serverMessage.SenderId.Value.ToString() : string.Empty,
+				Id = serverMessage.Id.ToString().ToUpper(),
+				ChannelId = serverMessage.ChannelId.ToString().ToUpper(),
+				SenderId = serverMessage.SenderId.HasValue ? serverMessage.SenderId.Value.ToString().ToUpper() : string.Empty,
 				SenderName = serverMessage.Sender != null ? serverMessage.Sender.Username : string.Empty,
 				Message = serverMessage.Message,
 				SentAt = serverMessage.SentAt,

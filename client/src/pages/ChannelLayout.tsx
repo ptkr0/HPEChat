@@ -30,7 +30,7 @@ export default function ChannelLayout() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [sortedMessages]);
+  }, [selectedChannel]);
 
 
   return (
@@ -62,9 +62,26 @@ export default function ChannelLayout() {
             </div>
           ) : serverMessages && serverMessages.length > 0 ? (
             <>
-              {sortedMessages.map((message) => (
-                <Message key={message.id} message={message} isSenderCurrentUser={user.id.toUpperCase() === message.senderId} />
-              ))}
+              {sortedMessages.map((message, index) => {
+
+              // check if the previous message is from the same user and within 10 minutes
+              // if so, set isContinuation to true
+              const prevMessage = index > 0 ? sortedMessages[index - 1] : null;
+              const isSameUser = prevMessage ? prevMessage.senderId === message.senderId : false;
+              const timeDifference = prevMessage 
+                ? Math.abs(new Date(message.sentAt).getTime() - new Date(prevMessage.sentAt).getTime()) / 60000 
+                : Infinity;
+              const isContinuation = isSameUser && timeDifference < 10;
+              
+              return (
+                <Message 
+                key={message.id} 
+                message={message} 
+                isSenderCurrentUser={user.id.toUpperCase() === message.senderId} 
+                isContinuation={isContinuation} 
+                />
+              );
+              })}
             </>
           ) : (
             <div className="flex items-center justify-center h-full">

@@ -22,7 +22,7 @@ namespace HPEChat_Server.Controllers
 
 			return Ok(new
 			{
-				user.Id,
+				Id = user.Id.ToString().ToUpper(),
 				user.Username,
 				user.Role,
 			});
@@ -69,7 +69,7 @@ namespace HPEChat_Server.Controllers
 
 			return Ok(new
 			{
-				user.Id,
+				Id = user.Id.ToString().ToUpper(),
 				user.Username,
 				user.Role,
 			});
@@ -97,7 +97,7 @@ namespace HPEChat_Server.Controllers
 
 			return Ok(new
 			{
-				user.Id,
+				Id = user.Id.ToString().ToUpper(),
 				user.Username,
 				user.Role,
 			});
@@ -141,7 +141,7 @@ namespace HPEChat_Server.Controllers
 			var userId = User.GetUserId();
 			var username = User.GetUsername();
 			var role = User.GetRole();
-			return Ok(new UserInfoDto { Id = userId!, Username = username!, Role = role! });
+			return Ok(new UserInfoDto { Id = userId!.ToUpper(), Username = username!, Role = role! });
 		}
 
 		[HttpGet("admin-test")]

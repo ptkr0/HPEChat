@@ -1,19 +1,22 @@
-import { Plus, Loader2 } from "lucide-react"
+import { Plus, Loader2, MoreHorizontal, LogOut, Trash2 } from "lucide-react"
 import {
   SidebarGroupLabel,
   SidebarMenuItem,
   SidebarMenuButton,
+  SidebarMenuAction,
 } from "@/components/ui/sidebar"
 import { Server } from "@/types/server.types"
 import clsx from "clsx";
 import { Button } from "../ui/button";
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { CreateServerModal } from "../modals/create-server-modal";
 import { useAppStore } from "@/stores/appStore";
 import { Skeleton } from "../ui/skeleton";
 import { JoinServerModal } from "../modals/join-server-modal";
 import { Avatar, AvatarImage, AvatarFallback } from "@radix-ui/react-avatar";
 import { Separator } from "../ui/separator";
+import AuthContext from "@/context/AuthProvider";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
 
 interface NavServersProps {
   servers: Server[];
@@ -23,6 +26,7 @@ interface NavServersProps {
 
 export function NavServers({ servers, selectedServerId, onServerSelect }: NavServersProps) {
 
+  const { user, loading } = useContext(AuthContext);
   const[dropdownMenu, setDropdownMenu] = useState(false);
   const[showCreateServerModal, setShowCreateServerModal] = useState(false);
   const[showJoinServerModal, setShowJoinServerModal] = useState(false);
@@ -33,7 +37,7 @@ export function NavServers({ servers, selectedServerId, onServerSelect }: NavSer
     <div>
       <SidebarGroupLabel className="text-base font-semibold">Serwery</SidebarGroupLabel>
       <div className="mt-1 space-y-0.5">
-      {serversLoading ? (
+      {serversLoading || loading ? (
         <Skeleton className="h-20 w-full mb-2 flex items-center justify-center">
           <Loader2 className="animate-spin" />
         </Skeleton>
@@ -57,6 +61,24 @@ export function NavServers({ servers, selectedServerId, onServerSelect }: NavSer
                 <div className="truncate text-xs text-muted-foreground">{server.description}</div>
               </div>
             </SidebarMenuButton>
+            <DropdownMenu modal={false}>
+                <DropdownMenuTrigger asChild>
+                    <SidebarMenuAction>
+                        <MoreHorizontal />
+                    </SidebarMenuAction>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="right" align="center">
+                  {server.ownerId.toUpperCase() === user.id.toUpperCase() ? (
+                    <DropdownMenuItem>
+                        <Trash2/><span>Usuń Serwer</span>
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem>
+                        <LogOut/><span>Opuść Serwer</span>
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+            </DropdownMenu>
           </SidebarMenuItem>
         ))
       )}

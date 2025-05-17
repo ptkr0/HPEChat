@@ -1,8 +1,8 @@
 ﻿using HPEChat_Server.Data;
+using HPEChat_Server.Hubs;
 using HPEChat_Server.Initialization;
 using HPEChat_Server.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -14,6 +14,8 @@ builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddControllers();
 builder.Services.AddSwaggerGen();
+
+builder.Services.AddSignalR();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 	.AddJwtBearer(options =>
@@ -79,6 +81,8 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.MapHub<ServerHub>("/hubs/server");
 
 await AdminInitialization.InitializeAdminAccount(app.Services);
 

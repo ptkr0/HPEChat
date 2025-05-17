@@ -3,9 +3,12 @@ using HPEChat_Server.Dtos.Channel;
 using HPEChat_Server.Dtos.Server;
 using HPEChat_Server.Dtos.User;
 using HPEChat_Server.Extensions;
+using HPEChat_Server.Hubs;
+using HPEChat_Server.Interfaces;
 using HPEChat_Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace HPEChat_Server.Controllers
@@ -15,9 +18,11 @@ namespace HPEChat_Server.Controllers
 	public class ServerController : ControllerBase
 	{
 		private readonly ApplicationDBContext _context;
-		public ServerController(ApplicationDBContext context)
+		private readonly IHubContext<ServerHub, IServerClient> _hub;
+		public ServerController(ApplicationDBContext context, IHubContext<ServerHub, IServerClient> hub)
 		{
 			_context = context;
+			_hub = hub;
 		}
 
 		[HttpPost]
@@ -61,15 +66,15 @@ namespace HPEChat_Server.Controllers
 
 			return Ok(new ServerDto
 			{
-				Id = server.Id.ToString(),
+				Id = server.Id.ToString().ToUpper(),
 				Name = server.Name,
 				Description = server.Description,
-				OwnerId = server.OwnerId.ToString(),
+				OwnerId = server.OwnerId.ToString().ToUpper(),
 				Members = new List<UserInfoDto>()
 				{
 					new UserInfoDto
 					{
-						Id = user.Id.ToString(),
+						Id = user.Id.ToString().ToUpper(),
 						Username = user.Username,
 					}
 				},
@@ -98,10 +103,10 @@ namespace HPEChat_Server.Controllers
 
 			return Ok(new ServerDto
 			{
-				Id = server.Id.ToString(),
+				Id = server.Id.ToString().ToUpper(),
 				Name = server.Name,
 				Description = server.Description,
-				OwnerId = server.OwnerId.ToString(),
+				OwnerId = server.OwnerId.ToString().ToUpper(),
 			});
 		}
 
@@ -118,10 +123,10 @@ namespace HPEChat_Server.Controllers
 				.Where(s => s.Members.Any(u => u.Id == userGuid))
 				.Select(s => new ServerDto
 				{
-					Id = s.Id.ToString(),
+					Id = s.Id.ToString().ToUpper(),
 					Name = s.Name,
 					Description = s.Description,
-					OwnerId = s.OwnerId.ToString(),
+					OwnerId = s.OwnerId.ToString().ToUpper(),
 				})
 				.OrderBy(s => s.Name)
 				.ToListAsync();
@@ -145,20 +150,20 @@ namespace HPEChat_Server.Controllers
 				.Where(s => s.Id == serverGuid && s.Members.Any(m => m.Id == userGuid))
 				.Select(s => new ServerDto
 				{
-					Id = s.Id.ToString(),
+					Id = s.Id.ToString().ToUpper(),
 					Name = s.Name,
 					Description = s.Description,
-					OwnerId = s.OwnerId.ToString(),
+					OwnerId = s.OwnerId.ToString().ToUpper(),
 					Members = s.Members.Select(m => new UserInfoDto
 					{
-						Id = m.Id.ToString(),
+						Id = m.Id.ToString().ToUpper(),
 						Username = m.Username,
 					})
 					.OrderBy(m => m.Username)
 					.ToList(),
 					Channels = s.Channels.Select(c => new ChannelDto
 					{
-						Id = c.Id.ToString(),
+						Id = c.Id.ToString().ToUpper(),
 						Name = c.Name,
 					})
 					.OrderBy(c => c.Name)
@@ -187,21 +192,42 @@ namespace HPEChat_Server.Controllers
 			if (server == null) return NotFound("Server not found");
 			if (server.OwnerId == userGuid) return BadRequest("You are the owner of this server");
 
-			var user = await _context.Users.FindAsync(userGuid);
-			if (user == null) return BadRequest("User not found");
+			if (server.Members.Any(m => m.Id == userGuid)) return BadRequest("You are already a member of this server");
 
-			if (server.Members.Any(m => m.Id == user.Id)) return BadRequest("You are already a member of this server");
-
-			server.Members.Add(user);
-			await _context.SaveChangesAsync();
-
-			return Ok(new ServerDto
+			await using (var transaction = await _context.Database.BeginTransactionAsync())
 			{
-				Id = server.Id.ToString(),
-				Name = server.Name,
-				Description = server.Description,
-				OwnerId = server.OwnerId.ToString()
-			});
+				try
+				{
+					var userEntity = new User { Id = userGuid };
+					_context.Attach(userEntity);
+					server.Members.Add(userEntity);
+					await _context.SaveChangesAsync();
+
+					await _hub
+							.Clients
+							.Group(ServerHub.GroupName(server.Id))
+							.UserJoined(server.Id, new UserInfoDto
+							{
+								Id = userId,
+								Username = User.Identity!.Name!,
+							});
+
+					await transaction.CommitAsync();
+
+					return Ok(new ServerDto
+					{
+						Id = server.Id.ToString().ToUpper(),
+						Name = server.Name,
+						Description = server.Description,
+						OwnerId = server.OwnerId.ToString().ToUpper()
+					});
+				}
+				catch
+				{
+					await transaction.RollbackAsync();
+					return StatusCode(500);
+				}
+			}
 		}
 
 		[HttpPost("leave/{id}")]
@@ -230,10 +256,10 @@ namespace HPEChat_Server.Controllers
 
 			return Ok(new ServerDto
 			{
-				Id = server.Id.ToString(),
+				Id = server.Id.ToString().ToUpper(),
 				Name = server.Name,
 				Description = server.Description,
-				OwnerId = server.OwnerId.ToString()
+				OwnerId = server.OwnerId.ToString().ToUpper()
 			});
 		}
 

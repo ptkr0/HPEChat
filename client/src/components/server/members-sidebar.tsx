@@ -25,7 +25,7 @@ export function MembersSidebar() {
     : [];
 
   return (
-    <Sidebar className="w-60 border-l" side="right" collapsible="none">
+    <Sidebar className="w-68 border-l" side="right" collapsible="none">
       <SidebarHeader>
         <SidebarGroupLabel className="font-semibold text-lg">Członkowie ({selectedServer?.members.length})</SidebarGroupLabel>
       </SidebarHeader>
@@ -47,13 +47,13 @@ export function MembersSidebar() {
           ) : (
             <>
               {sortedMembers.map((m) => (
-                <SidebarMenuButton size={"default"} key={m.id} className="mb-2">
-                  <Avatar className="size-6 shrink-0">
+                <SidebarMenuButton size={"lg"} key={m.id} className="mb-2">
+                  <Avatar className="size-9 shrink-0">
                     <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${m.id}`} alt={m.username} />
                     <AvatarFallback>{m.username[0]}</AvatarFallback>
                   </Avatar>
                   <div className="flex min-w-0 flex-1 flex-col group-data-[collapsible=icon]:hidden">
-                    <span className="truncate font-medium flex items-center">
+                    <span className="truncate text-lg flex items-center">
                       {m.id === selectedServer!.ownerId ? <Crown className="mr-1 text-yellow-300" size={20}/> : null}
                       <span>{m.username}</span>
                     </span>
