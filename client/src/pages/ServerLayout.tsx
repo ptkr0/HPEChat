@@ -21,12 +21,15 @@ export default function ServerLayout() {
     }
   }, [selectServer, serverId]);
 
+  // this useEffect was made to properly handle the case when user deletes channel that is currently selected
+  // is deleted channel was also the one that was selected user will be redirected to the first channel in the server
+  // if there are no channels user will be redirected to the empty server page
   useEffect(() => {
-    if (!serverId || serverDetailsLoading) {
+    if (!serverId || serverDetailsLoading || !selectedServer || selectedServer.id !== serverId) {
       return;
     }
 
-    const serverHasChannels = selectedServer && selectedServer.channels.length > 0;
+    const serverHasChannels = selectedServer.channels && selectedServer.channels.length > 0;
     const currentChannelIsValid = channelId && serverHasChannels && selectedServer.channels.some(ch => ch.id === channelId);
 
     if (channelId) {
@@ -44,7 +47,9 @@ export default function ServerLayout() {
       if (serverHasChannels) {
         navigate(`/servers/${serverId}/${selectedServer.channels[0].id}`, { replace: true });
       } else {
-        navigate(`/servers/${serverId}`, { replace: true });
+        if (channelId) {
+            navigate(`/servers/${serverId}`, { replace: true });
+        }
         selectChannel(null);
       }
     }

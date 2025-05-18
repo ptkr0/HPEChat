@@ -22,9 +22,10 @@ interface NavServersProps {
   servers: Server[];
   selectedServerId: string | null;
   onServerSelect: (serverId: string) => void;
+  onLeaveServer: (serverId: string) => void;
 }
 
-export function NavServers({ servers, selectedServerId, onServerSelect }: NavServersProps) {
+export function NavServers({ servers, selectedServerId, onServerSelect, onLeaveServer }: NavServersProps) {
 
   const { user, loading } = useContext(AuthContext);
   const[dropdownMenu, setDropdownMenu] = useState(false);
@@ -73,7 +74,7 @@ export function NavServers({ servers, selectedServerId, onServerSelect }: NavSer
                         <Trash2/><span>Usuń Serwer</span>
                     </DropdownMenuItem>
                   ) : (
-                    <DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onLeaveServer(server.id)}>
                         <LogOut/><span>Opuść Serwer</span>
                     </DropdownMenuItem>
                   )}

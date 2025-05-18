@@ -5,16 +5,26 @@ import {
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarHeader,
+  SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuButton,
+  SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAppStore } from "@/stores/appStore";
 import { Skeleton } from "../ui/skeleton";
-import { Crown } from "lucide-react";
+import { Crown, LogOut, MoreHorizontal } from "lucide-react";
+import { useContext } from "react";
+import AuthContext from "@/context/AuthProvider";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
 
 export function MembersSidebar() {
+  const { user, loading } = useContext(AuthContext);
   const selectedServer = useAppStore((state) => state.selectedServer);
   const serverDetailsLoading = useAppStore((state) => state.serverDetailsLoading);
+  const kickUser = useAppStore((state) => state.kickUser);
+
+  console.log(user.id, selectedServer?.ownerId);
 
   const sortedMembers = selectedServer?.members 
     ? [...selectedServer.members].sort((a, b) => {
@@ -33,7 +43,7 @@ export function MembersSidebar() {
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupContent>
-          {serverDetailsLoading || !selectedServer ? (
+          {serverDetailsLoading || !selectedServer || loading ? (
             <>
               {[...Array(3)].map((_, i) => (
                   <div className="flex items-center py-1 px-2 w-full" key={i}>
@@ -46,9 +56,11 @@ export function MembersSidebar() {
             </>
           ) : (
             <>
+            <SidebarMenu>
               {sortedMembers.map((m) => (
-                <SidebarMenuButton size={"lg"} key={m.id} className="mb-2">
-                  <Avatar className="size-9 shrink-0">
+                <SidebarMenuItem key={m.id}>
+                <SidebarMenuButton size={"default"} key={m.id} className="mb-2">
+                  <Avatar className="size-8 shrink-0">
                     <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${m.id}`} alt={m.username} />
                     <AvatarFallback>{m.username[0]}</AvatarFallback>
                   </Avatar>
@@ -59,7 +71,23 @@ export function MembersSidebar() {
                     </span>
                   </div>
                 </SidebarMenuButton>
+                {(selectedServer!.ownerId === user.id.toUpperCase()) && (m.id !== selectedServer!.ownerId) && (
+                    <DropdownMenu modal={false}>
+                      <DropdownMenuTrigger asChild>
+                        <SidebarMenuAction>
+                          <MoreHorizontal />
+                        </SidebarMenuAction>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent side="bottom" align="start">
+                        <DropdownMenuItem onClick={() => kickUser(selectedServer.id, m.id)}>
+                          <LogOut className="text-red-400"/><span>Wyrzuć użytkownika</span>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                )}
+                </SidebarMenuItem>
               ))}
+              </SidebarMenu>
             </>
           )}
             </SidebarGroupContent>

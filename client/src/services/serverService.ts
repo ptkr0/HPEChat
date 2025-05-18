@@ -23,4 +23,12 @@ export const serverService = {
         const response = await axiosPrivate.post(`${SERVER_URL}/join/${ inviteCode }`);
         return response.data;
     },
+
+    leaveServer: async (serverId: string): Promise<void> => {
+        await axiosPrivate.delete(`${SERVER_URL}/leave/${serverId}`);
+    },
+
+    kickUser: async (serverId: string, userId: string): Promise<void> => {
+        await axiosPrivate.delete(`${SERVER_URL}/kick/${serverId}/${userId}`);
+    }
 };

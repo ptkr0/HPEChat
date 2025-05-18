@@ -28,6 +28,7 @@ export function AppSidebar() {
     const selectedServerId = useAppStore((state) => state.selectedServerId);
     const fetchServers = useAppStore((state) => state.fetchServers);
     const selectServer = useAppStore((state) => state.selectServer);
+    const leaveServer = useAppStore((state) => state.leaveServer);
 
     const navigate = useNavigate();
 
@@ -45,6 +46,10 @@ export function AppSidebar() {
                 navigate(`/home`);
         }
     };
+
+    const handleLeaveServer = (serverId: string) => {
+        leaveServer(serverId);
+    }
     
     return (
         <Sidebar collapsible='none' className='h-screen border-r border-r-border'>
@@ -67,6 +72,7 @@ export function AppSidebar() {
                                 servers={servers}
                                 selectedServerId={selectedServerId}
                                 onServerSelect={handleServerSelect}
+                                onLeaveServer={handleLeaveServer}
                                 />
                         </SidebarMenu>
                     </SidebarGroupContent>

@@ -23,9 +23,9 @@ namespace HPEChat_Server.Hubs
 			await Groups.AddToGroupAsync(Context.ConnectionId, GroupName(serverId));
 		}
 
-		public Task LeaveServer(Guid serverId)
+		public async Task LeaveServer(Guid serverId)
 		{
-			throw new NotImplementedException();
+			await Groups.RemoveFromGroupAsync(Context.ConnectionId, GroupName(serverId));
 		}
 
 		public Task RemoveChannel(Guid serverId, Guid channelId)

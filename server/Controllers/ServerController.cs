@@ -198,9 +198,8 @@ namespace HPEChat_Server.Controllers
 			{
 				try
 				{
-					var userEntity = new User { Id = userGuid };
-					_context.Attach(userEntity);
-					server.Members.Add(userEntity);
+					var userEntity = server.Members.FirstOrDefault(m => m.Id == userGuid);
+					if (userEntity == null) return BadRequest("User not found in server members");
 					await _context.SaveChangesAsync();
 
 					await _hub
@@ -230,7 +229,7 @@ namespace HPEChat_Server.Controllers
 			}
 		}
 
-		[HttpPost("leave/{id}")]
+		[HttpDelete("leave/{id}")]
 		[Authorize]
 		public async Task<ActionResult<ServerDto>> LeaveServer(Guid id)
 		{
@@ -241,26 +240,46 @@ namespace HPEChat_Server.Controllers
 			Guid userGuid = Guid.Parse(userId);
 
 			var server = await _context.Servers
+				.Include(s => s.Members)
 				.FirstOrDefaultAsync(s => s.Id == serverGuid);
 
 			if (server == null) return NotFound("Server not found");
 			if (server.OwnerId == userGuid) return BadRequest("You are the owner of this server, you can't leave it");
 
-			var user = await _context.Users.FindAsync(userGuid);
-			if (user == null) return BadRequest("User not found");
+			if (!server.Members.Any(m => m.Id == userGuid)) return BadRequest("You are not a member of this server");
 
-			if (!server.Members.Any(m => m.Id == user.Id)) return BadRequest("You are not a member of this server");
-
-			server.Members.Remove(user);
-			await _context.SaveChangesAsync();
-
-			return Ok(new ServerDto
+			await using (var transaction = await _context.Database.BeginTransactionAsync())
 			{
-				Id = server.Id.ToString().ToUpper(),
-				Name = server.Name,
-				Description = server.Description,
-				OwnerId = server.OwnerId.ToString().ToUpper()
-			});
+				try
+				{
+					var userEntity = server.Members.FirstOrDefault(m => m.Id == userGuid);
+					if (userEntity == null) return BadRequest("User not found in server members");
+					server.Members.Remove(userEntity);
+
+					await _context.SaveChangesAsync();
+
+					await _hub
+						.Clients
+						.Group(ServerHub.GroupName(server.Id))
+						.UserLeft(server.Id, userGuid);
+
+					await transaction.CommitAsync();
+
+					return Ok(new ServerDto
+					{
+						Id = server.Id.ToString().ToUpper(),
+						Name = server.Name,
+						Description = server.Description,
+						OwnerId = server.OwnerId.ToString().ToUpper()
+					});
+				}
+				catch
+				{
+					await transaction.RollbackAsync();
+					return StatusCode(500);
+				}
+			}
+
 		}
 
 		[HttpDelete("{id}")]
@@ -283,7 +302,7 @@ namespace HPEChat_Server.Controllers
 			return Ok(new { message = "Server deleted successfully" });
 		}
 
-		[HttpPost("kick/{serverId}/{userId}")]
+		[HttpDelete("kick/{serverId}/{userId}")]
 		[Authorize]
 		public async Task<ActionResult> KickUser(Guid serverId, Guid userId)
 		{
@@ -292,22 +311,38 @@ namespace HPEChat_Server.Controllers
 			var ownerId = User.GetUserId();
 			if (ownerId == null) return BadRequest("User not found");
 
-			Guid serverGuid = serverId;
-			Guid userGuid = userId;
 			Guid ownerGuid = Guid.Parse(ownerId);
 
-			var user = await _context.Users.FindAsync(userGuid);
-			if (user == null) return NotFound("User not found");
-
 			var server = await _context.Servers
-				.Where(s => s.Id == serverGuid && s.OwnerId == ownerGuid && s.Members.Any(m => m.Id == userGuid))
-				.FirstOrDefaultAsync();
+				.Include(s => s.Members)
+				.FirstOrDefaultAsync(s => s.Id == serverId && s.OwnerId == ownerGuid && s.Members.Any(m => m.Id == userId));
 			if (server == null) return NotFound("Server or user not found");
 
-			server.Members.Remove(user);
-			await _context.SaveChangesAsync();
-			
-			return Ok(new { message = "User kicked from server" });
+			await using (var transaction = await _context.Database.BeginTransactionAsync())
+			{
+				try
+				{
+					var userEntity = server.Members.FirstOrDefault(m => m.Id == userId);
+					if (userEntity == null) return BadRequest("User not found in server members");
+					server.Members.Remove(userEntity);
+
+					await _context.SaveChangesAsync();
+
+					await _hub
+						.Clients
+						.Group(ServerHub.GroupName(server.Id))
+						.UserLeft(server.Id, userId);
+
+					await transaction.CommitAsync();
+
+					return Ok(new { message = "User kicked from server" });
+				}
+				catch
+				{
+					await transaction.RollbackAsync();
+					return StatusCode(500);
+				}
+			}
 		}
 	}
 }

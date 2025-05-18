@@ -33,9 +33,10 @@ interface AppState {
 
   createServer: (newServerData: Omit<Server, 'id' | 'ownerId' | 'description'> & { description?: string }) => Promise<Server | null>;
   joinServer: (inviteCode: string) => Promise<Server | null>;
+  leaveServer: (serverId: string) => Promise<void>;
+  kickUser: (serverId: string, userId: string) => Promise<void>;
 
   createChannel: (newChannelData: Omit<Channel, 'id'>) => Promise<Channel | null>;
-
   deleteChannel: (channelId: string) => Promise<void>;
 
   sendMessage: (channelId: string, message: string) => Promise<ServerMessage | null>;
@@ -83,61 +84,57 @@ export const useAppStore = create<AppState>((set, get) => ({
       return;
     }
 
+    // reset channel-related state whenever the server changes or is deselected.
+    const commonStateChanges = {
+      selectedChannelId: null,
+      selectedChannel: null,
+      selectedChannelMessages: [],
+      channelMessagesLoading: false,
+      channelMessagesError: null,
+    };
+
     if (serverId) {
       const cachedDetails = get().cachedServers.get(serverId);
 
       if (cachedDetails) {
-        // cache hit
+        // cache hit for server details
         set({
           selectedServerId: serverId,
           selectedServer: cachedDetails,
-          selectedChannelId: null, // reset selected channel when server changes
           serverDetailsLoading: false,
           serverDetailsError: null,
+          ...commonStateChanges
         });
       } else {
-        // cache miss
+        // cache miss for server details, fetch them
         set({
           selectedServerId: serverId,
           selectedServer: null,
-          selectedChannelId: null, // reset selected channel
-          serverDetailsLoading: true, // set loading true before async fetch
+          serverDetailsLoading: true,
           serverDetailsError: null,
+          ...commonStateChanges
         });
+        serverService.getById(serverId).then(details => {
+          get().cachedServers.set(serverId, details);
 
-        const fetchServerDetails = async () => {
-          try {
-            const serverDetails: ServerDetails = await serverService.getById(serverId);
-
-            if (get().selectedServerId === serverId) {
-              set((state) => ({
-                selectedServer: serverDetails,
-                selectedServerName: serverDetails.name,
-                selectedServerDescription: serverDetails.description,
-                channels: serverDetails.channels,
-                members: serverDetails.members,
-                serverDetailsLoading: false,
-                cachedServers: new Map(state.cachedServers).set(serverId, serverDetails), // add to cache
-              }));
-            }
-          } catch (error) {
-            console.error(`Error fetching details for server ${serverId}:`, error);
-            toast.error('Nie udało się pobrać szczegółów serwera.');
-            if (get().selectedServerId === serverId) {
-              set({ serverDetailsError: 'Nie udało się pobrać szczegółów serwera.', serverDetailsLoading: false });
-            }
+          if (get().selectedServerId === serverId) {
+            set({ selectedServer: details, serverDetailsLoading: false });
           }
-        };
-        fetchServerDetails();
+        }).catch(error => {
+          console.error("Error fetching server details:", error);
+          if (get().selectedServerId === serverId) {
+            set({ serverDetailsError: 'Nie udało się załadować szczegółów serwera.', serverDetailsLoading: false });
+          }
+        });
       }
     } else {
       // serverId is null (deselecting server)
       set({
         selectedServerId: null,
         selectedServer: null,
-        selectedChannelId: null,
         serverDetailsLoading: false,
         serverDetailsError: null,
+        ...commonStateChanges
       });
     }
   },
@@ -436,6 +433,88 @@ export const useAppStore = create<AppState>((set, get) => ({
     channelMessagesLoading: false,
     channelMessagesError: null,
     cachedChannelMessages: new Map(),
-  })
+  }),
+
+  leaveServer: async (serverId) => {
+    try {
+      await serverService.leaveServer(serverId);
+
+      const wasSelectedServer = get().selectedServerId === serverId;
+
+      // get channel IDs from the cache for the server being left.
+      const channelIdsToClear = get().cachedServers.get(serverId)?.channels.map(channel => channel.id) || [];
+
+      // remove the server from the main servers list
+      set((state) => ({
+        servers: state.servers.filter(server => server.id !== serverId)
+      }));
+
+      // remove server from cached servers
+      set((state) => {
+        const cachedServers = new Map(state.cachedServers);
+        cachedServers.delete(serverId);
+        return { cachedServers };
+      });
+
+      // remove messages from the cache that were associated with the server being left
+      if (channelIdsToClear.length > 0) {
+        set((state) => {
+          const cachedChannelMessages = new Map(state.cachedChannelMessages);
+          channelIdsToClear.forEach(channelId => {
+            cachedChannelMessages.delete(channelId);
+          });
+          return { cachedChannelMessages };
+        });
+      }
+
+      // if the server being left was the currently selected one, select a new server.
+      if (wasSelectedServer) {
+        const remainingServers = get().servers; 
+        if (remainingServers.length > 0) {
+          get().selectServer(remainingServers[0].id);
+        } else {
+          get().selectServer(null);
+        }
+      }
+
+      toast.success('Opuszczono serwer.');
+    } catch (error) {
+      toast.error('Nie udało się opuścić serwera.');
+      console.error("Error leaving server:", error);
+    }
+  },
+
+  kickUser: async (serverId, userId) => {
+    try {
+      await serverService.kickUser(serverId, userId);
+      
+      // remove the user from the server's members list
+      if(get().selectedServerId === serverId) {
+        set((state) => ({
+          selectedServer: {
+            ...state.selectedServer!,
+            members: state.selectedServer!.members.filter(member => member.id !== userId)
+          }
+        }));
+      }
+
+      // remove the user from the cached server details
+      set((state) => {
+        const cachedServers = new Map(state.cachedServers);
+        const cachedServer = cachedServers.get(serverId);
+        if (cachedServer) {
+          cachedServers.set(serverId, {
+            ...cachedServer,
+            members: cachedServer.members.filter(member => member.id !== userId)
+          });
+        }
+        return { cachedServers };
+      });
+
+    } catch (error) {
+      toast.error('Nie udało się usunąć użytkownika z serwera.');
+      console.error("Error kicking user:", error);
+    }
+  }
 
   }));
