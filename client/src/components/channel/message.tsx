@@ -180,7 +180,7 @@ export function Message({ message, isSenderCurrentUser, isContinuation }: Messag
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7"
+          className="h-7 w-7 hover:text-red-400"
           onClick={handleDelete}
           disabled={isDeleting || isSubmitting}
         >
