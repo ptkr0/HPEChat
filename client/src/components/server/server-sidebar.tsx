@@ -20,8 +20,7 @@ import { Skeleton } from "../ui/skeleton";
 import { useContext, useState } from "react";
 import AuthContext from "@/context/AuthProvider";
 import { CreateChannelModal } from "../modals/create-channel-modal";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
-import { Separator } from "../ui/separator";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "../ui/dropdown-menu";
 import { ConfirmationDialog } from "../modals/confirmation-modal";
 
 export function ServerSidebar() {
@@ -109,7 +108,7 @@ export function ServerSidebar() {
                                                                     <span className="truncate">{channel.name}</span>
                                                                 </div>
                                                             </SidebarMenuButton>
-                                                            {selectedServer.ownerId === user.id && (
+                                                            {selectedServer.ownerId === user.id.toUpperCase() && (
                                                                 <DropdownMenu modal={false}>
                                                                     <DropdownMenuTrigger asChild>
                                                                         <SidebarMenuAction>
@@ -120,9 +119,9 @@ export function ServerSidebar() {
                                                                         <DropdownMenuItem onClick={() => [setSelectedChannelOptionsId(channel.id)]}>
                                                                             <Settings/><span>Edytuj kanał</span>
                                                                         </DropdownMenuItem>
-                                                                        <Separator className="my-1"></Separator>
+                                                                        <DropdownMenuSeparator />
                                                                         <DropdownMenuItem onClick={() => [setSelectedChannelOptionsId(channel.id), setShowDeleteChannelModal(true)]}>
-                                                                            <Trash/><span>Usuń kanał</span>
+                                                                            <Trash/><span className="text-red-500 focus:text-red-500">Usuń kanał</span>
                                                                         </DropdownMenuItem>
                                                                     </DropdownMenuContent>
                                                                 </DropdownMenu>

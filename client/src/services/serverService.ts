@@ -30,5 +30,9 @@ export const serverService = {
 
     kickUser: async (serverId: string, userId: string): Promise<void> => {
         await axiosPrivate.delete(`${SERVER_URL}/kick/${serverId}/${userId}`);
+    },
+
+    deleteServer: async (serverId: string): Promise<void> => {
+        await axiosPrivate.delete(`${SERVER_URL}/${serverId}`);
     }
 };
