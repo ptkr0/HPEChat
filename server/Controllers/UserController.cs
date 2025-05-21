@@ -141,7 +141,7 @@ namespace HPEChat_Server.Controllers
 			var userId = User.GetUserId();
 			var username = User.GetUsername();
 			var role = User.GetRole();
-			return Ok(new UserInfoDto { Id = userId!.ToUpper(), Username = username!, Role = role! });
+			return Ok(new UserInfoDto { Id = userId!.ToUpper(), Username = username!, Role = role!.ToString() });
 		}
 
 		[HttpGet("admin-test")]

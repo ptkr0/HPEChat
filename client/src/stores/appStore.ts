@@ -6,44 +6,55 @@ import { toast } from 'sonner';
 import { channelService } from '@/services/channelService';
 import { ServerMessage } from '@/types/server-message.type';
 import { serverMessageService } from '@/services/serverMessageService';
+import { HubConnection, HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
+import { User } from '@/types/user.type';
+import { userService } from '@/services/userService';
+
+export const SIGNALR_URL = 'https://localhost:7056/hubs/server';
 
 interface AppState {
-  servers: Server[]; // list of all servers that user is a member of (basic info)
+  servers: Server[];
   serversLoading: boolean;
   serversError: string | null;
   fetchServers: () => Promise<void>;
 
-  selectedServerId: string | null; // ID of the currently selected server
-  selectedServer: ServerDetails | null; // details of the currently selected server (STORES SERVER DEATILS, CHANNELS, MEMBERS AND SHOULD BE USED AS A SINGLE SOURCE OF TRUTH)
+  selectedServerId: string | null;
+  selectedServer: ServerDetails | null;
 
   serverDetailsLoading: boolean;
   serverDetailsError: string | null;
 
-  cachedServers: Map<string, ServerDetails>; // cache for server details that user has already fetched
-  selectServer: (serverId: string | null) => void;
+  cachedServers: Map<string, ServerDetails>;
+  selectServer: (serverId: string | null) => Promise<void>;
 
-  selectedChannelId: string | null; // ID of the currently selected channel
-  selectedChannel: Channel | null; // details of the currently selected channel
-  selectedChannelMessages: ServerMessage[]; // messages of the currently selected channel
-  channelMessagesLoading: boolean; // loading state for channel messages
-  channelMessagesError: string | null; // error state for channel messages
-  cachedChannelMessages: Map<string, ServerMessage[]>; // cache for channel messages
+  selectedChannelId: string | null;
+  selectedChannel: Channel | null;
+  selectedChannelMessages: ServerMessage[];
+  channelMessagesLoading: boolean;
+  channelMessagesError: string | null;
+  cachedChannelMessages: Map<string, ServerMessage[]>;
 
   selectChannel: (channelId: string | null) => void;
 
   createServer: (newServerData: Omit<Server, 'id' | 'ownerId' | 'description'> & { description?: string }) => Promise<Server | null>;
   joinServer: (inviteCode: string) => Promise<Server | null>;
   leaveServer: (serverId: string) => Promise<void>;
+  leaveServerAction: (serverId: string) => Promise<void>;
   kickUser: (serverId: string, userId: string) => Promise<void>;
 
   createChannel: (newChannelData: Omit<Channel, 'id'>) => Promise<Channel | null>;
   deleteChannel: (channelId: string) => Promise<void>;
 
   sendMessage: (channelId: string, message: string) => Promise<ServerMessage | null>;
-
   deleteMessage: (messageId: string) => Promise<void>;
   editMessage: (messageId: string, message: string) => Promise<ServerMessage | null>;
 
+  hubConnection: HubConnection | null;
+  signalRError: string | null;
+  initializeSignalR: (hubUrl?: string) => Promise<void>;
+  closeSignalRConnection: () => Promise<void>;
+
+  getMeInfo: () => Promise<User | null>;
   clearStore: () => void;
 }
 
@@ -67,24 +78,347 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   cachedServers: new Map(),
 
+  hubConnection: null,
+  signalRError: null,
+
+  initializeSignalR: async (hubUrl: string = SIGNALR_URL) => {
+    if (get().hubConnection) {
+      return;
+    }
+    const connection = new HubConnectionBuilder()
+      .withUrl(hubUrl)
+      .withAutomaticReconnect()
+      .configureLogging(LogLevel.Information)
+      .build();
+
+    // --- SignalR STUFF ---
+    connection.on("UserJoined", (serverId: string, user: User) => {
+      serverId = serverId.toUpperCase();
+      user.id = user.id.toUpperCase();
+
+      // only update if the server is selected or cached (if server is not cached full info will be fetched)
+      if (get().selectedServerId === serverId || get().cachedServers.has(serverId)) {
+        set((state) => {
+          const newCachedServers = new Map(state.cachedServers);
+          const cachedServer = newCachedServers.get(serverId);
+
+          if (cachedServer) {
+            newCachedServers.set(serverId, {
+              ...cachedServer,
+              members: [...cachedServer.members.filter(m => m.id !== user.id), user]
+            });
+          }
+
+          let newSelectedServer = state.selectedServer;
+          if (state.selectedServerId === serverId && state.selectedServer) {
+            newSelectedServer = {
+              ...state.selectedServer,
+              members: [...state.selectedServer.members.filter(m => m.id !== user.id), user]
+            };
+          }
+          return { selectedServer: newSelectedServer, cachedServers: newCachedServers };
+        });
+      }
+    });
+
+    connection.on("UserLeft", async (serverId: string, userId: string) => {
+      serverId = serverId.toUpperCase();
+      userId = userId.toUpperCase();
+
+      // Handle user leaving without using React hooks
+      // If the server notifies that the current user was removed, leave the server
+      // This will be handled by comparing serverIds and userIds in the state update logic below
+      const currentUser = await get().getMeInfo();
+      if (currentUser && currentUser.id === userId) {
+        get().leaveServer(serverId);
+        return;
+      }
+      
+      // only update if the server is selected or cached
+      if (get().selectedServerId === serverId || get().cachedServers.has(serverId)) {
+        set((state) => {
+          const newCachedServers = new Map(state.cachedServers);
+          const cachedServer = newCachedServers.get(serverId);
+
+          if (cachedServer) {
+            newCachedServers.set(serverId, {
+              ...cachedServer,
+              members: cachedServer.members.filter(member => member.id !== userId)
+            });
+          }
+          
+          let newSelectedServer = state.selectedServer;
+          if (state.selectedServerId === serverId && state.selectedServer) {
+            newSelectedServer = {
+              ...state.selectedServer,
+              members: state.selectedServer.members.filter(member => member.id !== userId)
+            };
+          }
+          return { selectedServer: newSelectedServer, cachedServers: newCachedServers };
+        });
+      }
+    });
+
+    connection.on("ChannelAdded", (serverId: string, channel: Channel) => {
+      serverId = serverId.toUpperCase();
+      channel.id = channel.id.toUpperCase();
+      
+      // only update if the server is selected or cached
+      if (get().selectedServerId === serverId || get().cachedServers.has(serverId)) {
+        set((state) => {
+          const newCachedServers = new Map(state.cachedServers);
+          const cachedServer = newCachedServers.get(serverId);
+
+          if (cachedServer) {
+            newCachedServers.set(serverId, {
+              ...cachedServer,
+              channels: [...cachedServer.channels.filter(c => c.id !== channel.id), channel]
+            });
+          }
+
+          let newSelectedServer = state.selectedServer;
+          if (state.selectedServerId === serverId && state.selectedServer) {
+            newSelectedServer = {
+              ...state.selectedServer,
+              channels: [...state.selectedServer.channels.filter(c => c.id !== channel.id), channel]
+            };
+          }
+          return { selectedServer: newSelectedServer, cachedServers: newCachedServers };
+        });
+      }
+    });
+
+    connection.on("ChannelRemoved", (serverId: string, channelId: string) => {
+      serverId = serverId.toUpperCase();
+      channelId = channelId.toUpperCase();
+      
+      // only update if the server is selected or cached
+      if (get().selectedServerId === serverId || get().cachedServers.has(serverId)) {
+        const wasSelectedChannel = get().selectedChannelId === channelId;
+
+        set((state) => {
+          const newCachedServers = new Map(state.cachedServers);
+          const cachedServer = newCachedServers.get(serverId);
+
+          if (cachedServer) {
+            newCachedServers.set(serverId, {
+              ...cachedServer,
+              channels: cachedServer.channels.filter(c => c.id !== channelId)
+            });
+          }
+
+          let newSelectedServer = state.selectedServer;
+          if (state.selectedServerId === serverId && state.selectedServer) {
+            newSelectedServer = {
+              ...state.selectedServer,
+              channels: state.selectedServer.channels.filter(c => c.id !== channelId)
+            };
+          }
+          
+          const newCachedChannelMessages = new Map(state.cachedChannelMessages);
+          newCachedChannelMessages.delete(channelId);
+          
+          return {
+            selectedServer: newSelectedServer,
+            cachedServers: newCachedServers,
+            cachedChannelMessages: newCachedChannelMessages,
+          };
+        });
+
+        if (wasSelectedChannel && get().selectedServerId === serverId) {
+          const currentSelectedServer = get().selectedServer;
+          if (currentSelectedServer && currentSelectedServer.channels.length > 0) {
+            get().selectChannel(currentSelectedServer.channels[0].id);
+          } else {
+            get().selectChannel(null);
+          }
+        }
+      }
+    });
+
+    connection.on("ChannelUpdated", (serverId: string, channel: Channel) => {
+      serverId = serverId.toUpperCase();
+
+      // only update if the server is selected or cached
+       if (get().selectedServerId === serverId || get().cachedServers.has(serverId)) {
+        set((state) => {
+          const newCachedServers = new Map(state.cachedServers);
+          const cachedServer = newCachedServers.get(serverId);
+
+          if (cachedServer) {
+            newCachedServers.set(serverId, {
+              ...cachedServer,
+              channels: cachedServer.channels.map(c => c.id === channel.id ? channel : c)
+            });
+          }
+
+          let newSelectedServer = state.selectedServer;
+          if (state.selectedServerId === serverId && state.selectedServer) {
+            newSelectedServer = {
+              ...state.selectedServer,
+              channels: state.selectedServer.channels.map(c => c.id === channel.id ? channel : c)
+            };
+          }
+          
+          let newSelectedChannel = state.selectedChannel;
+          if (state.selectedChannelId === channel.id) {
+            newSelectedChannel = channel;
+          }
+
+          return { selectedServer: newSelectedServer, cachedServers: newCachedServers, selectedChannel: newSelectedChannel };
+        });
+      }
+    });
+
+    connection.on("MessageAdded", (serverId: string, message: ServerMessage) => {
+      serverId = serverId.toUpperCase();
+
+      set((state) => {
+
+        // always update the cache for the message's channel
+        const newCachedChannelMessages = new Map(state.cachedChannelMessages);
+        const channelMessages = newCachedChannelMessages.get(message.channelId) || [];
+
+        // check if the message already exists in the cache
+        // if it doesn't, add it to the cache
+        const exists = channelMessages.some(m => m.id === message.id);
+        if (!exists) {
+            newCachedChannelMessages.set(message.channelId, [...channelMessages, message]);
+        }
+        
+        let newSelectedChannelMessages = state.selectedChannelMessages;
+
+        // update selectedChannelMessages only if the message is for the currently selected channel AND server
+        if (state.selectedChannelId === message.channelId && state.selectedServerId === serverId) {
+          newSelectedChannelMessages = [...state.selectedChannelMessages, message];
+        }
+        
+        return {
+          selectedChannelMessages: newSelectedChannelMessages,
+          cachedChannelMessages: newCachedChannelMessages
+        };
+      });
+    });
+
+    connection.on("MessageEdited", (serverId: string, message: ServerMessage) => {
+      serverId = serverId.toUpperCase();
+      
+      set((state) => {
+
+        // always update the cache for the message's channel
+        const newCachedChannelMessages = new Map(state.cachedChannelMessages);
+        const channelMessages = newCachedChannelMessages.get(message.channelId) || [];
+        newCachedChannelMessages.set(message.channelId, channelMessages.map(m => m.id === message.id ? message : m));
+
+        let newSelectedChannelMessages = state.selectedChannelMessages;
+
+        // update selectedChannelMessages only if the message is for the currently selected channel AND server
+        if (state.selectedChannelId === message.channelId && state.selectedServerId === serverId) {
+          newSelectedChannelMessages = state.selectedChannelMessages.map(m => m.id === message.id ? message : m);
+        }
+        
+        return {
+          selectedChannelMessages: newSelectedChannelMessages,
+          cachedChannelMessages: newCachedChannelMessages
+        };
+      });
+    });
+
+    connection.on("MessageDeleted", (serverId: string, channelId: string, messageId: string) => {
+      serverId = serverId.toUpperCase();
+      channelId = channelId.toUpperCase();
+      messageId = messageId.toUpperCase();
+
+      set((state) => {
+
+        // always update the cache for the channel
+        const newCachedChannelMessages = new Map(state.cachedChannelMessages);
+        const messages = newCachedChannelMessages.get(channelId) || [];
+        const filteredMessages = messages.filter(m => m.id !== messageId);
+        newCachedChannelMessages.set(channelId, filteredMessages);
+
+        let newSelectedChannelMessages = state.selectedChannelMessages;
+
+        // update selectedChannelMessages only if the message was in the currently selected channel AND server
+        if (state.selectedChannelId === channelId && state.selectedServerId === serverId) {
+          newSelectedChannelMessages = state.selectedChannelMessages.filter(m => m.id !== messageId);
+        }
+
+        return {
+          selectedChannelMessages: newSelectedChannelMessages,
+          cachedChannelMessages: newCachedChannelMessages,
+        };
+      });
+    });
+    // --- END SignalR STUFF ---
+
+    connection.onreconnected(async () => {
+      const servers = get().servers;
+      for (const server of servers) {
+        try {
+          await connection.invoke("JoinServer", server.id);
+        } catch (err) {
+          console.error("SignalR: error re-joining", server.id, err);
+        }
+      }
+    });
+
+    try {
+      await connection.start();
+      set({ hubConnection: connection, signalRError: null });
+
+      let userServers = get().servers;
+      if (!userServers || userServers.length === 0) {
+        await get().fetchServers();
+        userServers = get().servers;
+      }
+      
+      if (userServers && userServers.length > 0 && connection.state === "Connected") {
+        console.log(`SignalR: Attempting to join groups for ${userServers.length} servers.`);
+        for (const server of userServers) {
+          try {
+            await connection.invoke("JoinServer", server.id);
+            console.log(`SignalR: Successfully joined server group ${server.id} on connect.`);
+          } catch (err) {
+            console.error(`SignalR: Error auto-joining server group ${server.id} on connect:`, err);
+          }
+        }
+      } else if (connection.state === "Connected") {
+        console.log("SignalR: No servers found to join groups for, or user is not part of any servers yet.");
+      }
+    } catch (err) {
+      console.error("SignalR Connection Error: ", err);
+      set({ hubConnection: null, signalRError: "Failed to connect to real-time service." });
+    }
+  },
+
+  closeSignalRConnection: async () => {
+    const connection = get().hubConnection;
+    if (connection) {
+      await connection.stop();
+      set({ hubConnection: null });
+    }
+  },
+
   fetchServers: async () => {
     set({ serversLoading: true, serversError: null });
     try {
       const fetchedServers = await serverService.getAll();
+      console.log("[initSR] servers in state:", get().servers.length);
       set({ servers: fetchedServers, serversLoading: false });
-
     } catch (error) {
       console.error("Error fetching servers:", error);
       set({ serversError: 'Nie udało się pobrać listy serwerów.', serversLoading: false });
     }
   },
 
-  selectServer: (serverId: string | null) => {
-    if (get().selectedServerId === serverId) {
+  selectServer: async (serverId: string | null) => {
+    const currentSelectedServerId = get().selectedServerId;
+
+    if (currentSelectedServerId === serverId) {
       return;
     }
 
-    // reset channel-related state whenever the server changes or is deselected.
     const commonStateChanges = {
       selectedChannelId: null,
       selectedChannel: null,
@@ -96,8 +430,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (serverId) {
       const cachedDetails = get().cachedServers.get(serverId);
 
+      // cache hit
       if (cachedDetails) {
-        // cache hit for server details
         set({
           selectedServerId: serverId,
           selectedServer: cachedDetails,
@@ -105,8 +439,9 @@ export const useAppStore = create<AppState>((set, get) => ({
           serverDetailsError: null,
           ...commonStateChanges
         });
+
+      // cache miss
       } else {
-        // cache miss for server details, fetch them
         set({
           selectedServerId: serverId,
           selectedServer: null,
@@ -114,12 +449,22 @@ export const useAppStore = create<AppState>((set, get) => ({
           serverDetailsError: null,
           ...commonStateChanges
         });
-        serverService.getById(serverId).then(details => {
-          get().cachedServers.set(serverId, details);
 
-          if (get().selectedServerId === serverId) {
-            set({ selectedServer: details, serverDetailsLoading: false });
-          }
+        serverService.getById(serverId).then(details => { // fetch server details
+          set(state => {
+            const newCachedServers = new Map(state.cachedServers).set(serverId, details);
+            if (state.selectedServerId === serverId) {
+              return {
+                selectedServer: details,
+                serverDetailsLoading: false,
+                serverDetailsError: null,
+                cachedServers: newCachedServers
+              };
+            }
+
+            return { cachedServers: newCachedServers };
+          });
+
         }).catch(error => {
           console.error("Error fetching server details:", error);
           if (get().selectedServerId === serverId) {
@@ -128,7 +473,6 @@ export const useAppStore = create<AppState>((set, get) => ({
         });
       }
     } else {
-      // serverId is null (deselecting server)
       set({
         selectedServerId: null,
         selectedServer: null,
@@ -140,6 +484,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   selectChannel: (channelId: string | null) => {
+
+    // if the channelId is the same as the current one, do nothing
     if (get().selectedChannelId === channelId && channelId !== null) {
       return;
     }
@@ -150,44 +496,34 @@ export const useAppStore = create<AppState>((set, get) => ({
         selectedChannelId: channelId,
         selectedChannel: basicChannelInfo || null,
         channelMessagesLoading: true,
-        selectedChannelMessages: [], // clear previous messages
+        selectedChannelMessages: [],
         channelMessagesError: null,
       });
 
       const cachedMessages = get().cachedChannelMessages.get(channelId);
-
       if (cachedMessages) {
-        // cache hit for messages
         set({
           selectedChannelMessages: cachedMessages,
           channelMessagesLoading: false,
         });
       } else {
-        // cache miss for messages, fetch them
-        const fetchMessages = async () => {
-          try {
-            const fetchedMessages = await serverMessageService.getAll(channelId);
-
-            if (get().selectedChannelId === channelId) {
-              set((state) => ({
-                selectedChannelMessages: fetchedMessages,
-                channelMessagesLoading: false,
-                cachedChannelMessages: new Map(state.cachedChannelMessages).set(channelId, fetchedMessages),
-              }));
-            }
-          } catch (error) {
-            console.error(`Error fetching messages for channel ${channelId}:`, error);
-            toast.error('Nie udało się pobrać wiadomości kanału.');
-
-            if (get().selectedChannelId === channelId) {
-              set({ channelMessagesError: 'Nie udało się pobrać wiadomości.', channelMessagesLoading: false });
-            }
+        serverMessageService.getAll(channelId).then(fetchedMessages => {
+          if (get().selectedChannelId === channelId) {
+            set((state) => ({
+              selectedChannelMessages: fetchedMessages,
+              channelMessagesLoading: false,
+              cachedChannelMessages: new Map(state.cachedChannelMessages).set(channelId, fetchedMessages),
+            }));
           }
-        };
-        fetchMessages();
+        }).catch(error => {
+          console.error(`Error fetching messages for channel ${channelId}:`, error);
+          toast.error('Nie udało się pobrać wiadomości kanału.');
+          if (get().selectedChannelId === channelId) {
+            set({ channelMessagesError: 'Nie udało się pobrać wiadomości.', channelMessagesLoading: false });
+          }
+        });
       }
     } else {
-      // deselecting channel
       set({
         selectedChannelId: null,
         selectedChannel: null,
@@ -200,13 +536,19 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   createServer: async (newServerData) => {
     try {
+      // creates server and joins the server group
       const newServer = await serverService.createServer({ ...newServerData, description: newServerData.description || '' });
+      const hubConnection = get().hubConnection;
 
       if (newServer) {
         set((state) => ({ servers: [...state.servers, newServer] }));
+        if (hubConnection && get().hubConnection?.state === "Connected") {
+          await hubConnection.invoke("JoinServer", newServer.id);
+        }
         return newServer;
       }
       return null;
+
     } catch (error) {
       toast.error('Serwer o takiej nazwie już istnieje.');
       console.error("Error creating server:", error);
@@ -216,13 +558,22 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   joinServer: async (inviteCode) => {
     try {
+
+      // joins server and creates a new server in the store
+      // also joins the server group
       const joinedServer = await serverService.joinServer(inviteCode);
+      const hubConnection = get().hubConnection;
 
       if (joinedServer) {
         set((state) => ({ servers: [...state.servers, joinedServer] }));
-        return joinedServer;
+
+        if (hubConnection && get().hubConnection?.state === "Connected") {
+          await hubConnection.invoke("JoinServer", joinedServer.id);
+        }
+      return joinedServer;
       }
       return null;
+
     } catch (error) {
       toast.error('Nie udało się dołączyć do serwera. Sprawdź nazwę serwera.');
       console.error("Error joining server:", error);
@@ -230,42 +581,22 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
-  createChannel: async (name) => {
-    const selectedServerId = get().selectedServerId;
-
-    if (!selectedServerId) {
-      toast.error('Nie wybrano serwera.');
-      return null;
-    }
-
+  createChannel: async (newChannelData) => {
     try {
-      const newChannel = await channelService.createChannel({ serverId: selectedServerId, ...name });
+      const selectedServerId = get().selectedServerId;
+
+      if (!selectedServerId) {
+        toast.error('Nie wybrano serwera.');
+        return null;
+      }
+      const newChannel = await channelService.createChannel({ serverId: selectedServerId, ...newChannelData });
 
       if (newChannel) {
-        set((state) => ({
-          selectedServer: state.selectedServer ? {
-            ...state.selectedServer,
-            channels: [...(state.selectedServer.channels || []), newChannel]
-          } : null
-        }));
-
-        // update cached server details
-        if (selectedServerId) {
-          set((state) => {
-            const cachedServers = new Map(state.cachedServers);
-            const cachedServer = cachedServers.get(selectedServerId);
-            if (cachedServer) {
-              cachedServers.set(selectedServerId, {
-                ...cachedServer,
-                channels: [...cachedServer.channels, newChannel]
-              });
-            }
-            return { cachedServers };
-          });
-        }
+        toast.success('Kanał został utworzony.');
         return newChannel;
       }
       return null;
+
     } catch (error) {
       toast.error('Nie udało się utworzyć kanału.');
       console.error("Error creating channel:", error);
@@ -276,80 +607,20 @@ export const useAppStore = create<AppState>((set, get) => ({
   deleteChannel: async (channelId: string) => {
     try {
       await channelService.deleteChannel(channelId);
+      toast.success('Żądanie usunięcia kanału wysłane.');
 
-      // remove the channel from the selected server's channels
-      if (get().selectedChannelId === channelId && get().selectedServer) {
-        const remainingChannels = get().selectedServer!.channels.filter(channel => channel.id !== channelId);
-
-        if (remainingChannels.length > 0) {
-          get().selectChannel(remainingChannels[0].id);
-        } else {
-          get().selectChannel(null);
-        }
-      }
-
-      // remove the channel from the cached server details
-      const serverId = get().selectedServerId;
-      if (serverId) {
-        set((state) => {
-          const cachedServers = new Map(state.cachedServers);
-          const cachedServer = cachedServers.get(serverId);
-          if (cachedServer) {
-            cachedServers.set(serverId, {
-              ...cachedServer,
-              channels: cachedServer.channels.filter((channel) => channel.id !== channelId)
-            });
-          }
-          return { cachedServers };
-        });
-      }
-
-      // remove the channel from the selected server's channels
-      set((state) => ({
-        selectedServer: state.selectedServer ? {
-          ...state.selectedServer,
-          channels: state.selectedServer.channels.filter((channel) => channel.id !== channelId)
-        } : null
-      }));
-
-      // filter out the messages from the cached messages
-      set((state) => {
-        const cachedChannelMessages = new Map(state.cachedChannelMessages);
-        cachedChannelMessages.delete(channelId);
-        return { cachedChannelMessages };
-      }
-      );
-
-      toast.success('Kanał został usunięty.');
     } catch (error) {
       toast.error('Nie udało się usunąć kanału.');
       console.error("Error deleting channel:", error);
     }
   },
 
-  sendMessage: async (channelId, message) => {
+  sendMessage: async (channelId, messageContent) => {
     try {
-      const sentMessage = await serverMessageService.send(channelId, message);
+      const sentMessage = await serverMessageService.send(channelId, messageContent);
 
-      if (sentMessage) {
-        set((state) => ({
-          selectedChannelMessages: [...state.selectedChannelMessages, sentMessage]
-        }));
+      return sentMessage;
 
-        console.log("Sent message:", sentMessage);
-
-        // update cached messages
-        set((state) => {
-          const cachedChannelMessages = new Map(state.cachedChannelMessages);
-          const cachedMessages = cachedChannelMessages.get(channelId) || [];
-          cachedMessages.push(sentMessage);
-          cachedChannelMessages.set(channelId, cachedMessages);
-          return { cachedChannelMessages };
-        });
-        
-        return sentMessage;
-      }
-      return null;
     } catch (error) {
       toast.error('Nie udało się wysłać wiadomości.');
       console.error("Error sending message:", error);
@@ -360,57 +631,20 @@ export const useAppStore = create<AppState>((set, get) => ({
   deleteMessage: async (messageId) => {
     try {
       await serverMessageService.delete(messageId);
-
-      // remove the message from the selected channel's messages
-      set((state) => ({
-        selectedChannelMessages: state.selectedChannelMessages.filter(message => message.id !== messageId)
-      }));
-
-      // update cached messages
-      const channelId = get().selectedChannelId;
-      if (channelId) {
-        set((state) => {
-          const cachedChannelMessages = new Map(state.cachedChannelMessages);
-          const cachedMessages = cachedChannelMessages.get(channelId) || [];
-          cachedChannelMessages.set(channelId, cachedMessages.filter(message => message.id !== messageId));
-          return { cachedChannelMessages };
-        });
-      }
-
       toast.success('Wiadomość została usunięta.');
+
     } catch (error) {
       toast.error('Nie udało się usunąć wiadomości.');
       console.error("Error deleting message:", error);
     }
   },
 
-  editMessage: async (messageId, message) => {
+  editMessage: async (messageId, messageContent) => {
     try {
-      const editedMessage = await serverMessageService.edit(messageId, message);
+      const editedMessage = await serverMessageService.edit(messageId, messageContent);
+      
+      return editedMessage;
 
-      if (editedMessage) {
-        set((state) => ({
-          selectedChannelMessages: state.selectedChannelMessages.map(msg =>
-            msg.id === messageId ? { ...msg, message: editedMessage.message, isEdited: true } : msg
-          )
-        }));
-
-        // update cached messages
-        const channelId = get().selectedChannelId;
-        if (channelId) {
-          set((state) => {
-            const cachedChannelMessages = new Map(state.cachedChannelMessages);
-            const cachedMessages = cachedChannelMessages.get(channelId) || [];
-            cachedChannelMessages.set(channelId, cachedMessages.map(msg =>
-              msg.id === messageId ? { ...msg, message: editedMessage.message, isEdited: true } : msg
-            ));
-            return { cachedChannelMessages };
-          });
-        }
-
-        return editedMessage;
-      }
-      return null;
     } catch (error) {
       toast.error('Nie udało się edytować wiadomości.');
       console.error("Error editing message:", error);
@@ -418,65 +652,63 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
-  clearStore: () => set({
-    servers: [],
-    serversLoading: false,
-    serversError: null,
-    selectedServerId: null,
-    selectedServer: null,
-    serverDetailsLoading: false,
-    serverDetailsError: null,
-    cachedServers: new Map(),
-    selectedChannelId: null,
-    selectedChannel: null,
-    selectedChannelMessages: [],
-    channelMessagesLoading: false,
-    channelMessagesError: null,
-    cachedChannelMessages: new Map(),
-  }),
-
-  leaveServer: async (serverId) => {
+  // this function is used when the user leaves the server by himself
+  leaveServerAction: async (serverId) => {
     try {
       await serverService.leaveServer(serverId);
+      get().leaveServer(serverId);
+    }
+    catch (error) {
+      toast.error('Nie udało się opuścić serwera.');
+      console.error("Error leaving server:", error);
+    }
+  },
 
-      const wasSelectedServer = get().selectedServerId === serverId;
-
-      // get channel IDs from the cache for the server being left.
-      const channelIdsToClear = get().cachedServers.get(serverId)?.channels.map(channel => channel.id) || [];
-
-      // remove the server from the main servers list
-      set((state) => ({
-        servers: state.servers.filter(server => server.id !== serverId)
-      }));
-
-      // remove server from cached servers
-      set((state) => {
-        const cachedServers = new Map(state.cachedServers);
-        cachedServers.delete(serverId);
-        return { cachedServers };
-      });
-
-      // remove messages from the cache that were associated with the server being left
-      if (channelIdsToClear.length > 0) {
-        set((state) => {
-          const cachedChannelMessages = new Map(state.cachedChannelMessages);
-          channelIdsToClear.forEach(channelId => {
-            cachedChannelMessages.delete(channelId);
-          });
-          return { cachedChannelMessages };
-        });
+  // this function should work both when the user leaves the server or is kicked
+  leaveServer: async (serverId) => {
+    try {
+      const hubConnection = get().hubConnection;
+      
+      // leave server group
+      if (hubConnection && hubConnection.state === "Connected") {
+        try {
+          await hubConnection.invoke("LeaveServer", serverId);
+          console.log(`SignalR: Left server group ${serverId} after leaving server.`);
+        } catch (err) {
+          console.error(`SignalR: Error leaving server group ${serverId}:`, err);
+        }
       }
 
-      // if the server being left was the currently selected one, select a new server.
+      // remove server from state, cache, clear server channel messages
+      // if the server was selected, select the first remaining server or null
+      const wasSelectedServer = get().selectedServerId === serverId;
+      const channelIdsToClear = get().cachedServers.get(serverId)?.channels.map(channel => channel.id) || [];
+
+      set((state) => {
+        const newServers = state.servers.filter(server => server.id !== serverId);
+        const newCachedServers = new Map(state.cachedServers);
+        newCachedServers.delete(serverId);
+        
+        const newCachedChannelMessages = new Map(state.cachedChannelMessages);
+        if (channelIdsToClear.length > 0) {
+          channelIdsToClear.forEach(chId => newCachedChannelMessages.delete(chId));
+        }
+        
+        return {
+          servers: newServers,
+          cachedServers: newCachedServers,
+          cachedChannelMessages: newCachedChannelMessages,
+        };
+      });
+
       if (wasSelectedServer) {
-        const remainingServers = get().servers; 
+        const remainingServers = get().servers;
         if (remainingServers.length > 0) {
           get().selectServer(remainingServers[0].id);
         } else {
           get().selectServer(null);
         }
       }
-
       toast.success('Opuszczono serwer.');
     } catch (error) {
       toast.error('Nie udało się opuścić serwera.');
@@ -484,37 +716,47 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
-  kickUser: async (serverId, userId) => {
+  kickUser: async (serverId: string, userId: string) => {
     try {
       await serverService.kickUser(serverId, userId);
-      
-      // remove the user from the server's members list
-      if(get().selectedServerId === serverId) {
-        set((state) => ({
-          selectedServer: {
-            ...state.selectedServer!,
-            members: state.selectedServer!.members.filter(member => member.id !== userId)
-          }
-        }));
-      }
-
-      // remove the user from the cached server details
-      set((state) => {
-        const cachedServers = new Map(state.cachedServers);
-        const cachedServer = cachedServers.get(serverId);
-        if (cachedServer) {
-          cachedServers.set(serverId, {
-            ...cachedServer,
-            members: cachedServer.members.filter(member => member.id !== userId)
-          });
-        }
-        return { cachedServers };
-      });
+      toast.success('Żądanie usunięcia użytkownika wysłane.');
 
     } catch (error) {
       toast.error('Nie udało się usunąć użytkownika z serwera.');
       console.error("Error kicking user:", error);
     }
-  }
+  },
 
-  }));
+  clearStore: () => {
+    get().closeSignalRConnection().then(() => {
+        set({
+            servers: [],
+            serversLoading: false,
+            serversError: null,
+            selectedServerId: null,
+            selectedServer: null,
+            serverDetailsLoading: false,
+            serverDetailsError: null,
+            cachedServers: new Map(),
+            selectedChannelId: null,
+            selectedChannel: null,
+            selectedChannelMessages: [],
+            channelMessagesLoading: false,
+            channelMessagesError: null,
+            cachedChannelMessages: new Map(),
+            hubConnection: null,
+            signalRError: null,
+        });
+    });
+  },
+
+  getMeInfo: async () => {
+    try {
+      const user = await userService.getMe();
+      return user;
+    } catch (error) {
+      console.error("Error fetching user info:", error);
+      return null;
+    }
+  },
+}));

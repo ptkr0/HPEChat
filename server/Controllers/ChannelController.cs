@@ -1,9 +1,11 @@
 ﻿using HPEChat_Server.Data;
 using HPEChat_Server.Dtos.Channel;
 using HPEChat_Server.Extensions;
+using HPEChat_Server.Hubs;
 using HPEChat_Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace HPEChat_Server.Controllers
@@ -13,9 +15,11 @@ namespace HPEChat_Server.Controllers
 	public class ChannelController : ControllerBase
 	{
 		private readonly ApplicationDBContext _context;
-		public ChannelController(ApplicationDBContext context)
+		private readonly IHubContext<ServerHub, IServerClient> _hub;
+		public ChannelController(ApplicationDBContext context, IHubContext<ServerHub, IServerClient> hub)
 		{
 			_context = context;
+			_hub = hub;
 		}
 
 		[HttpPost]
@@ -34,20 +38,42 @@ namespace HPEChat_Server.Controllers
 			if (server == null) return NotFound("Server not found");
 			if (server.OwnerId != userGuid) return Unauthorized("You are not the owner of this server");
 
-			var channel = new Channel
+			await using (var transaction = await _context.Database.BeginTransactionAsync())
 			{
-				Name = createChannelDto.Name,
-				ServerId = createChannelDto.ServerId,
-			};
+				try
+				{
+					var channel = new Channel
+					{
+						Name = createChannelDto.Name,
+						ServerId = createChannelDto.ServerId,
+					};
 
-			await _context.Channels.AddAsync(channel);
-			await _context.SaveChangesAsync();
+					await _context.Channels.AddAsync(channel);
+					await _context.SaveChangesAsync();
 
-			return Ok(new ChannelDto
-			{
-				Id = channel.Id.ToString().ToUpper(),
-				Name = channel.Name,
-			});
+					await _hub
+							.Clients
+							.Group(ServerHub.GroupName(serverGuid))
+							.ChannelAdded(serverGuid, new ChannelDto
+							{
+								Id = channel.Id.ToString().ToUpper(),
+								Name = channel.Name,
+							});
+
+					await transaction.CommitAsync();
+
+					return Ok(new ChannelDto
+					{
+						Id = channel.Id.ToString().ToUpper(),
+						Name = channel.Name,
+					});
+				}
+				catch (Exception ex)
+				{
+					await transaction.RollbackAsync();
+					return BadRequest($"Error creating channel: {ex.Message}");
+				}
+			}
 		}
 
 		[HttpPatch("{id}")]
@@ -66,16 +92,39 @@ namespace HPEChat_Server.Controllers
 				.FirstOrDefaultAsync(c => c.Id == channelGuid && c.Server.OwnerId == userGuid);
 
 			if (channel == null) return NotFound("Channel not found or access denied");
+			if (channel.Name == name) return BadRequest("Channel name is the same");
 
-			channel.Name = name;
-
-			await _context.SaveChangesAsync();
-
-			return Ok(new ChannelDto
+			await using (var transaction = await _context.Database.BeginTransactionAsync())
 			{
-				Id = channel.Id.ToString().ToUpper(),
-				Name = channel.Name,
-			});
+				try
+				{
+					channel.Name = name;
+					_context.Channels.Update(channel);
+					await _context.SaveChangesAsync();
+
+					await _hub
+						.Clients
+						.Group(ServerHub.GroupName(channel.ServerId))
+						.ChannelUpdated(channel.ServerId, new ChannelDto
+						{
+							Id = channel.Id.ToString().ToUpper(),
+							Name = name,
+						});
+
+					await transaction.CommitAsync();
+
+					return Ok(new ChannelDto
+					{
+						Id = channel.Id.ToString().ToUpper(),
+						Name = channel.Name,
+					});
+				}
+				catch (Exception ex)
+				{
+					await transaction.RollbackAsync();
+					return BadRequest($"Error updating channel: {ex.Message}");
+				}
+			}
 		}
 
 		[HttpDelete("{id}")]
@@ -95,11 +144,28 @@ namespace HPEChat_Server.Controllers
 
 			if (channel == null) return NotFound("Channel not found or access denied");
 
-			_context.Channels.Remove(channel);
+			await using (var transaction = await _context.Database.BeginTransactionAsync())
+			{
+				try
+				{
+					_context.Channels.Remove(channel);
+					await _context.SaveChangesAsync();
 
-			await _context.SaveChangesAsync();
+					await _hub
+						.Clients
+						.Group(ServerHub.GroupName(channel.ServerId))
+						.ChannelRemoved(channel.ServerId, channel.Id);
 
-			return Ok(new { message = "Server deleted successfully" });
+					await transaction.CommitAsync();
+
+					return Ok(new { message = "Server deleted successfully" });
+				}
+				catch (Exception ex)
+				{
+					await transaction.RollbackAsync();
+					return BadRequest($"Error deleting channel: {ex.Message}");
+				}
+			}
 		}
 
 		[HttpGet("{id}")]

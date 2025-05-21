@@ -40,6 +40,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 				{
 					context.Token = cookieToken;
 				}
+
+				if (string.IsNullOrEmpty(context.Token)
+					&& context.Request.Cookies.TryGetValue("Ciasteczko", out cookieToken)
+					&& context.HttpContext.WebSockets.IsWebSocketRequest)
+				{
+					context.Token = cookieToken;
+				}
 				return Task.CompletedTask;
 			}
 		};

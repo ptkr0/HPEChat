@@ -4,7 +4,6 @@ using HPEChat_Server.Dtos.Server;
 using HPEChat_Server.Dtos.User;
 using HPEChat_Server.Extensions;
 using HPEChat_Server.Hubs;
-using HPEChat_Server.Interfaces;
 using HPEChat_Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -54,6 +53,17 @@ namespace HPEChat_Server.Controllers
 					server.Members.Add(user);
 
 					await _context.Servers.AddAsync(server);
+
+					await _hub
+							.Clients
+							.Group(ServerHub.GroupName(server.Id))
+							.UserJoined(server.Id, new UserInfoDto
+							{
+								Id = userId,
+								Username = user.Username,
+								Role = user.Role,
+							});
+
 					await _context.SaveChangesAsync();
 					await transaction.CommitAsync();
 				}
@@ -76,6 +86,7 @@ namespace HPEChat_Server.Controllers
 					{
 						Id = user.Id.ToString().ToUpper(),
 						Username = user.Username,
+						Role = user.Role,
 					}
 				},
 			});
@@ -194,12 +205,14 @@ namespace HPEChat_Server.Controllers
 
 			if (server.Members.Any(m => m.Id == userGuid)) return BadRequest("You are already a member of this server");
 
+			var user = await _context.Users.FindAsync(userGuid);
+			if (user == null) return BadRequest("User not found");
+
 			await using (var transaction = await _context.Database.BeginTransactionAsync())
 			{
 				try
 				{
-					var userEntity = server.Members.FirstOrDefault(m => m.Id == userGuid);
-					if (userEntity == null) return BadRequest("User not found in server members");
+					server.Members.Add(user);
 					await _context.SaveChangesAsync();
 
 					await _hub
@@ -208,7 +221,8 @@ namespace HPEChat_Server.Controllers
 							.UserJoined(server.Id, new UserInfoDto
 							{
 								Id = userId,
-								Username = User.Identity!.Name!,
+								Username = user.Username,
+								Role = user.Role,
 							});
 
 					await transaction.CommitAsync();

@@ -1,9 +1,11 @@
 ﻿using HPEChat_Server.Data;
 using HPEChat_Server.Dtos.ServerMessage;
 using HPEChat_Server.Extensions;
+using HPEChat_Server.Hubs;
 using HPEChat_Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 
@@ -14,9 +16,11 @@ namespace HPEChat_Server.Controllers
 	public class ServerMessageController : ControllerBase
 	{
 		private readonly ApplicationDBContext _context;
-		public ServerMessageController(ApplicationDBContext context)
+		private readonly IHubContext<ServerHub, IServerClient> _hub;
+		public ServerMessageController(ApplicationDBContext context, IHubContext<ServerHub, IServerClient> hub)
 		{
 			_context = context;
+			_hub = hub;
 		}
 
 		[HttpGet]
@@ -78,33 +82,60 @@ namespace HPEChat_Server.Controllers
 				.FirstOrDefaultAsync(c => c.Id == channelGuid && c.Server.Members.Any(m => m.Id == userGuid));
 			if (channel == null) return NotFound("Channel not found or you are not a member of the server");
 
-			var message = new ServerMessage
+			await using (var transaction = await _context.Database.BeginTransactionAsync())
 			{
-				ChannelId = channelGuid,
-				SenderId = userGuid,
-				Message = messageDto.Message,
-				SentAt = DateTimeOffset.UtcNow,
-				IsEdited = false,
-			};
+				try
+				{
+					var message = new ServerMessage
+					{
+						ChannelId = channelGuid,
+						SenderId = userGuid,
+						Message = messageDto.Message,
+						SentAt = DateTimeOffset.UtcNow,
+						IsEdited = false,
+					};
 
-			await _context.ServerMessages.AddAsync(message);
-			await _context.SaveChangesAsync();
+					await _context.ServerMessages.AddAsync(message);
+					await _context.SaveChangesAsync();
 
-			return Ok(new ServerMessageDto
-			{
-				Id = message.Id.ToString().ToUpper(),
-				ChannelId = message.ChannelId.ToString().ToUpper(),
-				SenderId = message.SenderId.HasValue ? message.SenderId.Value.ToString().ToUpper() : string.Empty,
-				SenderName = username,
-				Message = message.Message,
-				SentAt = message.SentAt,
-				IsEdited = message.IsEdited,
-			});
+					await _hub
+						.Clients
+						.Group(ServerHub.GroupName(channel.ServerId))
+						.MessageAdded(channel.ServerId, new ServerMessageDto
+						{
+							Id = message.Id.ToString().ToUpper(),
+							ChannelId = message.ChannelId.ToString().ToUpper(),
+							SenderId = message.SenderId.HasValue ? message.SenderId.Value.ToString().ToUpper() : string.Empty,
+							SenderName = username,
+							Message = message.Message,
+							SentAt = message.SentAt,
+							IsEdited = message.IsEdited,
+						});
+
+					await transaction.CommitAsync();
+
+					return Ok(new ServerMessageDto
+					{
+						Id = message.Id.ToString().ToUpper(),
+						ChannelId = message.ChannelId.ToString().ToUpper(),
+						SenderId = message.SenderId.HasValue ? message.SenderId.Value.ToString().ToUpper() : string.Empty,
+						SenderName = username,
+						Message = message.Message,
+						SentAt = message.SentAt,
+						IsEdited = message.IsEdited,
+					});
+				}
+				catch (Exception ex)
+				{
+					await transaction.RollbackAsync();
+					return BadRequest($"Error sending message: {ex.Message}");
+				}
+			}
 		}
 
 		[HttpPatch("{id}")]
 		[Authorize]
-		public async Task<ActionResult<ServerMessageDto>> EditMessage([Required]Guid id, [FromBody][Required][MaxLength(2000)] string message)
+		public async Task<ActionResult<ServerMessageDto>> EditMessage([Required] Guid id, [FromBody][Required][MaxLength(2000)] string message)
 		{
 			if (!ModelState.IsValid) return BadRequest(ModelState);
 
@@ -115,26 +146,55 @@ namespace HPEChat_Server.Controllers
 			Guid userGuid = Guid.Parse(userId);
 
 			var serverMessage = await _context.ServerMessages
+				.Include(userId => userId.Sender)
 				.FirstOrDefaultAsync(m =>
 					m.Id == messageGuid && // check if message exists
 					m.SenderId == userGuid && // check if the user is the sender
 					m.Channel.Server.Members.Any(u => u.Id == userGuid)); // check if the user is still a member of the server
 			if (serverMessage == null) return NotFound("Message not found or you are not the sender");
 
-			serverMessage.Message = message;
-			serverMessage.IsEdited = true;
-			await _context.SaveChangesAsync();
-
-			return Ok(new ServerMessageDto
+			await using (var transaction = await _context.Database.BeginTransactionAsync())
 			{
-				Id = serverMessage.Id.ToString().ToUpper(),
-				ChannelId = serverMessage.ChannelId.ToString().ToUpper(),
-				SenderId = serverMessage.SenderId.HasValue ? serverMessage.SenderId.Value.ToString().ToUpper() : string.Empty,
-				SenderName = serverMessage.Sender != null ? serverMessage.Sender.Username : string.Empty,
-				Message = serverMessage.Message,
-				SentAt = serverMessage.SentAt,
-				IsEdited = serverMessage.IsEdited,
-			});
+				try
+				{
+
+					serverMessage.Message = message;
+					serverMessage.IsEdited = true;
+					await _context.SaveChangesAsync();
+
+					await _hub
+							.Clients
+							.Group(ServerHub.GroupName(serverMessage.Channel.ServerId))
+							.MessageEdited(serverMessage.Channel.ServerId, new ServerMessageDto
+							{
+								Id = serverMessage.Id.ToString().ToUpper(),
+								ChannelId = serverMessage.ChannelId.ToString().ToUpper(),
+								SenderId = serverMessage.SenderId.HasValue ? serverMessage.SenderId.Value.ToString().ToUpper() : string.Empty,
+								SenderName = serverMessage.Sender != null ? serverMessage.Sender.Username : string.Empty,
+								Message = serverMessage.Message,
+								SentAt = serverMessage.SentAt,
+								IsEdited = serverMessage.IsEdited,
+							});
+
+					await transaction.CommitAsync();
+
+					return Ok(new ServerMessageDto
+					{
+						Id = serverMessage.Id.ToString().ToUpper(),
+						ChannelId = serverMessage.ChannelId.ToString().ToUpper(),
+						SenderId = serverMessage.SenderId.HasValue ? serverMessage.SenderId.Value.ToString().ToUpper() : string.Empty,
+						SenderName = serverMessage.Sender != null ? serverMessage.Sender.Username : string.Empty,
+						Message = serverMessage.Message,
+						SentAt = serverMessage.SentAt,
+						IsEdited = serverMessage.IsEdited,
+					});
+				}
+				catch (Exception ex)
+				{
+					await transaction.RollbackAsync();
+					return BadRequest($"Error editing message: {ex.Message}");
+				}
+			}
 		}
 
 		[HttpDelete("{id}")]
@@ -150,16 +210,38 @@ namespace HPEChat_Server.Controllers
 			Guid userGuid = Guid.Parse(userId);
 
 			var serverMessage = await _context.ServerMessages
+				.Include(userId => userId.Sender)
 				.FirstOrDefaultAsync(m =>
 					m.Id == messageGuid && // check if message exists
 					m.SenderId == userGuid && // check if the user is the sender
 					m.Channel.Server.Members.Any(u => u.Id == userGuid)); // check if the user is still a member of the server
 			if (serverMessage == null) return NotFound("Message not found or you are not the sender");
 
-			_context.ServerMessages.Remove(serverMessage);
-			await _context.SaveChangesAsync();
+			var serverId = serverMessage.Id;
+			var channelId = serverMessage.ChannelId;
 
-			return Ok(new { message = "Message deleted successfully" });
+			await using (var transaction = await _context.Database.BeginTransactionAsync())
+			{
+				try
+				{
+					_context.ServerMessages.Remove(serverMessage);
+					await _context.SaveChangesAsync();
+
+					await _hub
+						.Clients
+						.Group(ServerHub.GroupName(serverId))
+						.MessageDeleted(serverId, channelId, id);
+
+					await transaction.CommitAsync();
+
+					return Ok(new { message = "Message deleted successfully" });
+				}
+				catch (Exception ex)
+				{
+					await transaction.RollbackAsync();
+					return BadRequest($"Error deleting message: {ex.Message}");
+				}
+			}
 		}
 	}
 }

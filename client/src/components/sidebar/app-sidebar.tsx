@@ -28,7 +28,7 @@ export function AppSidebar() {
     const selectedServerId = useAppStore((state) => state.selectedServerId);
     const fetchServers = useAppStore((state) => state.fetchServers);
     const selectServer = useAppStore((state) => state.selectServer);
-    const leaveServer = useAppStore((state) => state.leaveServer);
+    const leaveServer = useAppStore((state) => state.leaveServerAction);
 
     const navigate = useNavigate();
 
