@@ -12,6 +12,7 @@ import { userService } from '@/services/userService';
 
 export const SIGNALR_URL = 'https://localhost:7056/hubs/server';
 
+
 interface AppState {
   servers: Server[];
   serversLoading: boolean;
@@ -125,9 +126,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       serverId = serverId.toUpperCase();
       userId = userId.toUpperCase();
 
-      // Handle user leaving without using React hooks
-      // If the server notifies that the current user was removed, leave the server
-      // This will be handled by comparing serverIds and userIds in the state update logic below
+      // if the user that left is the current user, leave the server (this is the case when the user is kicked)
       const currentUser = await get().getMeInfo();
       if (currentUser && currentUser.id === userId) {
         get().leaveServer(serverId);
@@ -395,6 +394,14 @@ export const useAppStore = create<AppState>((set, get) => ({
   closeSignalRConnection: async () => {
     const connection = get().hubConnection;
     if (connection) {
+      connection.off("UserJoined");
+      connection.off("UserLeft");
+      connection.off("ChannelAdded");
+      connection.off("ChannelRemoved");
+      connection.off("ChannelUpdated");
+      connection.off("MessageAdded");
+      connection.off("MessageEdited");
+      connection.off("MessageDeleted");
       await connection.stop();
       set({ hubConnection: null });
     }
