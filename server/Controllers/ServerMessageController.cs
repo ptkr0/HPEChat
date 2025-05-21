@@ -146,7 +146,8 @@ namespace HPEChat_Server.Controllers
 			Guid userGuid = Guid.Parse(userId);
 
 			var serverMessage = await _context.ServerMessages
-				.Include(userId => userId.Sender)
+				.Include(u => u.Sender)
+				.Include(s => s.Channel.Server)
 				.FirstOrDefaultAsync(m =>
 					m.Id == messageGuid && // check if message exists
 					m.SenderId == userGuid && // check if the user is the sender

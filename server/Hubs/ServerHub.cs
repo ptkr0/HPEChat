@@ -1,7 +1,9 @@
-﻿using HPEChat_Server.Dtos.Channel;
+﻿using HPEChat_Server.Data;
+using HPEChat_Server.Dtos.Channel;
 using HPEChat_Server.Dtos.ServerMessage;
 using HPEChat_Server.Dtos.User;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 
 namespace HPEChat_Server.Hubs
 {
@@ -35,6 +37,13 @@ namespace HPEChat_Server.Hubs
 
 	public class ServerHub : Hub<IServerClient>, IServerHub
 	{
+		private readonly ApplicationDBContext _context;
+
+		public ServerHub(ApplicationDBContext context)
+		{
+			_context = context;
+		}
+
 		public static string GroupName(Guid serverId) => $"server:{serverId:D}".ToUpper();
 
 		public override async Task OnConnectedAsync()
@@ -54,6 +63,16 @@ namespace HPEChat_Server.Hubs
 
 		public async Task JoinServer(Guid serverId)
 		{
+			// check if user is a member of the server
+			var userId = Context.UserIdentifier;
+			if (userId == null) throw new Exception("User not found");
+
+			var userGuid = Guid.Parse(userId);
+			bool isMember = await _context.Servers
+				.AnyAsync(s => s.Id == serverId && s.Members.Any(u => u.Id == userGuid));
+
+			if (!isMember) throw new Exception("User is not a member of the server");
+
 			await Groups.AddToGroupAsync(Context.ConnectionId, GroupName(serverId));
 		}
 

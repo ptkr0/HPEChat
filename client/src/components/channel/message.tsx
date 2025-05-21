@@ -132,7 +132,7 @@ export function Message({ message, isSenderCurrentUser, isContinuation }: Messag
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault()
-                      handleSubmit(handleSaveSubmit)()
+                      handleSubmit(handleSaveSubmit)(e)
                     } else if (e.key === "Escape") {
                       handleCancel()
                     }
