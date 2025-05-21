@@ -96,7 +96,7 @@ return (
                         if (e.key === "Enter" && !e.shiftKey) {
                             e.preventDefault();
                             if (isValid) {
-                                handleSubmit(submitHandler)();
+                                handleSubmit(submitHandler)(e);
                             }
                         }
                     }}

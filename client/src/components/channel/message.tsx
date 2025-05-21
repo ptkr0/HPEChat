@@ -61,6 +61,15 @@ export function Message({ message, isSenderCurrentUser, isContinuation }: Messag
     setIsEditing(true)
   }
 
+  const urlifyMessage = (message: string) => {
+    const urlRegex = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#/%?=~_|!:,.;]*[-A-Z0-9+&@#/%=~_|])/gi
+    return message.replace(
+      urlRegex,
+      (url) =>
+        '<a target="_blank" class="text-purple-500 hover:underline break-all" href="' + url + '">' + url + "</a>",
+    )
+  }
+
   const handleSaveSubmit = (data: MessageEditFormValues) => {
     return editMessage(message.id, data.editedContent)
       .catch((error) => {
@@ -87,7 +96,10 @@ export function Message({ message, isSenderCurrentUser, isContinuation }: Messag
     >
       {/* message time on hover for messages that are a continuation and don't have header */}
       {isContinuation && isHovered && (
-        <div className="absolute left-5 text-[11px] text-muted-foreground" style={{ top: '50%', transform: 'translateY(-50%)' }}>
+        <div
+          className="absolute left-5 text-[11px] text-muted-foreground"
+          style={{ top: "50%", transform: "translateY(-50%)" }}
+        >
           {format(new Date(message.sentAt), "HH:mm")}
         </div>
       )}
@@ -121,7 +133,7 @@ export function Message({ message, isSenderCurrentUser, isContinuation }: Messag
               control={control}
               render={({ field }) => (
                 <Textarea
-                  id='editTextarea'
+                  id="editTextarea"
                   {...field}
                   className={cn(
                     "min-h-[80px] w-full",
@@ -151,9 +163,11 @@ export function Message({ message, isSenderCurrentUser, isContinuation }: Messag
             </div>
           </form>
         ) : (
-          <div className={cn("text-foreground", isContinuation ? "mt-0" : "mt-0.5")}>
-            <span className="break-words overflow-hidden whitespace-pre-wrap">{message.message}</span>
-            <span className="text-[10px] text-muted-foreground">{message.isEdited && "  (edytowano)"}</span>
+          <div className={cn("text-foreground relative pr-16", isContinuation ? "mt-0" : "mt-0.5")}>
+            <div className="break-all overflow-hidden whitespace-pre-wrap">
+              <span dangerouslySetInnerHTML={{ __html: urlifyMessage(message.message) }} />
+              <span className="text-[10px] text-muted-foreground ml-2">{message.isEdited && "(edytowano)"}</span>
+            </div>
           </div>
         )}
       </div>
@@ -161,16 +175,16 @@ export function Message({ message, isSenderCurrentUser, isContinuation }: Messag
       {/* action buttons that appear on hover */}
       <div
         className={cn(
-          "absolute right-2 flex gap-1",
+          "absolute right-2 flex gap-1 z-10",
           isContinuation ? "top-0" : "top-1.5",
           isHovered && isSenderCurrentUser && !isEditing ? "opacity-100" : "opacity-0 pointer-events-none",
         )}
       >
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="h-7 w-7" 
-          onClick={handleEdit} 
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-7 hover:text-blue-400 bg-accent/50"
+          onClick={handleEdit}
           disabled={isEditing || isSubmitting}
         >
           <Edit2 className="h-4 w-4" />
@@ -180,7 +194,7 @@ export function Message({ message, isSenderCurrentUser, isContinuation }: Messag
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7 hover:text-red-400"
+          className="size-7 hover:text-red-400 bg-accent/50"
           onClick={handleDelete}
           disabled={isDeleting || isSubmitting}
         >

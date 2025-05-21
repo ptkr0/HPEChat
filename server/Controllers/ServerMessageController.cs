@@ -211,14 +211,15 @@ namespace HPEChat_Server.Controllers
 			Guid userGuid = Guid.Parse(userId);
 
 			var serverMessage = await _context.ServerMessages
-				.Include(userId => userId.Sender)
+				.Include(u => u.Sender)
+				.Include(s => s.Channel.Server)
 				.FirstOrDefaultAsync(m =>
 					m.Id == messageGuid && // check if message exists
 					m.SenderId == userGuid && // check if the user is the sender
 					m.Channel.Server.Members.Any(u => u.Id == userGuid)); // check if the user is still a member of the server
 			if (serverMessage == null) return NotFound("Message not found or you are not the sender");
 
-			var serverId = serverMessage.Id;
+			var serverId = serverMessage.Channel.ServerId;
 			var channelId = serverMessage.ChannelId;
 
 			await using (var transaction = await _context.Database.BeginTransactionAsync())
@@ -231,7 +232,7 @@ namespace HPEChat_Server.Controllers
 					await _hub
 						.Clients
 						.Group(ServerHub.GroupName(serverId))
-						.MessageDeleted(serverId, channelId, id);
+						.MessageRemoved(serverId, channelId, id);
 
 					await transaction.CommitAsync();
 

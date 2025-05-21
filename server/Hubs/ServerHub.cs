@@ -32,7 +32,7 @@ namespace HPEChat_Server.Hubs
 
 		Task MessageAdded(Guid serverId, ServerMessageDto message);
 		Task MessageEdited(Guid serverId, ServerMessageDto message);
-		Task MessageDeleted(Guid serverId, Guid channelId, Guid messageId);
+		Task MessageRemoved(Guid serverId, Guid channelId, Guid messageId);
 	}
 
 	public class ServerHub : Hub<IServerClient>, IServerHub
@@ -103,7 +103,7 @@ namespace HPEChat_Server.Hubs
 
 		public async Task RemoveMessage(Guid serverId, Guid channelId, Guid messageId)
 		{
-			await Clients.Group(GroupName(serverId)).MessageDeleted(serverId, channelId, messageId);
+			await Clients.Group(GroupName(serverId)).MessageRemoved(serverId, channelId, messageId);
 		}
 	}
 }

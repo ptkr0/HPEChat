@@ -12,7 +12,6 @@ import { userService } from '@/services/userService';
 
 export const SIGNALR_URL = 'https://localhost:7056/hubs/server';
 
-
 interface AppState {
   servers: Server[];
   serversLoading: boolean;
@@ -323,7 +322,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       });
     });
 
-    connection.on("MessageDeleted", (serverId: string, channelId: string, messageId: string) => {
+    connection.on("MessageRemoved", (serverId: string, channelId: string, messageId: string) => {
       serverId = serverId.toUpperCase();
       channelId = channelId.toUpperCase();
       messageId = messageId.toUpperCase();
@@ -401,7 +400,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       connection.off("ChannelUpdated");
       connection.off("MessageAdded");
       connection.off("MessageEdited");
-      connection.off("MessageDeleted");
+      connection.off("MessageRemoved");
       await connection.stop();
       set({ hubConnection: null });
     }
