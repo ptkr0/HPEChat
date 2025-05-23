@@ -33,7 +33,7 @@ namespace HPEChat_Server.Controllers
 			var userId = User.GetUserId();
 			if (userId == null) return BadRequest("User not found");
 
-			var user = await _context.Users.FindAsync(Guid.Parse(userId));
+			var user = await _context.Users.FindAsync(userId);
 			if (user == null) return BadRequest("User not found");
 
 			if (await _context.Servers.AnyAsync(s => s.Name.ToUpper() == createServerDto.Name.ToUpper()))
@@ -43,7 +43,7 @@ namespace HPEChat_Server.Controllers
 			{
 				Name = createServerDto.Name,
 				Description = createServerDto.Description,
-				OwnerId = Guid.Parse(userId)
+				OwnerId = (Guid)userId,
 			};
 
 			await using (var transaction = await _context.Database.BeginTransactionAsync())
@@ -59,7 +59,7 @@ namespace HPEChat_Server.Controllers
 							.Group(ServerHub.GroupName(server.Id))
 							.UserJoined(server.Id, new UserInfoDto
 							{
-								Id = userId,
+								Id = userId.ToString()!.ToUpper(),
 								Username = user.Username,
 								Role = user.Role,
 							});
@@ -105,7 +105,7 @@ namespace HPEChat_Server.Controllers
 
 			var server = await _context.Servers.FindAsync(serverGuid);
 			if (server == null) return NotFound("Server not found");
-			if (server.OwnerId.ToString() != userId) return BadRequest("You are not the owner of this server");
+			if (server.OwnerId != userId) return BadRequest("You are not the owner of this server");
 
 			server.Name = updateServerDto.Name ?? server.Name;
 			server.Description = updateServerDto.Description ?? server.Description;
@@ -128,10 +128,8 @@ namespace HPEChat_Server.Controllers
 			var userId = User.GetUserId();
 			if (userId == null) return BadRequest("User not found");
 
-			Guid userGuid = Guid.Parse(userId);
-
 			var servers = await _context.Servers
-				.Where(s => s.Members.Any(u => u.Id == userGuid))
+				.Where(s => s.Members.Any(u => u.Id == userId))
 				.Select(s => new ServerDto
 				{
 					Id = s.Id.ToString().ToUpper(),
@@ -155,10 +153,9 @@ namespace HPEChat_Server.Controllers
 			if (userId == null) return BadRequest("User not found");
 
 			Guid serverGuid = id;
-			Guid userGuid = Guid.Parse(userId);
 
 			var server = await _context.Servers
-				.Where(s => s.Id == serverGuid && s.Members.Any(m => m.Id == userGuid))
+				.Where(s => s.Id == serverGuid && s.Members.Any(m => m.Id == userId))
 				.Select(s => new ServerDto
 				{
 					Id = s.Id.ToString().ToUpper(),
@@ -194,18 +191,16 @@ namespace HPEChat_Server.Controllers
 			var userId = User.GetUserId();
 			if (userId == null) return BadRequest("User not found");
 
-			Guid userGuid = Guid.Parse(userId);
-
 			var server = await _context.Servers
 				.Include(s => s.Members)
 				.FirstOrDefaultAsync(s => s.Name == name);
 
 			if (server == null) return NotFound("Server not found");
-			if (server.OwnerId == userGuid) return BadRequest("You are the owner of this server");
+			if (server.OwnerId == userId) return BadRequest("You are the owner of this server");
 
-			if (server.Members.Any(m => m.Id == userGuid)) return BadRequest("You are already a member of this server");
+			if (server.Members.Any(m => m.Id == userId)) return BadRequest("You are already a member of this server");
 
-			var user = await _context.Users.FindAsync(userGuid);
+			var user = await _context.Users.FindAsync(userId);
 			if (user == null) return BadRequest("User not found");
 
 			await using (var transaction = await _context.Database.BeginTransactionAsync())
@@ -220,7 +215,7 @@ namespace HPEChat_Server.Controllers
 							.Group(ServerHub.GroupName(server.Id))
 							.UserJoined(server.Id, new UserInfoDto
 							{
-								Id = userId,
+								Id = userId.ToString()!.ToUpper()!,
 								Username = user.Username,
 								Role = user.Role,
 							});
@@ -251,22 +246,21 @@ namespace HPEChat_Server.Controllers
 			if (userId == null) return BadRequest("User not found");
 
 			Guid serverGuid = id;
-			Guid userGuid = Guid.Parse(userId);
 
 			var server = await _context.Servers
 				.Include(s => s.Members)
 				.FirstOrDefaultAsync(s => s.Id == serverGuid);
 
 			if (server == null) return NotFound("Server not found");
-			if (server.OwnerId == userGuid) return BadRequest("You are the owner of this server, you can't leave it");
+			if (server.OwnerId == userId) return BadRequest("You are the owner of this server, you can't leave it");
 
-			if (!server.Members.Any(m => m.Id == userGuid)) return BadRequest("You are not a member of this server");
+			if (!server.Members.Any(m => m.Id == userId)) return BadRequest("You are not a member of this server");
 
 			await using (var transaction = await _context.Database.BeginTransactionAsync())
 			{
 				try
 				{
-					var userEntity = server.Members.FirstOrDefault(m => m.Id == userGuid);
+					var userEntity = server.Members.FirstOrDefault(m => m.Id == userId);
 					if (userEntity == null) return BadRequest("User not found in server members");
 					server.Members.Remove(userEntity);
 
@@ -275,7 +269,7 @@ namespace HPEChat_Server.Controllers
 					await _hub
 						.Clients
 						.Group(ServerHub.GroupName(server.Id))
-						.UserLeft(server.Id, userGuid);
+						.UserLeft(server.Id, userId.Value);
 
 					await transaction.CommitAsync();
 
@@ -293,7 +287,6 @@ namespace HPEChat_Server.Controllers
 					return StatusCode(500);
 				}
 			}
-
 		}
 
 		[HttpDelete("{id}")]
@@ -304,10 +297,9 @@ namespace HPEChat_Server.Controllers
 			if (userId == null) return BadRequest("User not found");
 
 			Guid serverGuid = id;
-			Guid userGuid = Guid.Parse(userId);
 
 			var server = await _context.Servers
-				.FirstOrDefaultAsync(s => s.Id == serverGuid && s.OwnerId == userGuid);
+				.FirstOrDefaultAsync(s => s.Id == serverGuid && s.OwnerId == userId);
 			if (server == null) return NotFound("Server not found");
 
 			_context.Servers.Remove(server);
@@ -325,11 +317,9 @@ namespace HPEChat_Server.Controllers
 			var ownerId = User.GetUserId();
 			if (ownerId == null) return BadRequest("User not found");
 
-			Guid ownerGuid = Guid.Parse(ownerId);
-
 			var server = await _context.Servers
 				.Include(s => s.Members)
-				.FirstOrDefaultAsync(s => s.Id == serverId && s.OwnerId == ownerGuid && s.Members.Any(m => m.Id == userId));
+				.FirstOrDefaultAsync(s => s.Id == serverId && s.OwnerId == ownerId && s.Members.Any(m => m.Id == userId));
 			if (server == null) return NotFound("Server or user not found");
 
 			await using (var transaction = await _context.Database.BeginTransactionAsync())

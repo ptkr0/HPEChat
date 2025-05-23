@@ -1,4 +1,5 @@
-﻿using System.Security.Claims;
+﻿using System.Diagnostics.Eventing.Reader;
+using System.Security.Claims;
 
 namespace HPEChat_Server.Extensions
 {
@@ -9,9 +10,11 @@ namespace HPEChat_Server.Extensions
 			return user.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
 		}
 
-		public static string? GetUserId(this ClaimsPrincipal user)
+		public static Guid? GetUserId(this ClaimsPrincipal user)
 		{
-			return user.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+			string? userId = user.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+
+			return Guid.TryParse(userId, out Guid id) ? id : null;
 		}
 
 		public static string? GetRole(this ClaimsPrincipal user)

@@ -15,26 +15,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User>({ id: '', username: '', role: '' });
   const [loading, setLoading] = useState(true);
   const initializeSignalR = useAppStore((state) => state.initializeSignalR);
+  const clearStore = useAppStore((state) => state.clearStore);
 
   useEffect(() => {
-    console.log("Fetching user data...");
+    setLoading(true);
     userService.getMe()
-    .then((response) => {
-      setUser({
-        id: response.id,
-        username: response.username,
-        role: response.role,
+      .then((response) => {
+        setUser({
+          id: response.id,
+          username: response.username,
+          role: response.role,
+        });
+      })
+      .catch((error) => {
+        console.error("Error fetching user data:", error);
+        setUser({ id: '', username: '', role: '' });
+      })
+      .finally(() => {
+        setLoading(false);
       });
+  }, []);
+
+  useEffect(() => {
+    if (user.id && !loading) {
       initializeSignalR();
-    })
-    .catch((error) => {
-      console.error("Error fetching user data:", error);
-      setUser({ id: '', username: '', role: '' });
-    })
-    .finally(() => {
-      setLoading(false);
-    });
-  }, [initializeSignalR]);
+    } else if (!user.id && !loading) {
+      clearStore();
+    }
+  }, [user.id, loading, initializeSignalR, clearStore]);
 
   return (
     <AuthContext.Provider value={{ user, setUser, loading }}>

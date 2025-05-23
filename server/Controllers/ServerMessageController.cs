@@ -34,13 +34,12 @@ namespace HPEChat_Server.Controllers
 
 			Guid channelGuid = messagesDto.ChannelId;
 			DateTimeOffset? lastCreatedAt = messagesDto.LastCreatedAt;
-			Guid userGuid = Guid.Parse(userId);
 			int pageSize = 20;
 
 			var query = _context.ServerMessages
 				.Where(m =>
 					m.ChannelId == channelGuid && // only messages from the specified channel  
-					m.Channel.Server.Members.Any(mem => mem.Id == userGuid)); // only messages from channels the user is a member of  
+					m.Channel.Server.Members.Any(mem => mem.Id == userId)); // only messages from channels the user is a member of  
 
 			if (lastCreatedAt.HasValue) query = query.Where(m => m.SentAt < lastCreatedAt.Value); // only messages sent before the last loaded message  
 
@@ -76,10 +75,9 @@ namespace HPEChat_Server.Controllers
 			if (username == null) return BadRequest("Username not found");
 
 			Guid channelGuid = messageDto.ChannelId;
-			Guid userGuid = Guid.Parse(userId);
 
 			var channel = await _context.Channels
-				.FirstOrDefaultAsync(c => c.Id == channelGuid && c.Server.Members.Any(m => m.Id == userGuid));
+				.FirstOrDefaultAsync(c => c.Id == channelGuid && c.Server.Members.Any(m => m.Id == userId));
 			if (channel == null) return NotFound("Channel not found or you are not a member of the server");
 
 			await using (var transaction = await _context.Database.BeginTransactionAsync())
@@ -89,7 +87,7 @@ namespace HPEChat_Server.Controllers
 					var message = new ServerMessage
 					{
 						ChannelId = channelGuid,
-						SenderId = userGuid,
+						SenderId = userId,
 						Message = messageDto.Message,
 						SentAt = DateTimeOffset.UtcNow,
 						IsEdited = false,
@@ -143,15 +141,14 @@ namespace HPEChat_Server.Controllers
 			if (userId == null) return BadRequest("User not found");
 
 			Guid messageGuid = id;
-			Guid userGuid = Guid.Parse(userId);
 
 			var serverMessage = await _context.ServerMessages
 				.Include(u => u.Sender)
 				.Include(s => s.Channel.Server)
 				.FirstOrDefaultAsync(m =>
 					m.Id == messageGuid && // check if message exists
-					m.SenderId == userGuid && // check if the user is the sender
-					m.Channel.Server.Members.Any(u => u.Id == userGuid)); // check if the user is still a member of the server
+					m.SenderId == userId && // check if the user is the sender
+					m.Channel.Server.Members.Any(u => u.Id == userId)); // check if the user is still a member of the server
 			if (serverMessage == null) return NotFound("Message not found or you are not the sender");
 
 			await using (var transaction = await _context.Database.BeginTransactionAsync())
@@ -208,15 +205,14 @@ namespace HPEChat_Server.Controllers
 			if (userId == null) return BadRequest("User not found");
 
 			Guid messageGuid = id;
-			Guid userGuid = Guid.Parse(userId);
 
 			var serverMessage = await _context.ServerMessages
 				.Include(u => u.Sender)
 				.Include(s => s.Channel.Server)
 				.FirstOrDefaultAsync(m =>
 					m.Id == messageGuid && // check if message exists
-					m.SenderId == userGuid && // check if the user is the sender
-					m.Channel.Server.Members.Any(u => u.Id == userGuid)); // check if the user is still a member of the server
+					m.SenderId == userId && // check if the user is the sender
+					m.Channel.Server.Members.Any(u => u.Id == userId)); // check if the user is still a member of the server
 			if (serverMessage == null) return NotFound("Message not found or you are not the sender");
 
 			var serverId = serverMessage.Channel.ServerId;

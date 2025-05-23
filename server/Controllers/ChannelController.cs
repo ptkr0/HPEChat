@@ -31,12 +31,11 @@ namespace HPEChat_Server.Controllers
 			var userId = User.GetUserId();
 			if (userId == null) return Unauthorized("User not found");
 
-			Guid userGuid = Guid.Parse(userId);
 			Guid serverGuid = createChannelDto.ServerId;
 
 			var server = await _context.Servers.FindAsync(serverGuid);
 			if (server == null) return NotFound("Server not found");
-			if (server.OwnerId != userGuid) return Unauthorized("You are not the owner of this server");
+			if (server.OwnerId != userId) return Unauthorized("You are not the owner of this server");
 
 			await using (var transaction = await _context.Database.BeginTransactionAsync())
 			{
@@ -86,10 +85,9 @@ namespace HPEChat_Server.Controllers
 			if (userId == null) return Unauthorized("User not found");
 
 			Guid channelGuid = id;
-			Guid userGuid = Guid.Parse(userId);
 
 			var channel = await _context.Channels
-				.FirstOrDefaultAsync(c => c.Id == channelGuid && c.Server.OwnerId == userGuid);
+				.FirstOrDefaultAsync(c => c.Id == channelGuid && c.Server.OwnerId == userId);
 
 			if (channel == null) return NotFound("Channel not found or access denied");
 			if (channel.Name == name) return BadRequest("Channel name is the same");
@@ -137,10 +135,9 @@ namespace HPEChat_Server.Controllers
 			if (userId == null) return Unauthorized("User not found");
 
 			Guid channelGuid = id;
-			Guid userGuid = Guid.Parse(userId);
 
 			var channel = await _context.Channels
-				.FirstOrDefaultAsync(c => c.Id == channelGuid && c.Server.OwnerId == userGuid);
+				.FirstOrDefaultAsync(c => c.Id == channelGuid && c.Server.OwnerId == userId);
 
 			if (channel == null) return NotFound("Channel not found or access denied");
 
@@ -178,10 +175,9 @@ namespace HPEChat_Server.Controllers
 			if (userId == null) return Unauthorized("User not found");
 
 			Guid channelGuid = id;
-			Guid userGuid = Guid.Parse(userId);
 
 			var channel = await _context.Channels
-			.FirstOrDefaultAsync(c => c.Id == channelGuid && c.Server.Members.Any(m => m.Id == userGuid));
+			.FirstOrDefaultAsync(c => c.Id == channelGuid && c.Server.Members.Any(m => m.Id == userId));
 
 			if (channel == null) return NotFound("Channel not found or access denied");
 

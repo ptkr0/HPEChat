@@ -56,7 +56,7 @@ namespace HPEChat_Server.Controllers
 			var userId = User.GetUserId();
 			if (userId == null) return BadRequest("User not found");
 
-			if(!userService.CheckIfRoot(userId)) return Unauthorized("You are not head admin");
+			if(!userService.CheckIfRoot(userId.ToString()!)) return Unauthorized("You are not head admin");
 
 			var user = await userService.GetUserByIdAsync(id.ToString());
 			if (user == null) return BadRequest("User not found");
@@ -84,7 +84,7 @@ namespace HPEChat_Server.Controllers
 			var userId = User.GetUserId();
 			if (userId == null) return BadRequest("User not found");
 
-			if (!userService.CheckIfRoot(userId)) return Unauthorized("You are not head admin");
+			if (!userService.CheckIfRoot(userId.ToString()!)) return Unauthorized("You are not head admin");
 
 			var user = await userService.GetUserByIdAsync(id.ToString());
 			if (user == null) return BadRequest("User not found");
@@ -112,7 +112,7 @@ namespace HPEChat_Server.Controllers
 			var userId = User.GetUserId();
 			if (userId == null) return BadRequest("User not found");
 
-			var user = await userService.GetUserByIdAsync(userId);
+			var user = await userService.GetUserByIdAsync(userId.ToString()!);
 			if (user == null) return BadRequest("User not found");
 
 			var result = await userService.ChangePasswordAsync(user, passwordDto);
@@ -141,7 +141,7 @@ namespace HPEChat_Server.Controllers
 			var userId = User.GetUserId();
 			var username = User.GetUsername();
 			var role = User.GetRole();
-			return Ok(new UserInfoDto { Id = userId!.ToUpper(), Username = username!, Role = role!.ToString() });
+			return Ok(new UserInfoDto { Id = userId.ToString()!.ToUpper(), Username = username!, Role = role!.ToString() });
 		}
 
 		[HttpGet("admin-test")]
