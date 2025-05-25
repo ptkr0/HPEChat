@@ -8,7 +8,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { useAppStore } from "@/stores/appStore";
+import { channelService } from "@/services/channelService";
 
 interface ConfirmationDialogProps {
     channelId: string;
@@ -18,11 +18,9 @@ interface ConfirmationDialogProps {
 
 export function ConfirmationDialog({ channelId, isOpen, onClose }: ConfirmationDialogProps) {
 
-    const deleteChannel = useAppStore((state) => state.deleteChannel);
-
     const handleDelete = async () => {
         try {
-            await deleteChannel(channelId);
+            await await channelService.deleteChannel(channelId);
         } catch (err) {
             console.error("API error deleting channel:", err);
         }

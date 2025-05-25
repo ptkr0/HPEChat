@@ -43,14 +43,29 @@ export default function ChannelLayout() {
   const scrollToBottom = () => {
     if (scrollAreaRef.current) {
       const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      
       if (scrollContainer) {
         scrollContainer.scrollTop = scrollContainer.scrollHeight;
       }
     }
   };
 
+  const isNearBottom = () => {
+    if (scrollAreaRef.current) {
+      const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+
+      if (scrollContainer) {
+        const isAtBottom = scrollContainer.scrollHeight - scrollContainer.scrollTop - scrollContainer.clientHeight < 100;
+        return isAtBottom;
+      }
+    }
+    return true;
+  };
+
   const newMessage = () => {
-    scrollToBottom();
+    if (isNearBottom()) {
+      scrollToBottom();
+    }
   };
 
   useEffect(() => {
@@ -60,6 +75,13 @@ export default function ChannelLayout() {
     
     return () => clearTimeout(timer);
   }, [selectedChannel]);
+
+  // also scroll to bottom when new messages arrive if user is already at bottom
+  useEffect(() => {
+    if (isNearBottom()) {
+      scrollToBottom();
+    }
+  }, [serverMessages?.length]);
 
   return (
     <div className="mx-auto p-2 flex flex-col w-full h-full">

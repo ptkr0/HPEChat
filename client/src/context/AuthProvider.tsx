@@ -1,7 +1,8 @@
-import { userService } from "@/services/userService"
+import { userService } from "@/services/userService";
 import { User } from "@/types/user.type";
-import { createContext, useState, ReactNode, useEffect } from "react"
+import { createContext, useState, ReactNode, useEffect } from "react";
 import { useAppStore } from "@/stores/appStore";
+import { useSignalR } from "@/hooks/useSignalR";
 
 interface AuthContextType {
   user: User;
@@ -14,7 +15,7 @@ const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User>({ id: '', username: '', role: '' });
   const [loading, setLoading] = useState(true);
-  const initializeSignalR = useAppStore((state) => state.initializeSignalR);
+  const { initializeSignalR, closeSignalRConnection } = useSignalR();
   const clearStore = useAppStore((state) => state.clearStore);
 
   useEffect(() => {
@@ -41,8 +42,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       initializeSignalR();
     } else if (!user.id && !loading) {
       clearStore();
+      closeSignalRConnection();
     }
-  }, [user.id, loading, initializeSignalR, clearStore]);
+  }, [user.id, loading, initializeSignalR, closeSignalRConnection, clearStore]);
 
   return (
     <AuthContext.Provider value={{ user, setUser, loading }}>

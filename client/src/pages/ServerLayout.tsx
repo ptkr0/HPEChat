@@ -4,14 +4,16 @@ import { useAppStore } from "@/stores/appStore";
 import { ServerSidebar } from "@/components/server/server-sidebar";
 import { MembersSidebar } from "@/components/server/members-sidebar";
 import ChannelLayout from "./ChannelLayout";
+import { toast } from "sonner";
 
 export default function ServerLayout() {
   const { serverId, channelId } = useParams();
-  const { 
-    selectServer, 
-    selectChannel, 
+  const {
+    selectServer,
+    selectChannel,
     selectedServer,
-    serverDetailsLoading
+    serverDetailsLoading,
+    serverDetailsError
   } = useAppStore();
   const navigate = useNavigate();
 
@@ -47,18 +49,24 @@ export default function ServerLayout() {
       if (serverHasChannels) {
         navigate(`/servers/${serverId}/${selectedServer.channels[0].id}`, { replace: true });
       } else {
-        if (channelId) {
-            navigate(`/servers/${serverId}`, { replace: true });
-        }
         selectChannel(null);
       }
     }
   }, [serverId, channelId, selectChannel, navigate, serverDetailsLoading, selectedServer]);
-  
+
+  // if serverDetailsError is true, redirect to home page
+  useEffect(() => {
+    if (serverDetailsError) {
+      navigate(`/home`, { replace: true });
+      toast.error("Nie udało się załadować serwera. Sprawdź swoje połączenie internetowe lub spróbuj ponownie później.");
+    }
+  }
+    , [serverDetailsError, navigate]);
+
   return (
     <div className="flex h-screen w-full">
       <ServerSidebar />
-      
+
       <section className="w-full flex overflow-hidden">
         {channelId ? (
           <ChannelLayout />
@@ -68,7 +76,7 @@ export default function ServerLayout() {
           </div>
         )}
       </section>
-      
+
       <MembersSidebar />
     </div>
   );

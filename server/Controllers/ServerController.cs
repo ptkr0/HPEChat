@@ -5,6 +5,7 @@ using HPEChat_Server.Dtos.User;
 using HPEChat_Server.Extensions;
 using HPEChat_Server.Hubs;
 using HPEChat_Server.Models;
+using HPEChat_Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
@@ -18,10 +19,12 @@ namespace HPEChat_Server.Controllers
 	{
 		private readonly ApplicationDBContext _context;
 		private readonly IHubContext<ServerHub, IServerClient> _hub;
-		public ServerController(ApplicationDBContext context, IHubContext<ServerHub, IServerClient> hub)
+		private readonly ConnectionMapperService _mapper;
+		public ServerController(ApplicationDBContext context, IHubContext<ServerHub, IServerClient> hub, ConnectionMapperService mapper)
 		{
 			_context = context;
 			_hub = hub;
+			_mapper = mapper;
 		}
 
 		[HttpPost]
@@ -271,6 +274,13 @@ namespace HPEChat_Server.Controllers
 						.Group(ServerHub.GroupName(server.Id))
 						.UserLeft(server.Id, userId.Value);
 
+					// forcefully remove user from the SignalR group
+					var connectionIds = _mapper.GetConnections(userId.Value);
+					foreach (var connId in connectionIds)
+					{
+						await _hub.Groups.RemoveFromGroupAsync(connId, ServerHub.GroupName(server.Id));
+					}
+
 					await transaction.CommitAsync();
 
 					return Ok(new ServerDto
@@ -336,6 +346,13 @@ namespace HPEChat_Server.Controllers
 						.Clients
 						.Group(ServerHub.GroupName(server.Id))
 						.UserLeft(server.Id, userId);
+
+					// forcefully remove user from the SignalR group
+					var connectionIds = _mapper.GetConnections(userId);
+					foreach (var connId in connectionIds)
+					{
+						await _hub.Groups.RemoveFromGroupAsync(connId, ServerHub.GroupName(server.Id));
+					}
 
 					await transaction.CommitAsync();
 

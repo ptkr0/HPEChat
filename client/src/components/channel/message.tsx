@@ -6,10 +6,10 @@ import { cn } from "@/lib/utils"
 import { Edit2, Trash2 } from "lucide-react"
 import { useState } from "react"
 import { Textarea } from "../ui/textarea"
-import { useAppStore } from "@/stores/appStore"
 import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import z from "zod"
+import { serverMessageService } from "@/services/serverMessageService"
 
 const messageEditSchema = z.object({
   editedContent: z
@@ -30,8 +30,6 @@ export function Message({ message, isSenderCurrentUser, isContinuation }: Messag
   const [isEditing, setIsEditing] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
-  const deleteMessage = useAppStore((state) => state.deleteMessage)
-  const editMessage = useAppStore((state) => state.editMessage)
 
   const {
     control,
@@ -45,15 +43,15 @@ export function Message({ message, isSenderCurrentUser, isContinuation }: Messag
     },
   })
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     setIsDeleting(true)
-    deleteMessage(message.id)
-      .catch((error) => {
-        console.error("Error deleting message:", error)
-      })
-      .finally(() => {
-        setIsDeleting(false)
-      })
+    try {
+      await serverMessageService.delete(message.id);
+    } catch(error) {
+      console.error("Error deleting message:", error)
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   const handleEdit = () => {
@@ -70,8 +68,8 @@ export function Message({ message, isSenderCurrentUser, isContinuation }: Messag
     )
   }
 
-  const handleSaveSubmit = (data: MessageEditFormValues) => {
-    return editMessage(message.id, data.editedContent)
+  const handleSaveSubmit = async (data: MessageEditFormValues) => {
+    await serverMessageService.edit(message.id, data.editedContent)
       .catch((error) => {
         console.error("Error editing message:", error)
       })
