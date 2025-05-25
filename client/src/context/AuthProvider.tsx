@@ -17,6 +17,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const { initializeSignalR, closeSignalRConnection } = useSignalR();
   const clearStore = useAppStore((state) => state.clearStore);
+  const fetchServers = useAppStore((state) => state.fetchServers);
 
   useEffect(() => {
     setLoading(true);
@@ -39,12 +40,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (user.id && !loading) {
-      initializeSignalR();
+      // fetch servers -> then initialize SignalR
+      fetchServers().then(() => {
+        initializeSignalR();
+      }).catch(error => {
+        console.error("AuthProvider: Error fetching servers before SignalR init:", error);
+      });
     } else if (!user.id && !loading) {
       clearStore();
       closeSignalRConnection();
     }
-  }, [user.id, loading, initializeSignalR, closeSignalRConnection, clearStore]);
+  }, [user.id, loading, fetchServers, initializeSignalR, closeSignalRConnection, clearStore]);
 
   return (
     <AuthContext.Provider value={{ user, setUser, loading }}>

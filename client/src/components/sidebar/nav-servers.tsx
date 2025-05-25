@@ -30,6 +30,12 @@ export function NavServers({ servers, selectedServerId, onServerSelect, onLeaveS
   const serversLoading = useAppStore((state) => state.serversLoading)
   const [isServersOpen, setIsServersOpen] = useState(true)
 
+  const sortedServers = servers.sort((a, b) => {
+    if (a.name.toLowerCase() < b.name.toLowerCase()) return -1
+    if (a.name.toLowerCase() > b.name.toLowerCase()) return 1
+    return 0
+  });
+
   return (
     <div>
       <Collapsible open={isServersOpen} onOpenChange={setIsServersOpen} className="group/collapsible">
@@ -49,7 +55,7 @@ export function NavServers({ servers, selectedServerId, onServerSelect, onLeaveS
                 <Loader2 className="animate-spin" />
               </Skeleton>
             ) : (
-              servers.map((server) => (
+              sortedServers.map((server) => (
                 <SidebarMenuItem key={server.id}>
                   <SidebarMenuButton
                     size={"lg"}
