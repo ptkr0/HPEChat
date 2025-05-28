@@ -230,7 +230,21 @@ namespace HPEChat_Server.Controllers
 						Id = server.Id.ToString().ToUpper(),
 						Name = server.Name,
 						Description = server.Description,
-						OwnerId = server.OwnerId.ToString().ToUpper()
+						OwnerId = server.OwnerId.ToString().ToUpper(),
+						Members = server.Members.Select(m => new UserInfoDto
+						{
+							Id = m.Id.ToString().ToUpper(),
+							Username = m.Username,
+						})
+						.OrderBy(m => m.Username)
+						.ToList(),
+						Channels = server.Channels.Select(c => new ChannelDto
+						{
+							Id = c.Id.ToString().ToUpper(),
+							Name = c.Name,
+						})
+						.OrderBy(c => c.Name)
+						.ToList()
 					});
 				}
 				catch

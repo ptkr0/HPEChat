@@ -19,7 +19,7 @@ export const serverService = {
         return response.data;
     },
 
-    joinServer: async (inviteCode: string): Promise<Server> => {
+    joinServer: async (inviteCode: string): Promise<ServerDetails> => {
         const response = await axiosPrivate.post(`${SERVER_URL}/join/${ inviteCode }`);
         return response.data;
     },

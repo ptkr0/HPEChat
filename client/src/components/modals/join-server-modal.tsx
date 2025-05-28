@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { z } from "zod";
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router';
 
 const joinServerSchema = z.object({
     name: z
@@ -34,6 +35,7 @@ export const JoinServerModal = ({ isOpen, onClose }: JoinServerModalProps) => {
 
     const joinServer = useAppStore((state) => state.joinServer);
     const selectServer = useAppStore((state) => state.selectServer);
+    const navigate = useNavigate();
 
     const submitHandler = async (data: JoinServerValues) => {
         try {
@@ -41,6 +43,7 @@ export const JoinServerModal = ({ isOpen, onClose }: JoinServerModalProps) => {
 
             if (newServer) {
                 selectServer(newServer.id);
+                navigate(`/servers/${newServer.id}`);
                 onClose();
                 reset();
             }

@@ -45,27 +45,27 @@ export function ServerSidebar() {
       <Sidebar className="left-auto text-accent-foreground w-60 border-r" collapsible="none">
 
           <SidebarHeader>
-              <SidebarMenu>
-                      <SidebarMenuButton size="lg">
-                        {!serverDetailsLoading && selectedServer ? (
-                            <>
-                                <Avatar className="size-10 rounded-lg flex items-center justify-center shrink-0 overflow-hidden">
-                                    <AvatarImage alt={selectedServer!.name} />
-                                    <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground flex items-center justify-center text-sm font-medium w-full h-full">
-                                        {selectedServer!.name[0].toUpperCase()}
-                                    </AvatarFallback>
-                                </Avatar>
-                                <div className="grid flex-1 text-left text-sm leading-tight">
-                                    <span className="truncate font-semibold">{selectedServer!.name}</span>
-                                    <span className="truncate text-xs text-muted-foreground">{selectedServer!.description}</span>
-                                </div> 
-                            </>
-                        ) : ( 
-                            <Skeleton className="h-full w-full rounded-lg mb-2 flex items-center justify-center">
-                            </Skeleton>
-                        )}
-                      </SidebarMenuButton>
-              </SidebarMenu>
+            <SidebarMenu>
+                <SidebarMenuButton size="lg">
+                {!serverDetailsLoading && selectedServer ? (
+                    <>
+                        <Avatar className="size-10 rounded-lg flex items-center justify-center shrink-0 overflow-hidden">
+                            <AvatarImage alt={selectedServer!.name} />
+                            <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground flex items-center justify-center text-sm font-medium w-full h-full">
+                                {selectedServer!.name[0].toUpperCase()}
+                            </AvatarFallback>
+                        </Avatar>
+                        <div className="grid flex-1 text-left text-sm leading-tight">
+                            <span className="truncate font-semibold">{selectedServer!.name}</span>
+                            <span className="truncate text-xs text-muted-foreground">{selectedServer!.description}</span>
+                        </div> 
+                    </>
+                ) : ( 
+                    <Skeleton className="h-full w-full rounded-lg mb-2 flex items-center justify-center">
+                    </Skeleton>
+                )}
+                </SidebarMenuButton>
+            </SidebarMenu>
           </SidebarHeader>
 
             <SidebarContent>

@@ -35,7 +35,7 @@ interface AppState {
   selectChannel: (channelId: string | null) => void;
 
   createServer: (newServerData: Omit<Server, 'id' | 'ownerId' | 'description'> & { description?: string }) => Promise<Server | null>;
-  joinServer: (inviteCode: string) => Promise<Server | null>;
+  joinServer: (inviteCode: string) => Promise<ServerDetails | null>;
   leaveServer: (serverId: string) => Promise<void>;
   leaveServerAction: (serverId: string) => Promise<void>;
   kickUser: (serverId: string, userId: string) => Promise<void>;
@@ -240,8 +240,14 @@ export const useAppStore = create<AppState>((set, get) => ({
       const joinedServer = await serverService.joinServer(inviteCode);
 
       if (joinedServer) {
-        set((state) => ({ servers: [...state.servers, joinedServer] }));
-        get().selectServer(joinedServer.id);
+        const { id, name, description, ownerId } = joinedServer;
+        set((state) => ({ servers: [...state.servers, { id, name, description, ownerId }] }));
+        // cache the server details
+        set((state) => {
+          const newCachedServers = new Map(state.cachedServers);
+          newCachedServers.set(joinedServer.id, joinedServer);
+          return { cachedServers: newCachedServers };
+        });
         joinServerGroup(joinedServer.id); // join the SignalR group for the server
         return joinedServer;
       }

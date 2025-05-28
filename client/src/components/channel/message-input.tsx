@@ -6,6 +6,7 @@ import { useAppStore } from "@/stores/appStore"
 import { z } from "zod"
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { serverMessageService } from "@/services/serverMessageService"
 
 const sendMessageSchema = z.object({
     message: z
@@ -22,7 +23,7 @@ type SendMessageValues = z.infer<typeof sendMessageSchema>;
 
 export default function MessageInput({ onMessageSend }: MessageInputProps) {
   const selectedChannel = useAppStore((state) => state.selectedChannel);
-  const sendMessage = useAppStore((state) => state.sendMessage);
+
   const { 
     register, 
     handleSubmit, 
@@ -38,7 +39,7 @@ export default function MessageInput({ onMessageSend }: MessageInputProps) {
 
   const submitHandler = async (data: SendMessageValues) => {
     try {
-      const newMessage = await sendMessage(
+      const newMessage = await serverMessageService.send(
         selectedChannel!.id,
         data.message.trim(),
       )
@@ -91,7 +92,7 @@ return (
                     autoCorrect='off'
                     autoCapitalize='none'
                     placeholder={`Napisz na #${selectedChannel?.name || ""}`}
-                    className='min-h-[40px] max-h-[200px] resize-none pl-14 pr-24 py-2.5 border-0 focus-visible:ring-0 focus-visible:ring-offset-0'
+                    className='min-h-[44px] max-h-[200px] resize-none pl-14 pr-24 py-3 border-0 focus-visible:ring-0 focus-visible:ring-offset-0'
                     onKeyDown={(e) => {
                         if (e.key === "Enter" && !e.shiftKey) {
                             e.preventDefault();
