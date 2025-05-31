@@ -10,6 +10,7 @@ namespace HPEChat_Server.Models
 		[MaxLength(200)]
 		public string PasswordHash { get; set; } = string.Empty;
 		public string Role { get; set; } = string.Empty;
+		public string Image { get; set; } = string.Empty;
 
 		public ICollection<Server> JoinedServers { get; set; } = new List<Server>();
 		public ICollection<Server> OwnedServers { get; set; } = new List<Server>();

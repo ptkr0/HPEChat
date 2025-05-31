@@ -392,3 +392,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Directories for user sent files
+server/Uploads/*
+!server/Uploads/.gitkeep
+server/Avatars/*
+!server/Avatars/.gitkeep

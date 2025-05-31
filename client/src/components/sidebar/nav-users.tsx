@@ -7,11 +7,13 @@ import { useContext, useState } from "react"
 import { Button } from "@/components/ui/button"
 import clsx from "clsx"
 import AuthContext from "@/context/AuthProvider"
+import { AddUserModal } from "../modals/add-user-modal"
 
 export function NavUsers({ users }: {users: PrivateMessageList[]}) {
   const {user, loading } = useContext(AuthContext)
   const [isUsersOpen, setIsUsersOpen] = useState(true)
   const [dropdownMenu, setDropdownMenu] = useState(false)
+  const [showAddUserModal, setShowAddUserModal] = useState(false)
 
   return (
       <div className="mt-2">
@@ -75,6 +77,7 @@ export function NavUsers({ users }: {users: PrivateMessageList[]}) {
           <Button
             variant={"ghost"}
             className="w-full text-left px-3 py-2 text-sm rounded-sm"
+            onClick={() => setShowAddUserModal(true)}
           >
             Dodaj użytkownika
           </Button>
@@ -82,6 +85,8 @@ export function NavUsers({ users }: {users: PrivateMessageList[]}) {
       </div>
     </SidebarMenuItem>
     )}
-      </div>
+
+    <AddUserModal isOpen={showAddUserModal} onClose={() => setShowAddUserModal(false)} />
+    </div>
     )
 }

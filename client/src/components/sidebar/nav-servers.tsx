@@ -66,7 +66,7 @@ export function NavServers({ servers, selectedServerId, onServerSelect, onLeaveS
                   >
                     <Avatar className="size-10 rounded-lg flex items-center justify-center shrink-0 mr-2 overflow-hidden">
                       <AvatarImage alt={server.name} />
-                      <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground flex items-center justify-center text-sm font-medium w-full h-full">
+                      <AvatarFallback className="bg-muted flex items-center justify-center text-sm font-medium w-full h-full">
                         {server.name[0].toUpperCase()}
                       </AvatarFallback>
                     </Avatar>

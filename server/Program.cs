@@ -70,6 +70,7 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<FileService>();
 
 var app = builder.Build();
 app.UseCors("CorsPolicy");

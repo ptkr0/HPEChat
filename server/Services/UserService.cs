@@ -1,5 +1,6 @@
 ﻿using HPEChat_Server.Data;
 using HPEChat_Server.Dtos.User;
+using HPEChat_Server.Extensions;
 using HPEChat_Server.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -10,7 +11,7 @@ using System.Text;
 
 namespace HPEChat_Server.Services
 {
-	public class UserService(ApplicationDBContext context, IConfiguration configuration)
+	public class UserService(ApplicationDBContext context, IConfiguration configuration, FileService fileService)
 	{
 		public async Task<User?> GetUserByIdAsync(string id)
 		{
@@ -22,19 +23,39 @@ namespace HPEChat_Server.Services
 		{
 			if (await context.Users.AnyAsync(u => u.Username.ToUpper() == register.Username.ToUpper())) return null;
 
-			User user = new();
+			await using (var transaction = await context.Database.BeginTransactionAsync())
+			{
+				try
+				{
+					User user = new();
 
-			var hashedPassword = new PasswordHasher<User>()
-				.HashPassword(user, register.Password);
+					var hashedPassword = new PasswordHasher<User>()
+						.HashPassword(user, register.Password);
 
-			user.Username = register.Username;
-			user.PasswordHash = hashedPassword;
-			user.Role = "User";
+					if (register.Image != null && FileExtension.IsValidAvatar(register.Image))
+					{
+						var imagePath = await fileService.UploadFile(register.Image, "Avatars");
+						if (imagePath != null) user.Image = imagePath;
+					}
 
-			await context.Users.AddAsync(user);
-			await context.SaveChangesAsync();
+					user.Username = register.Username;
+					user.PasswordHash = hashedPassword;
+					user.Role = "User";
 
-			return user;
+					await context.Users.AddAsync(user);
+					await context.SaveChangesAsync();
+					await transaction.CommitAsync();
+
+					return user;
+
+				}
+				catch (Exception ex)
+				{
+					Console.WriteLine(ex.Message);
+					await transaction.RollbackAsync();
+					return null;
+				}
+			}
 		}
 
 		public async Task<ReturnLoginDto?> LoginAsync(UserDto login)
@@ -55,7 +76,8 @@ namespace HPEChat_Server.Services
 			{
 				Id = user.Id,
 				Username = user.Username,
-				Token = token
+				Token = token,
+				Role = user.Role
 			};
 		}
 
@@ -99,11 +121,11 @@ namespace HPEChat_Server.Services
 		public string CreateToken(User user)
 		{
 			var claims = new List<Claim>
-			{
-				new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-				new Claim(ClaimTypes.GivenName, user.Username),
-				new Claim(ClaimTypes.Role, user.Role)
-			};
+				{
+					new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+					new Claim(ClaimTypes.GivenName, user.Username),
+					new Claim(ClaimTypes.Role, user.Role)
+				};
 
 			var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration.GetValue<string>("JWT:SigningKey")!));
 

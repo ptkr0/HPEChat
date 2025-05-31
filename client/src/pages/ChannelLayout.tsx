@@ -85,22 +85,26 @@ export default function ChannelLayout() {
 
   return (
     <div className="mx-auto p-2 flex flex-col w-full h-full">
-      <header className="flex h-8 shrink-0 items-center gap-2 px-2 border-b mb-2">
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem className="hidden md:block">
-              <BreadcrumbPage>HPEChat</BreadcrumbPage>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator className="hidden md:block" />
-            <BreadcrumbItem className="hidden md:block">
-              <BreadcrumbPage>{selectedServer?.name}</BreadcrumbPage>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator className="hidden md:block" />
-            <BreadcrumbItem>
-              <BreadcrumbPage>{selectedChannel?.name}</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
+      <header className="flex h-12 shrink-0 items-center gap-3 px-4">
+        <div className="flex items-center gap-2">
+          <Breadcrumb>
+            <BreadcrumbList className="text-gray-300">
+              <BreadcrumbItem className="hidden md:block">
+                <BreadcrumbPage className="text-white font-semibold">HPEChat</BreadcrumbPage>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="hidden md:block" />
+              <BreadcrumbItem className="hidden md:block">
+                <BreadcrumbPage>
+                  {selectedServer?.name}
+                </BreadcrumbPage>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="hidden md:block" />
+              <BreadcrumbItem>
+                <BreadcrumbPage className="text-white font-medium">{selectedChannel?.name}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+        </div>
       </header>
 
       <div className="flex flex-col flex-1" style={{ height: `calc(100% - 3rem)` }}>

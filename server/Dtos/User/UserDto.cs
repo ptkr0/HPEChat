@@ -11,5 +11,7 @@ namespace HPEChat_Server.Dtos.User
 		[Required]
 		[MaxLength(200)]
 		public string Password { get; set; } = string.Empty;
+
+		public IFormFile? Image { get; set; }
 	}
 }

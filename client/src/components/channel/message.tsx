@@ -106,17 +106,17 @@ export function Message({ message, isSenderCurrentUser, isContinuation }: Messag
       {!isContinuation && (
         <Avatar className="size-10 mt-0.5 flex-shrink-0">
           <AvatarImage
-            src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${message.senderId}`}
-            alt={message.senderName}
+            src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${message.sender.id}`}
+            alt={message.sender.username}
           />
-          <AvatarFallback>{message.senderName[0]}</AvatarFallback>
+          <AvatarFallback>{message.sender.username[0]}</AvatarFallback>
         </Avatar>
       )}
 
       <div className={cn("flex flex-col max-w-full overflow-hidden w-full", isContinuation && "mt-0")}>
         {!isContinuation && (
           <div className="flex items-baseline gap-2">
-            <span className="font-medium text-sm hover:underline cursor-pointer">{message.senderName}</span>
+            <span className="font-medium text-sm hover:underline cursor-pointer">{message.sender.username}</span>
             <span className="text-[11px] text-muted-foreground">
               {format(new Date(message.sentAt), "dd.MM.yyyy HH:mm")}
             </span>

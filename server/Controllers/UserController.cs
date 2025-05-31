@@ -12,7 +12,7 @@ namespace HPEChat_Server.Controllers
 	public class UserController(UserService userService) : ControllerBase
 	{
 		[HttpPost("register")]
-		public async Task<ActionResult<User>> Register([FromBody] UserDto registerDto)
+		public async Task<ActionResult<User>> Register([FromForm] UserDto registerDto)
 		{
 			if (!ModelState.IsValid) return BadRequest(ModelState);
 
@@ -25,6 +25,7 @@ namespace HPEChat_Server.Controllers
 				Id = user.Id.ToString().ToUpper(),
 				user.Username,
 				user.Role,
+				Image = user.Image ?? string.Empty
 			});
 		}
 

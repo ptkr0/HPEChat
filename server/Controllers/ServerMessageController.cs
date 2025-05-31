@@ -1,5 +1,6 @@
 ﻿using HPEChat_Server.Data;
 using HPEChat_Server.Dtos.ServerMessage;
+using HPEChat_Server.Dtos.User;
 using HPEChat_Server.Extensions;
 using HPEChat_Server.Hubs;
 using HPEChat_Server.Models;
@@ -50,11 +51,14 @@ namespace HPEChat_Server.Controllers
 				{
 					Id = m.Id.ToString().ToUpper(),
 					ChannelId = m.ChannelId.ToString().ToUpper(),
-					SenderId = m.SenderId.HasValue ? m.SenderId.Value.ToString().ToUpper() : string.Empty,
-					SenderName = m.Sender != null ? m.Sender.Username : string.Empty,
 					Message = m.Message,
 					SentAt = m.SentAt,
 					IsEdited = m.IsEdited,
+					Sender = new UserInfoDto
+					{
+						Id = m.SenderId.HasValue ? m.SenderId.Value.ToString().ToUpper() : string.Empty,
+						Username = m.Sender != null ? m.Sender.Username : string.Empty,
+					},
 				})
 				.Take(pageSize)
 				.ToListAsync();
@@ -103,11 +107,14 @@ namespace HPEChat_Server.Controllers
 						{
 							Id = message.Id.ToString().ToUpper(),
 							ChannelId = message.ChannelId.ToString().ToUpper(),
-							SenderId = message.SenderId.HasValue ? message.SenderId.Value.ToString().ToUpper() : string.Empty,
-							SenderName = username,
 							Message = message.Message,
 							SentAt = message.SentAt,
 							IsEdited = message.IsEdited,
+							Sender = new UserInfoDto
+							{
+								Id = message.SenderId.HasValue ? message.SenderId.Value.ToString().ToUpper() : string.Empty,
+								Username = username,
+							},
 						});
 
 					await transaction.CommitAsync();
@@ -116,11 +123,14 @@ namespace HPEChat_Server.Controllers
 					{
 						Id = message.Id.ToString().ToUpper(),
 						ChannelId = message.ChannelId.ToString().ToUpper(),
-						SenderId = message.SenderId.HasValue ? message.SenderId.Value.ToString().ToUpper() : string.Empty,
-						SenderName = username,
 						Message = message.Message,
 						SentAt = message.SentAt,
 						IsEdited = message.IsEdited,
+						Sender = new UserInfoDto
+						{
+							Id = message.SenderId.HasValue ? message.SenderId.Value.ToString().ToUpper() : string.Empty,
+							Username = username,
+						},
 					});
 				}
 				catch (Exception ex)
@@ -167,11 +177,14 @@ namespace HPEChat_Server.Controllers
 							{
 								Id = serverMessage.Id.ToString().ToUpper(),
 								ChannelId = serverMessage.ChannelId.ToString().ToUpper(),
-								SenderId = serverMessage.SenderId.HasValue ? serverMessage.SenderId.Value.ToString().ToUpper() : string.Empty,
-								SenderName = serverMessage.Sender != null ? serverMessage.Sender.Username : string.Empty,
 								Message = serverMessage.Message,
 								SentAt = serverMessage.SentAt,
 								IsEdited = serverMessage.IsEdited,
+								Sender = new UserInfoDto
+								{
+									Id = serverMessage.SenderId.HasValue ? serverMessage.SenderId.Value.ToString().ToUpper() : string.Empty,
+									Username = serverMessage.Sender != null ? serverMessage.Sender.Username : string.Empty,
+								},
 							});
 
 					await transaction.CommitAsync();
@@ -180,11 +193,14 @@ namespace HPEChat_Server.Controllers
 					{
 						Id = serverMessage.Id.ToString().ToUpper(),
 						ChannelId = serverMessage.ChannelId.ToString().ToUpper(),
-						SenderId = serverMessage.SenderId.HasValue ? serverMessage.SenderId.Value.ToString().ToUpper() : string.Empty,
-						SenderName = serverMessage.Sender != null ? serverMessage.Sender.Username : string.Empty,
 						Message = serverMessage.Message,
 						SentAt = serverMessage.SentAt,
 						IsEdited = serverMessage.IsEdited,
+						Sender = new UserInfoDto
+						{
+							Id = serverMessage.SenderId.HasValue ? serverMessage.SenderId.Value.ToString().ToUpper() : string.Empty,
+							Username = serverMessage.Sender != null ? serverMessage.Sender.Username : string.Empty,
+						},
 					});
 				}
 				catch (Exception ex)
