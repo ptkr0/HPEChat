@@ -1,32 +1,72 @@
-﻿using HPEChat_Server.Dtos.User;
+﻿using HPEChat_Server.Data;
+using HPEChat_Server.Dtos.User;
 using HPEChat_Server.Extensions;
 using HPEChat_Server.Models;
 using HPEChat_Server.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace HPEChat_Server.Controllers
 {
 	[Route("api/[controller]")]
 	[ApiController]
-	public class UserController(UserService userService) : ControllerBase
+	public class UserController : ControllerBase
 	{
+		private readonly ApplicationDBContext _context;
+		private readonly FileService _fileService;
+		private readonly IConfiguration _configuration;
+		private readonly UserService _userService;
+
+		public UserController(ApplicationDBContext context, FileService fileService, IConfiguration configuration, UserService userService)
+		{
+			_context = context;
+			_fileService = fileService;
+			_configuration = configuration;
+			_userService = userService;
+		}
+
 		[HttpPost("register")]
 		public async Task<ActionResult<User>> Register([FromForm] UserDto registerDto)
 		{
 			if (!ModelState.IsValid) return BadRequest(ModelState);
 
-			var user = await userService.RegisterAsync(registerDto);
+			if (await _context.Users.AnyAsync(u => u.Username.ToUpper() == registerDto.Username.ToUpper()))
+				return BadRequest("Username is already taken");
 
-			if (user == null) return BadRequest("User with that name already exists already exists");
-
-			return Ok(new
+			await using var transaction = await _context.Database.BeginTransactionAsync();
+			try
 			{
-				Id = user.Id.ToString().ToUpper(),
-				user.Username,
-				user.Role,
-				Image = user.Image ?? string.Empty
-			});
+				User user = new()
+				{
+					Username = registerDto.Username,
+					Role = "User"
+				};
+
+				user.PasswordHash = new PasswordHasher<User>().HashPassword(user, registerDto.Password);
+				await _context.Users.AddAsync(user);
+				await _context.SaveChangesAsync();
+
+				if (registerDto.Image != null && FileExtension.IsValidAvatar(registerDto.Image))
+				{
+					var imagePath = await _fileService.UploadAvatar(registerDto.Image, user.Id);
+					if (imagePath == null) throw new Exception("Failed to save avatar image.");
+
+					user.Image = imagePath;
+					_context.Users.Update(user);
+					await _context.SaveChangesAsync();
+				}
+
+				await transaction.CommitAsync();
+				return user;
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine(ex.Message);
+				await transaction.RollbackAsync();
+				return BadRequest("Error registering user: " + ex.Message);
+			}
 		}
 
 		[HttpPost("login")]
@@ -34,10 +74,18 @@ namespace HPEChat_Server.Controllers
 		{
 			if (!ModelState.IsValid) return BadRequest(ModelState);
 
-			var user = await userService.LoginAsync(loginDto);
+			var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == loginDto.Username);
 			if (user == null) return BadRequest("Invalid username or password");
 
-			Response.Cookies.Append("Ciasteczko", user.Token, new CookieOptions
+			var passwordVerificationResult = new PasswordHasher<User>()
+				.VerifyHashedPassword(user, user.PasswordHash, loginDto.Password);
+
+			if (passwordVerificationResult == PasswordVerificationResult.Failed) return BadRequest("Invalid username or password");
+
+			var token = _userService.CreateToken(user);
+			if (token == null) return BadRequest("Error creating token. Try again later");
+
+			Response.Cookies.Append("Ciasteczko", token, new CookieOptions
 			{
 				HttpOnly = true,
 				SameSite = SameSiteMode.None,
@@ -45,7 +93,14 @@ namespace HPEChat_Server.Controllers
 				Path = "/",
 			});
 
-			return Ok(user);
+			return new ReturnLoginDto
+			{
+				Id = user.Id,
+				Username = user.Username,
+				Token = token,
+				Role = user.Role,
+				Image = user.Image ?? string.Empty
+			};
 		}
 
 		[HttpPatch("grant-admin/{id}")]
@@ -57,23 +112,30 @@ namespace HPEChat_Server.Controllers
 			var userId = User.GetUserId();
 			if (userId == null) return BadRequest("User not found");
 
-			if(!userService.CheckIfRoot(userId.ToString()!)) return Unauthorized("You are not head admin");
+			if (string.Equals(_configuration.GetValue<string>("RootId"), userId.ToString())) return Unauthorized("You are not head admin");
 
-			var user = await userService.GetUserByIdAsync(id.ToString());
+			var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
 			if (user == null) return BadRequest("User not found");
 			if (user.Role == "Admin") return BadRequest("User is already admin");
 
-			user.Role = "Admin";
-
-			var result = await userService.UpdateUserAsync(user);
-			if (result == null) return BadRequest("Error updating user privileges");
-
-			return Ok(new
+			try
 			{
-				Id = user.Id.ToString().ToUpper(),
-				user.Username,
-				user.Role,
-			});
+				user.Role = "Admin";
+				_context.Users.Update(user);
+				await _context.SaveChangesAsync();
+
+				return Ok(new
+				{
+					Id = user.Id.ToString().ToUpper(),
+					user.Username,
+					user.Role,
+				});
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine(ex.Message);
+				return BadRequest("Error updating user privileges: " + ex.Message);
+			}
 		}
 
 		[HttpPatch("revoke-admin/{id}")]
@@ -85,23 +147,30 @@ namespace HPEChat_Server.Controllers
 			var userId = User.GetUserId();
 			if (userId == null) return BadRequest("User not found");
 
-			if (!userService.CheckIfRoot(userId.ToString()!)) return Unauthorized("You are not head admin");
+			if (string.Equals(_configuration.GetValue<string>("RootId"), userId.ToString())) return Unauthorized("You are not head admin");
 
-			var user = await userService.GetUserByIdAsync(id.ToString());
+			var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
 			if (user == null) return BadRequest("User not found");
-			if (user.Role != "Admin") return BadRequest("User is not admin");
+			if (user.Role == "Admin") return BadRequest("User is already admin");
 
-			user.Role = "User";
-
-			var result = await userService.UpdateUserAsync(user);
-			if (result == null) return BadRequest("Error updating user privileges");
-
-			return Ok(new
+			try
 			{
-				Id = user.Id.ToString().ToUpper(),
-				user.Username,
-				user.Role,
-			});
+				user.Role = "User";
+				_context.Users.Update(user);
+				await _context.SaveChangesAsync();
+
+				return Ok(new
+				{
+					Id = user.Id.ToString().ToUpper(),
+					user.Username,
+					user.Role,
+				});
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine(ex.Message);
+				return BadRequest("Error updating user privileges: " + ex.Message);
+			}
 		}
 
 		[HttpPatch]
@@ -113,13 +182,27 @@ namespace HPEChat_Server.Controllers
 			var userId = User.GetUserId();
 			if (userId == null) return BadRequest("User not found");
 
-			var user = await userService.GetUserByIdAsync(userId.ToString()!);
+			var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
 			if (user == null) return BadRequest("User not found");
 
-			var result = await userService.ChangePasswordAsync(user, passwordDto);
-			if (!result) return BadRequest("Error updating user");
+			var passwordVerificationResult = new PasswordHasher<User>().VerifyHashedPassword(user, user.PasswordHash, passwordDto.OldPassword);
+			if (passwordVerificationResult == PasswordVerificationResult.Failed) return BadRequest("Invalid password");
 
-			return Ok(new { message = "Password changed"});
+			try
+			{
+				var hashedPassword = new PasswordHasher<User>().HashPassword(user, passwordDto.NewPassword);
+
+				user.PasswordHash = hashedPassword;
+				_context.Users.Update(user);
+				await _context.SaveChangesAsync();
+
+				return Ok(new { message = "Password changed" });
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine(ex.Message);
+				return BadRequest("Error changing password: " + ex.Message);
+			}
 		}
 
 		[HttpPost("logout")]
@@ -139,10 +222,20 @@ namespace HPEChat_Server.Controllers
 		[Authorize]
 		public IActionResult AuthTest()
 		{
+			Console.WriteLine("AuthTest called");
 			var userId = User.GetUserId();
-			var username = User.GetUsername();
-			var role = User.GetRole();
-			return Ok(new UserInfoDto { Id = userId.ToString()!.ToUpper(), Username = username!, Role = role!.ToString() });
+			if (userId == null) return Unauthorized("User not found");
+
+			var user = _context.Users.FirstOrDefault(u => u.Id == userId);
+			if (user == null) return Unauthorized("User not found");
+
+			return Ok(new UserInfoDto
+			{
+				Id = user.Id.ToString().ToUpper(),
+				Username = user.Username,
+				Role = user.Role,
+				Image = user.Image ?? string.Empty
+			});
 		}
 
 		[HttpGet("admin-test")]

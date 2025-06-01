@@ -223,6 +223,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (newServer) {
         set((state) => ({ servers: [...state.servers, newServer] }));
         get().selectServer(newServer.id);
+        joinServerGroup(newServer.id); // join the SignalR group for the server
         return newServer;
       }
       return null;

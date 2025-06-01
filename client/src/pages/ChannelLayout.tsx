@@ -8,7 +8,7 @@ import { useContext, useEffect, useRef, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function ChannelLayout() {
-  const { user, loading } = useContext(AuthContext); 
+  const { user, loading } = useContext(AuthContext);
   const selectedServer = useAppStore((state) => state.selectedServer);
   const selectedChannel = useAppStore((state) => state.selectedChannel);
   const serverMessagesLoading = useAppStore((state) => state.channelMessagesLoading);
@@ -34,7 +34,7 @@ export default function ChannelLayout() {
           setMessageInputHeight(entry.contentRect.height);
         }
       });
-      
+
       resizeObserver.observe(messageInputRef.current);
       return () => resizeObserver.disconnect();
     }
@@ -43,7 +43,7 @@ export default function ChannelLayout() {
   const scrollToBottom = () => {
     if (scrollAreaRef.current) {
       const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
-      
+
       if (scrollContainer) {
         scrollContainer.scrollTop = scrollContainer.scrollHeight;
       }
@@ -72,7 +72,7 @@ export default function ChannelLayout() {
     const timer = setTimeout(() => {
       scrollToBottom();
     }, 100);
-    
+
     return () => clearTimeout(timer);
   }, [selectedChannel]);
 
@@ -117,8 +117,8 @@ export default function ChannelLayout() {
               ))}
             </div>
           ) : (
-            <ScrollArea 
-              ref={scrollAreaRef} 
+            <ScrollArea
+              ref={scrollAreaRef}
               className="h-full pr-4"
               type="always"
             >
@@ -128,18 +128,18 @@ export default function ChannelLayout() {
                     // check if the previous message is from the same user and within 10 minutes
                     // if so, set isContinuation to true
                     const prevMessage = index > 0 ? sortedMessages[index - 1] : null;
-                    const isSameUser = prevMessage ? prevMessage.senderId === message.senderId : false;
-                    const timeDifference = prevMessage 
-                      ? Math.abs(new Date(message.sentAt).getTime() - new Date(prevMessage.sentAt).getTime()) / 60000 
+                    const isSameUser = prevMessage ? prevMessage.sender.id === message.sender.id : false;
+                    const timeDifference = prevMessage
+                      ? Math.abs(new Date(message.sentAt).getTime() - new Date(prevMessage.sentAt).getTime()) / 60000
                       : Infinity;
                     const isContinuation = isSameUser && timeDifference < 10;
-                    
+
                     return (
-                      <Message 
-                        key={message.id} 
-                        message={message} 
-                        isSenderCurrentUser={user.id.toUpperCase() === message.senderId} 
-                        isContinuation={isContinuation} 
+                      <Message
+                        key={message.id}
+                        message={message}
+                        isSenderCurrentUser={user.id.toUpperCase() === message.sender.id}
+                        isContinuation={isContinuation}
                       />
                     );
                   })
@@ -157,7 +157,7 @@ export default function ChannelLayout() {
         </div>
 
         <div ref={messageInputRef} className="mt-2">
-          <MessageInput onMessageSend={() => newMessage()}/>
+          <MessageInput onMessageSend={() => newMessage()} />
         </div>
       </div>
     </div>

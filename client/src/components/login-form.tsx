@@ -31,7 +31,7 @@ const LoginForm = () => {
     try {
       const response = await userService.login(username, password);
 
-      setUser({id: response.id, username: response.username, role: response.role});
+      setUser({id: response.id, username: response.username, role: response.role, image: response.image || '', blobImage: ''});
       clearStore();
       navigate("/home", { replace: true });
     }

@@ -155,10 +155,9 @@ namespace HPEChat_Server.Controllers
 			var userId = User.GetUserId();
 			if (userId == null) return BadRequest("User not found");
 
-			Guid serverGuid = id;
-
 			var server = await _context.Servers
-				.Where(s => s.Id == serverGuid && s.Members.Any(m => m.Id == userId))
+				.AsSplitQuery()
+				.Where(s => s.Id == id && s.Members.Any(m => m.Id == userId))
 				.Select(s => new ServerDto
 				{
 					Id = s.Id.ToString().ToUpper(),
@@ -195,7 +194,9 @@ namespace HPEChat_Server.Controllers
 			if (userId == null) return BadRequest("User not found");
 
 			var server = await _context.Servers
+				.AsSplitQuery()
 				.Include(s => s.Members)
+				.Include(c => c.Channels)
 				.FirstOrDefaultAsync(s => s.Name == name);
 
 			if (server == null) return NotFound("Server not found");

@@ -75,12 +75,11 @@ namespace HPEChat_Server.Controllers
 			var userId = User.GetUserId();
 			if (userId == null) return BadRequest("User not found");
 
-			var username = User.GetUsername();
-			if (username == null) return BadRequest("Username not found");
-
 			Guid channelGuid = messageDto.ChannelId;
 
 			var channel = await _context.Channels
+				.Include(c => c.Server)
+				.ThenInclude(c => c.Members)
 				.FirstOrDefaultAsync(c => c.Id == channelGuid && c.Server.Members.Any(m => m.Id == userId));
 			if (channel == null) return NotFound("Channel not found or you are not a member of the server");
 
@@ -113,7 +112,7 @@ namespace HPEChat_Server.Controllers
 							Sender = new UserInfoDto
 							{
 								Id = message.SenderId.HasValue ? message.SenderId.Value.ToString().ToUpper() : string.Empty,
-								Username = username,
+								Username = message.Sender.Username,
 							},
 						});
 
@@ -129,7 +128,7 @@ namespace HPEChat_Server.Controllers
 						Sender = new UserInfoDto
 						{
 							Id = message.SenderId.HasValue ? message.SenderId.Value.ToString().ToUpper() : string.Empty,
-							Username = username,
+							Username = message.Sender.Username,
 						},
 					});
 				}

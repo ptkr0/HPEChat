@@ -3,6 +3,7 @@ import { User } from "@/types/user.type";
 import { createContext, useState, ReactNode, useEffect } from "react";
 import { useAppStore } from "@/stores/appStore";
 import { useSignalR } from "@/hooks/useSignalR";
+import { fileService } from "@/services/fileService";
 
 interface AuthContextType {
   user: User;
@@ -13,7 +14,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User>({ id: '', username: '', role: '' });
+  const [user, setUser] = useState<User>({ id: '', username: '', role: '', image: '', blobImage: '' });
   const [loading, setLoading] = useState(true);
   const { initializeSignalR, closeSignalRConnection } = useSignalR();
   const clearStore = useAppStore((state) => state.clearStore);
@@ -22,21 +23,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     setLoading(true);
     userService.getMe()
-      .then((response) => {
+      .then(async (response) => {
         setUser({
           id: response.id,
           username: response.username,
           role: response.role,
+          image: response.image || '',
         });
+
+        if (user.image) {
+        const avatarBlob = await fileService.getAvatar(user.image);
+        const objectUrl = URL.createObjectURL(avatarBlob);
+        setUser(prevUser => ({
+          ...prevUser,
+          blobImage: objectUrl,
+        }));
+      } else {
+        setUser(prevUser => ({
+          ...prevUser,
+          blobImage: '',
+        }));
+      }
       })
       .catch((error) => {
         console.error("Error fetching user data:", error);
-        setUser({ id: '', username: '', role: '' });
+        setUser({ id: '', username: '', role: '', image: '', blobImage: '' }); // Reset user on error
       })
       .finally(() => {
         setLoading(false);
       });
-  }, []);
+  }, [user.image]);
 
   useEffect(() => {
     if (user.id && !loading) {

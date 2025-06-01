@@ -21,6 +21,7 @@ export const serverService = {
 
     joinServer: async (inviteCode: string): Promise<ServerDetails> => {
         const response = await axiosPrivate.post(`${SERVER_URL}/join/${ inviteCode }`);
+        console.log(response.data);
         return response.data;
     },
 
