@@ -487,25 +487,27 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
-  clearStore: () => {
-    set({
-      servers: [],
-      serversLoading: false,
-      serversError: null,
-      selectedServerId: null,
-      selectedServer: null,
-      serverDetailsLoading: false,
-      serverDetailsError: null,
-      cachedServers: new Map(),
-      selectedChannelId: null,
-      selectedChannel: null,
-      selectedChannelMessages: [],
-      channelMessagesLoading: false,
-      channelMessagesError: null,
-      cachedChannelMessages: new Map(),
-      avatarBlobs: new Map(),
-    });
-  },
+clearStore: () => {
+  get().avatarBlobs.forEach(blobUrl => URL.revokeObjectURL(blobUrl));
+  
+  set({
+    servers: [],
+    serversLoading: false,
+    serversError: null,
+    selectedServerId: null,
+    selectedServer: null,
+    serverDetailsLoading: false,
+    serverDetailsError: null,
+    cachedServers: new Map(),
+    selectedChannelId: null,
+    selectedChannel: null,
+    selectedChannelMessages: [],
+    channelMessagesLoading: false,
+    channelMessagesError: null,
+    cachedChannelMessages: new Map(),
+    avatarBlobs: new Map(),
+  });
+},
 
   getMeInfo: async () => {
     try {

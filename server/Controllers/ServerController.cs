@@ -225,6 +225,7 @@ namespace HPEChat_Server.Controllers
 								Id = userId.ToString()!.ToUpper()!,
 								Username = user.Username,
 								Role = user.Role,
+								Image = user.Image ?? string.Empty,
 							});
 
 					await transaction.CommitAsync();
