@@ -10,4 +10,11 @@ export const fileService = {
         return response.data;
     },
 
+    getServerImage: async (id: string): Promise<Blob> => {
+        const response = await axiosPrivate.get(`${FILE_URL}/serverImages/${id}`, {
+            responseType: 'blob',
+        });
+        return response.data;
+    },
+
 }

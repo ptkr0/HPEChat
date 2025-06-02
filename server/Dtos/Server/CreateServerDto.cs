@@ -10,5 +10,7 @@ namespace HPEChat_Server.Dtos.Server
 
 		[MaxLength(1000)]
 		public string Description { get; set; } = string.Empty;
+
+		public IFormFile? Image { get; set; }
 	}
 }

@@ -1,5 +1,5 @@
 ﻿using SixLabors.ImageSharp;
-using System.Text;
+using SixLabors.ImageSharp.Processing;
 
 namespace HPEChat_Server.Services
 {
@@ -13,7 +13,7 @@ namespace HPEChat_Server.Services
 
 		public async Task<string> UploadFile(IFormFile file)
 		{
-			string randomString = Guid.NewGuid().ToString("n").Substring(0, 6);
+			string randomString = Guid.NewGuid().ToString("n").Substring(0, 8);
 			var fileName = $"{randomString}_{Path.GetFileName(file.FileName)}";
 			var filePath = Path.Combine(_uploadPath, fileName);
 
@@ -25,6 +25,15 @@ namespace HPEChat_Server.Services
 			return filePath;
 		}
 
+		public void DeleteFile(string fileName)
+		{
+			string filePath = Path.Combine(_uploadPath, fileName);
+			if (File.Exists(filePath))
+			{
+				File.Delete(filePath);
+			}
+		}
+
 		public async Task<string> UploadAvatar(IFormFile file, Guid userId)
 		{
 			using (var image = await Image.LoadAsync(file.OpenReadStream()))
@@ -33,7 +42,34 @@ namespace HPEChat_Server.Services
 				image.Metadata.IptcProfile = null;
 				image.Metadata.XmpProfile = null;
 
-				var fileName = $"avatar_{userId}.webp";
+				int height = image.Height > 100 ? 100 : image.Height;
+				int width = image.Width * (height / image.Height);
+
+				image.Mutate(x => x.Resize(width, height));
+
+				var fileName = $"avatar_{userId}_{DateTime.UtcNow.ToString("yyyyMMddHHmmss")}.webp";
+				string savePath = Path.Combine(_uploadPath, fileName);
+
+				await image.SaveAsWebpAsync(savePath);
+
+				return fileName;
+			}
+		}
+
+		public async Task<string> UploadServerPicture(IFormFile file, Guid serverId)
+		{
+			using (var image = await Image.LoadAsync(file.OpenReadStream()))
+			{
+				image.Metadata.ExifProfile = null;
+				image.Metadata.IptcProfile = null;
+				image.Metadata.XmpProfile = null;
+
+				int height = image.Height > 100 ? 100 : image.Height;
+				int width = image.Width * (height / image.Height);
+
+				image.Mutate(x => x.Resize(width, height));
+
+				var fileName = $"server_{serverId}_{DateTime.UtcNow.ToString("yyyyMMddHHmmss")}.webp";
 				string savePath = Path.Combine(_uploadPath, fileName);
 
 				await image.SaveAsWebpAsync(savePath);

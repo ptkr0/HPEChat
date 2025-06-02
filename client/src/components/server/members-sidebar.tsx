@@ -8,7 +8,6 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
@@ -50,7 +49,6 @@ export function MembersSidebar() {
       members: regularMembers.sort(sortByUsername),
     }
   }
-
   const { owner, admins, members } = groupedMembers()
   const totalMembers = selectedServer?.members?.length || 0
 
@@ -59,51 +57,54 @@ export function MembersSidebar() {
     const isAdmin = member.role === "admin"
     const memberBlobImage = avatarBlobs.get(member.id);
 
+    const memberContent = (
+      <>
+        <div className="relative">
+          <Avatar className="size-10 shrink-0 border-2 border-transparent group-hover:border-primary/10">
+            <AvatarImage src={memberBlobImage || (member.image ? '' : undefined)} />
+            <AvatarFallback>{member.username[0]}</AvatarFallback>
+          </Avatar>
+        </div>
+
+        <div className="flex min-w-0 flex-1 flex-col ml-2">
+          <span className="flex items-center text-sm font-medium">
+            <span className="truncate">{member.username}</span>
+            {isOwner && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Crown className="ml-1.5 text-amber-400 h-4 w-4" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top">Właściciel Serwera</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+            {isAdmin && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Shield className="ml-1.5 text-blue-400 h-4 w-4" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top">Admin</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </span>
+        </div>
+      </>
+    )
+
     return (
       <SidebarMenuItem key={member.id}>
-        <SidebarMenuButton className="group relative transition-all duration-200 hover:bg-accent/50 rounded-lg mb-1">
-          <div className="relative">
-            <Avatar className="size-9 shrink-0 border-2 border-transparent group-hover:border-primary/10">
-              <AvatarImage src={memberBlobImage || (member.image ? '' : undefined)} />
-              <AvatarFallback>{member.username[0]}</AvatarFallback>
-            </Avatar>
-          </div>
-
-          <div className="flex min-w-0 flex-1 flex-col ml-2">
-            <span className="flex items-center text-sm font-medium">
-              <span className="truncate">{member.username}</span>
-              {isOwner && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Crown className="ml-1.5 text-amber-400 h-4 w-4" />
-                    </TooltipTrigger>
-                    <TooltipContent side="top">Właściciel Serwera</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
-              {isAdmin && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Shield className="ml-1.5 text-blue-400 h-4 w-4" />
-                    </TooltipTrigger>
-                    <TooltipContent side="top">Admin</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
-            </span>
-          </div>
-        </SidebarMenuButton>
-
-        {selectedServer?.ownerId === user.id.toUpperCase() && member.id !== selectedServer.ownerId && (
+        {selectedServer?.ownerId === user.id.toUpperCase() && member.id !== selectedServer.ownerId ? (
           <DropdownMenu modal={false}>
-            <DropdownMenuTrigger asChild>
-              <SidebarMenuAction className="bg-muted/80 hover:bg-muted">
-                <MoreHorizontal className="h-4 w-4" />
-              </SidebarMenuAction>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent side="left" align="center" className="w-48">
+              <SidebarMenuButton className="group relative transition-all duration-200 hover:bg-accent/50 rounded-lg mb-1" size={"lg"}>
+                {memberContent}
+                <DropdownMenuTrigger asChild>
+                  <MoreHorizontal className="ml-auto size-4" />
+                </DropdownMenuTrigger>
+              </SidebarMenuButton>
+            <DropdownMenuContent side="bottom" align="center" className="w-48">
               <DropdownMenuItem
                 className="cursor-pointer text-red-500 focus:text-red-500"
                 onClick={() => kickUser(selectedServer.id, member.id)}
@@ -113,6 +114,10 @@ export function MembersSidebar() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+        ) : (
+          <SidebarMenuButton className="group relative transition-all duration-200 hover:bg-accent/50 rounded-lg mb-1" size={"lg"}>
+            {memberContent}
+          </SidebarMenuButton>
         )}
       </SidebarMenuItem>
     )

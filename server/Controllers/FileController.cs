@@ -35,5 +35,25 @@ namespace HPEChat_Server.Controllers
 			Response.Headers.Append("Cache-Control", "private, max-age=86400");
 			return File(fileBytes, "image/webp");
 		}
+
+		[HttpGet("serverImages/{fileName}")]
+		[Authorize]
+		public async Task<IActionResult> GetServerImage(string fileName)
+		{
+			if (string.IsNullOrWhiteSpace(fileName))
+				return BadRequest("File name cannot be empty.");
+
+			if (!fileName.StartsWith("server_") || !fileName.EndsWith(".webp") || fileName.Contains(".."))
+				return BadRequest("Invalid file name format or attempt to access restricted path.");
+
+			var filePath = Path.Combine(_uploadPath, fileName);
+			if (!System.IO.File.Exists(filePath))
+				return NotFound("Server image not found.");
+
+			var fileBytes = await System.IO.File.ReadAllBytesAsync(filePath);
+
+			Response.Headers.Append("Cache-Control", "private, max-age=86400");
+			return File(fileBytes, "image/webp");
+		}
 	}
 }

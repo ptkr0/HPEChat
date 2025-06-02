@@ -10,6 +10,7 @@ namespace HPEChat_Server.Models
 		public required string Name { get; set; } = string.Empty;
 		[MaxLength(1000)]
 		public string Description { get; set; } = string.Empty;
+		public string Image { get; set; } = string.Empty;
 
 		public ICollection<User> Members { get; set; } = new List<User>();
 		public virtual User Owner { get; set; } = null!;

@@ -14,8 +14,21 @@ export const serverService = {
         return response.data;
     },
 
-    createServer: async (newServerData: Omit<Server, 'id' | 'ownerId'>): Promise<Server> => {
-        const response = await axiosPrivate.post(SERVER_URL, newServerData);
+    createServer: async (name: string, description?: string, image?: File): Promise<Server> => {
+        const formData = new FormData();
+        formData.append("Name", name);
+        if (description) {
+            formData.append("Description", description);
+        }
+        if (image) {
+            formData.append("Image", image);
+        }
+        const response = await axiosPrivate.post(SERVER_URL, formData, {
+            headers: {
+                "Content-Type": "multipart/form-data",
+            },
+        });
+        
         return response.data;
     },
 

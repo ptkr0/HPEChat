@@ -20,16 +20,18 @@ namespace HPEChat_Server.Controllers
 		private readonly ApplicationDBContext _context;
 		private readonly IHubContext<ServerHub, IServerClient> _hub;
 		private readonly ConnectionMapperService _mapper;
-		public ServerController(ApplicationDBContext context, IHubContext<ServerHub, IServerClient> hub, ConnectionMapperService mapper)
+		private readonly FileService _fileService;
+		public ServerController(ApplicationDBContext context, IHubContext<ServerHub, IServerClient> hub, ConnectionMapperService mapper, FileService fileService)
 		{
 			_context = context;
 			_hub = hub;
 			_mapper = mapper;
+			_fileService = fileService;
 		}
 
 		[HttpPost]
 		[Authorize]
-		public async Task<ActionResult<ServerDto>> CreateServer([FromBody] CreateServerDto createServerDto)
+		public async Task<ActionResult<ServerDto>> CreateServer([FromForm] CreateServerDto createServerDto)
 		{
 			if (!ModelState.IsValid) return BadRequest(ModelState);
 
@@ -39,7 +41,7 @@ namespace HPEChat_Server.Controllers
 			var user = await _context.Users.FindAsync(userId);
 			if (user == null) return BadRequest("User not found");
 
-			if (await _context.Servers.AnyAsync(s => s.Name.ToUpper() == createServerDto.Name.ToUpper()))
+			if (await _context.Servers.AnyAsync(s => string.Equals(s.Name, createServerDto.Name)))
 				return BadRequest("Server with that name already exists");
 
 			var server = new Server
@@ -56,6 +58,17 @@ namespace HPEChat_Server.Controllers
 					server.Members.Add(user);
 
 					await _context.Servers.AddAsync(server);
+					await _context.SaveChangesAsync();
+
+					if (createServerDto.Image != null && FileExtension.IsValidAvatar(createServerDto.Image))
+					{
+						var imagePath = await _fileService.UploadServerPicture(createServerDto.Image, server.Id);
+						if (imagePath == null) throw new Exception("Failed to save avatar image.");
+
+						server.Image = imagePath;
+						_context.Servers.Update(server);
+						await _context.SaveChangesAsync();
+					}
 
 					await _hub
 							.Clients
@@ -123,6 +136,7 @@ namespace HPEChat_Server.Controllers
 				Name = server.Name,
 				Description = server.Description,
 				OwnerId = server.OwnerId.ToString().ToUpper(),
+				Image = server.Image ?? string.Empty,
 			});
 		}
 
@@ -141,6 +155,7 @@ namespace HPEChat_Server.Controllers
 					Name = s.Name,
 					Description = s.Description,
 					OwnerId = s.OwnerId.ToString().ToUpper(),
+					Image = s.Image ?? string.Empty,
 				})
 				.OrderBy(s => s.Name)
 				.ToListAsync();
@@ -166,6 +181,7 @@ namespace HPEChat_Server.Controllers
 					Name = s.Name,
 					Description = s.Description,
 					OwnerId = s.OwnerId.ToString().ToUpper(),
+					Image = s.Image ?? string.Empty,
 					Members = s.Members.Select(m => new UserInfoDto
 					{
 						Id = m.Id.ToString().ToUpper(),

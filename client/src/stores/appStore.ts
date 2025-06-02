@@ -1,3 +1,6 @@
+// over 700 lines of code
+// i am afraid of this store
+
 import { create } from 'zustand';
 import { Server, ServerDetails } from '@/types/server.types';
 import { Channel } from '@/types/channel.types';
@@ -35,7 +38,7 @@ interface AppState {
 
   selectChannel: (channelId: string | null) => void;
 
-  createServer: (newServerData: Omit<Server, 'id' | 'ownerId' | 'description'> & { description?: string }) => Promise<Server | null>;
+  createServer: (name: string, description?: string, image?: File) => Promise<Server | null>;
   joinServer: (inviteCode: string) => Promise<ServerDetails | null>;
   leaveServer: (serverId: string) => Promise<void>;
   leaveServerAction: (serverId: string) => Promise<void>;
@@ -59,6 +62,10 @@ interface AppState {
   avatarBlobs: Map<string, string>; // map of all avatars (userId -> blob URL)
   fetchAndCacheAvatar: (user: User) => Promise<void>;
   revokeAvatar: (userId: string) => void;
+
+  serverImageBlobs: Map<string, string>;
+  fetchAndCacheServerImage: (serverId: string, image?: string) => Promise<void>;
+  revokeServerImage: (serverId: string) => void;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -81,6 +88,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   cachedServers: new Map(),
   avatarBlobs: new Map(),
+  serverImageBlobs: new Map(),
 
   fetchServers: async () => {
     set({ serversLoading: true, serversError: null });
@@ -88,6 +96,12 @@ export const useAppStore = create<AppState>((set, get) => ({
       const fetchedServers = await serverService.getAll();
       console.log("[initSR] servers in state:", get().servers.length);
       set({ servers: fetchedServers, serversLoading: false });
+
+      fetchedServers.forEach(server => {
+        if (server.image) { // if the server has an image, fetch and cache it
+          get().fetchAndCacheServerImage(server.id, server.image);
+        }
+      });
     } catch (error) {
       console.error("Error fetching servers:", error);
       set({ serversError: 'Nie udało się pobrać listy serwerów.', serversLoading: false });
@@ -236,10 +250,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
-  createServer: async (newServerData) => {
+  createServer: async (name: string, description?: string, image?: File) => {
     try {
       // creates server
-      const newServer = await serverService.createServer({ ...newServerData, description: newServerData.description || '' });
+      const newServer = await serverService.createServer(name, description, image);
 
       if (newServer) {
         set((state) => ({ servers: [...state.servers, newServer] }));
@@ -262,8 +276,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       const joinedServer = await serverService.joinServer(inviteCode);
 
       if (joinedServer) {
-        const { id, name, description, ownerId } = joinedServer;
-        set((state) => ({ servers: [...state.servers, { id, name, description, ownerId }] }));
+        const { id, name, description, ownerId, image } = joinedServer;
+        set((state) => ({ servers: [...state.servers, { id, name, description, ownerId, image }] }));
         // cache the server details
         set((state) => {
           const newCachedServers = new Map(state.cachedServers);
@@ -272,12 +286,17 @@ export const useAppStore = create<AppState>((set, get) => ({
         });
 
         if (joinedServer?.members) {
-        joinedServer.members.forEach(member => {
-          if (member.image && !get().avatarBlobs.has(member.id)) {
-            get().fetchAndCacheAvatar(member);
-          }
-        });
-      }
+          joinedServer.members.forEach(member => {
+            if (member.image && !get().avatarBlobs.has(member.id)) {
+              get().fetchAndCacheAvatar(member);
+            }
+          });
+        }
+
+        if (joinedServer.image && !get().serverImageBlobs.has(joinedServer.id)) {
+          get().fetchAndCacheServerImage(joinedServer.id, joinedServer.image);
+        }
+
         joinServerGroup(joinedServer.id); // join the SignalR group for the server
         return joinedServer;
       }
@@ -489,6 +508,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
 clearStore: () => {
   get().avatarBlobs.forEach(blobUrl => URL.revokeObjectURL(blobUrl));
+  get().serverImageBlobs.forEach(blobUrl => URL.revokeObjectURL(blobUrl));
   
   set({
     servers: [],
@@ -700,5 +720,33 @@ clearStore: () => {
       });
     }
   },
-      
+
+  fetchAndCacheServerImage: async (serverId: string, image?: string) => {
+    if (!image || get().serverImageBlobs.has(serverId)) {
+      return; // no image or already cached
+    }
+    try {
+      const serverImageBlob = await fileService.getServerImage(image);
+      const objectUrl = URL.createObjectURL(serverImageBlob);
+      set((state) => {
+        const newServerImageBlobs = new Map(state.serverImageBlobs);
+        newServerImageBlobs.set(serverId, objectUrl);
+        return { serverImageBlobs: newServerImageBlobs };
+      });
+    } catch (error) {
+      console.error(`Error fetching image for server ${serverId}:`, error);
+    }
+  },
+
+  revokeServerImage: async (serverId: string) => {
+    const blobUrl = get().serverImageBlobs.get(serverId);
+    if (blobUrl) {
+      URL.revokeObjectURL(blobUrl);
+      set(state => {
+        const newServerImageBlobs = new Map(state.serverImageBlobs);
+        newServerImageBlobs.delete(serverId);
+        return { serverImageBlobs: newServerImageBlobs };
+      });
+    }  
+  }
 }));

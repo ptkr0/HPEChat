@@ -29,6 +29,7 @@ export function NavServers({ servers, selectedServerId, onServerSelect, onLeaveS
   const [showJoinServerModal, setShowJoinServerModal] = useState(false)
   const serversLoading = useAppStore((state) => state.serversLoading)
   const [isServersOpen, setIsServersOpen] = useState(true)
+  const serverImageBlobs = useAppStore((state) => state.serverImageBlobs)
 
   const sortedServers = servers.sort((a, b) => {
     if (a.name.toLowerCase() < b.name.toLowerCase()) return -1
@@ -64,12 +65,17 @@ export function NavServers({ servers, selectedServerId, onServerSelect, onLeaveS
                       "bg-accent text-accent-foreground": server.id === selectedServerId,
                     })}
                   >
-                    <Avatar className="size-10 rounded-lg flex items-center justify-center shrink-0 mr-2 overflow-hidden">
-                      <AvatarImage alt={server.name} />
-                      <AvatarFallback className="bg-muted flex items-center justify-center text-sm font-medium w-full h-full">
+                    {(() => {
+                      const serverImage = serverImageBlobs.get(server.id);
+                      return (
+                      <Avatar className="size-10 rounded-lg flex items-center justify-center shrink-0 mr-2 overflow-hidden">
+                        <AvatarImage src={serverImage || (serverImage ? '' : undefined)} />
+                        <AvatarFallback className="bg-muted flex items-center justify-center text-sm font-medium w-full h-full">
                         {server.name[0].toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
+                        </AvatarFallback>
+                      </Avatar>
+                      );
+                    })()}
                     <div className="flex flex-col min-w-0 flex-1">
                       <div className="truncate font-medium">{server.name}</div>
                       <div className="truncate text-xs text-muted-foreground">{server.description}</div>

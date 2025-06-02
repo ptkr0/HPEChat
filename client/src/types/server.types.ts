@@ -6,6 +6,7 @@ export type Server = {
     name: string;
     description: string;
     ownerId: string;
+    image: string;
 }
 
 export type ServerDetails = {
@@ -13,6 +14,7 @@ export type ServerDetails = {
     name: string;
     description: string;
     ownerId: string;
+    image: string;
     members: User[];
     channels: Channel[];
 }

@@ -9,6 +9,7 @@ namespace HPEChat_Server.Dtos.Server
 		public string Name { get; set; } = string.Empty;
 		public string Description { get; set; } = string.Empty;
 		public string OwnerId { get; set; } = string.Empty;
+		public string Image { get; set; } = string.Empty;
 		public List<UserInfoDto> Members { get; set; } = new List<UserInfoDto>();
 		public List<ChannelDto> Channels { get; set; } = new List<ChannelDto>();
 	}

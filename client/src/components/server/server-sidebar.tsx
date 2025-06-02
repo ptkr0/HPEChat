@@ -32,6 +32,9 @@ export function ServerSidebar() {
   } = useAppStore();
   const navigate = useNavigate();
 
+  const serverImageBlobs = useAppStore((state) => state.serverImageBlobs);
+  const serverBlobImage = serverImageBlobs.get(selectedServerId || '');
+
   const { user, loading } = useContext(AuthContext);
   const [showCreateChannelModal, setShowCreateChannelModal] = useState(false);
   const [showDeleteChannelModal, setShowDeleteChannelModal] = useState(false);
@@ -51,8 +54,10 @@ export function ServerSidebar() {
             {!serverDetailsLoading && selectedServer ? (
               <>
                 <Avatar className="size-10 rounded-lg flex items-center justify-center shrink-0 overflow-hidden">
-                  <AvatarImage alt={selectedServer!.name} />
-                  <AvatarFallback className="bg-muted text-muted-foreground flex items-center justify-center text-sm font-medium w-full h-full">
+                  <AvatarImage 
+                    src={serverBlobImage || (selectedServer!.name[0].toUpperCase() ? '' : undefined)}
+                    alt={selectedServer!.name} />
+                  <AvatarFallback className="bg-muted flex items-center justify-center text-sm font-medium w-full h-full">
                     {selectedServer!.name[0].toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
