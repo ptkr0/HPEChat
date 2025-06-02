@@ -55,7 +55,7 @@ export function ServerSidebar() {
               <>
                 <Avatar className="size-10 rounded-lg flex items-center justify-center shrink-0 overflow-hidden">
                   <AvatarImage 
-                    src={serverBlobImage || (selectedServer!.name[0].toUpperCase() ? '' : undefined)}
+                    src={serverBlobImage || undefined}
                     alt={selectedServer!.name} />
                   <AvatarFallback className="bg-muted flex items-center justify-center text-sm font-medium w-full h-full">
                     {selectedServer!.name[0].toUpperCase()}

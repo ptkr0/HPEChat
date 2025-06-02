@@ -1,4 +1,4 @@
-﻿using HPEChat_Server.Data;
+﻿﻿using HPEChat_Server.Data;
 using HPEChat_Server.Dtos.Channel;
 using HPEChat_Server.Dtos.Server;
 using HPEChat_Server.Dtos.User;
@@ -41,7 +41,7 @@ namespace HPEChat_Server.Controllers
 			var user = await _context.Users.FindAsync(userId);
 			if (user == null) return BadRequest("User not found");
 
-			if (await _context.Servers.AnyAsync(s => string.Equals(s.Name, createServerDto.Name)))
+			if (await _context.Servers.AnyAsync(s => s.Name.Equals(createServerDto.Name, StringComparison.OrdinalIgnoreCase)))
 				return BadRequest("Server with that name already exists");
 
 			var server = new Server

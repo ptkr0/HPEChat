@@ -258,7 +258,11 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (newServer) {
         set((state) => ({ servers: [...state.servers, newServer] }));
         get().selectServer(newServer.id);
-        joinServerGroup(newServer.id); // join the SignalR group for the server
+
+        if (newServer.image) {
+          get().fetchAndCacheServerImage(newServer.id, newServer.image);
+        }
+        joinServerGroup(newServer.id);
         return newServer;
       }
       return null;
@@ -473,6 +477,15 @@ export const useAppStore = create<AppState>((set, get) => ({
           channelIdsToClear.forEach(chId => newCachedChannelMessages.delete(chId));
         }
 
+        // revoke server image blob if it exists
+        const serverImageBlob = state.serverImageBlobs.get(serverId);
+        if (serverImageBlob) {
+          URL.revokeObjectURL(serverImageBlob);
+          const newServerImageBlobs = new Map(state.serverImageBlobs);
+          newServerImageBlobs.delete(serverId);
+          set({ serverImageBlobs: newServerImageBlobs });
+        }
+
         return {
           servers: newServers,
           cachedServers: newCachedServers,
@@ -488,6 +501,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           get().selectServer(null);
         }
       }
+
       toast.success('Opuszczono serwer.');
     } catch (error) {
       toast.error('Nie udało się opuścić serwera.');
@@ -526,6 +540,7 @@ clearStore: () => {
     channelMessagesError: null,
     cachedChannelMessages: new Map(),
     avatarBlobs: new Map(),
+    serverImageBlobs: new Map(),
   });
 },
 

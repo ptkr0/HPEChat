@@ -110,7 +110,7 @@ export function Message({ message, isSenderCurrentUser, isContinuation }: Messag
       {!isContinuation && (
         <Avatar className="size-10 mt-0.5 flex-shrink-0">
           <AvatarImage
-            src={memberBlobImage || (message.sender.image ? '' : undefined)}
+            src={memberBlobImage || undefined}
             alt={message.sender.username}
           />
           <AvatarFallback>{message.sender.username[0]}</AvatarFallback>
