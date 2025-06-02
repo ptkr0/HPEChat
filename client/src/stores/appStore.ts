@@ -9,6 +9,7 @@ import { serverMessageService } from '@/services/serverMessageService';
 import { User } from '@/types/user.type';
 import { userService } from '@/services/userService';
 import { joinServerGroup, leaveServerGroup } from '@/services/signalrService';
+import { fileService } from '@/services/fileService';
 
 interface AppState {
   servers: Server[];
@@ -54,6 +55,10 @@ interface AppState {
 
   getMeInfo: () => Promise<User | null>;
   clearStore: () => void;
+
+  avatarBlobs: Map<string, string>; // map of all avatars (userId -> blob URL)
+  fetchAndCacheAvatar: (user: User) => Promise<void>;
+  revokeAvatar: (userId: string) => void;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -75,6 +80,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   cachedChannelMessages: new Map(),
 
   cachedServers: new Map(),
+  avatarBlobs: new Map(),
 
   fetchServers: async () => {
     set({ serversLoading: true, serversError: null });
@@ -89,6 +95,18 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   selectServer: async (serverId: string | null) => {
+
+    // function to process server members avatars (fetch and cache them if not already cached)
+    const processServerMembersAvatars = (serverDetails: ServerDetails | null) => {
+      if (serverDetails?.members) {
+        serverDetails.members.forEach(member => {
+          if (member.image && !get().avatarBlobs.has(member.id)) {
+            get().fetchAndCacheAvatar(member);
+          }
+        });
+      }
+    };
+
     const currentSelectedServerId = get().selectedServerId;
 
     if (currentSelectedServerId === serverId) {
@@ -115,6 +133,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           serverDetailsError: null,
           ...commonStateChanges
         });
+        processServerMembersAvatars(cachedDetails);
 
         // cache miss
       } else {
@@ -140,6 +159,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
             return { cachedServers: newCachedServers };
           });
+          processServerMembersAvatars(details);
 
         }).catch(error => {
           console.error("Error fetching server details:", error);
@@ -152,6 +172,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             });
           }
         });
+
       }
     } else {
       set({
@@ -249,6 +270,14 @@ export const useAppStore = create<AppState>((set, get) => ({
           newCachedServers.set(joinedServer.id, joinedServer);
           return { cachedServers: newCachedServers };
         });
+
+        if (joinedServer?.members) {
+        joinedServer.members.forEach(member => {
+          if (member.image && !get().avatarBlobs.has(member.id)) {
+            get().fetchAndCacheAvatar(member);
+          }
+        });
+      }
         joinServerGroup(joinedServer.id); // join the SignalR group for the server
         return joinedServer;
       }
@@ -474,6 +503,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       channelMessagesLoading: false,
       channelMessagesError: null,
       cachedChannelMessages: new Map(),
+      avatarBlobs: new Map(),
     });
   },
 
@@ -590,6 +620,10 @@ export const useAppStore = create<AppState>((set, get) => ({
           });
         }
 
+        if (user.image && !get().avatarBlobs.has(user.id)) {
+          get().fetchAndCacheAvatar(user);
+        }
+
         let newSelectedServer = state.selectedServer;
         if (state.selectedServerId === serverId && state.selectedServer) {
           newSelectedServer = {
@@ -635,4 +669,34 @@ export const useAppStore = create<AppState>((set, get) => ({
       });
     }
   },
+
+  fetchAndCacheAvatar: async (user: User) => {
+    if (!user.image || get().avatarBlobs.has(user.id)) {
+      return; // no image or already cached
+    }
+    try {
+      const avatarBlob = await fileService.getAvatar(user.image);
+      const objectUrl = URL.createObjectURL(avatarBlob);
+      set((state) => {
+        const newAvatarBlobs = new Map(state.avatarBlobs);
+        newAvatarBlobs.set(user.id, objectUrl);
+        return { avatarBlobs: newAvatarBlobs };
+      });
+    } catch (error) {
+      console.error(`Error fetching avatar for user ${user.id}:`, error);
+    }
+  },
+
+  revokeAvatar: (userId: string) => {
+    const blobUrl = get().avatarBlobs.get(userId);
+    if (blobUrl) {
+      URL.revokeObjectURL(blobUrl);
+      set(state => {
+        const newAvatarBlobs = new Map(state.avatarBlobs);
+        newAvatarBlobs.delete(userId);
+        return { avatarBlobs: newAvatarBlobs };
+      });
+    }
+  },
+      
 }));

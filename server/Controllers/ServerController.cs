@@ -65,6 +65,7 @@ namespace HPEChat_Server.Controllers
 								Id = userId.ToString()!.ToUpper(),
 								Username = user.Username,
 								Role = user.Role,
+								Image = user.Image ?? string.Empty,
 							});
 
 					await _context.SaveChangesAsync();
@@ -90,6 +91,7 @@ namespace HPEChat_Server.Controllers
 						Id = user.Id.ToString().ToUpper(),
 						Username = user.Username,
 						Role = user.Role,
+						Image = user.Image ?? string.Empty,
 					}
 				},
 			});
@@ -168,6 +170,7 @@ namespace HPEChat_Server.Controllers
 					{
 						Id = m.Id.ToString().ToUpper(),
 						Username = m.Username,
+						Image = m.Image ?? string.Empty,
 					})
 					.OrderBy(m => m.Username)
 					.ToList(),
@@ -236,6 +239,7 @@ namespace HPEChat_Server.Controllers
 						{
 							Id = m.Id.ToString().ToUpper(),
 							Username = m.Username,
+							Image = m.Image ?? string.Empty,
 						})
 						.OrderBy(m => m.Username)
 						.ToList(),

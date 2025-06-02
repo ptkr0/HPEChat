@@ -222,7 +222,9 @@ namespace HPEChat_Server.Controllers
 		[Authorize]
 		public IActionResult AuthTest()
 		{
+			Console.ForegroundColor = ConsoleColor.Yellow;
 			Console.WriteLine("AuthTest called");
+			Console.ResetColor();
 			var userId = User.GetUserId();
 			if (userId == null) return Unauthorized("User not found");
 

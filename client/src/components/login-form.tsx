@@ -11,13 +11,13 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import { useContext, useState } from "react"
-import AuthContext from "@/context/AuthProvider"
+import AuthContext, { UserWithBlobImage } from "@/context/AuthProvider"
 import { useNavigate } from "react-router"
 import { userService } from "@/services/userService"
 import { useAppStore } from "@/stores/appStore"
+import { fileService } from "@/services/fileService"
 
 const LoginForm = () => {
-
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
@@ -29,23 +29,44 @@ const LoginForm = () => {
     e.preventDefault();
 
     try {
-      const response = await userService.login(username, password);
+      const loginResponse = await userService.login(username, password);
 
-      setUser({id: response.id, username: response.username, role: response.role, image: response.image || '', blobImage: ''});
+      const finalUserObject: UserWithBlobImage = {
+        id: loginResponse.id,
+        username: loginResponse.username,
+        role: loginResponse.role,
+        image: loginResponse.image || '',
+        blobImage: '',
+      };
+
+      // if user has an avatar, fetch it and convert to object URL
+      if (loginResponse.image) {
+        try {
+          const avatarBlob = await fileService.getAvatar(loginResponse.image);
+          const objectUrl = URL.createObjectURL(avatarBlob);
+          finalUserObject.blobImage = objectUrl;
+        } catch (avatarError) {
+          console.error("Login successful but avatar load error", avatarError);
+        }
+      }
+
+      setUser(finalUserObject);
+
       clearStore();
       navigate("/home", { replace: true });
-    }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    catch (err: any) {
-      if(err.response?.status === 400) {
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      if (err.response?.status === 400) {
         toast.error("Błędne dane logowania");
-      }
-      else if (err.response?.status === 500) {
+      } else if (err.response?.status === 500) {
         toast.error("Błąd serwera");
+      } else {
+        console.error("Login error:", err);
+        toast.error("Wystąpił błąd podczas logowania.");
       }
     }
-      
-  }
+  };
 
   return (
     <div className={cn("flex flex-col gap-6",)}>
@@ -65,19 +86,19 @@ const LoginForm = () => {
                   id="username"
                   type="text"
                   required
-                  value={username} 
-                  onChange={(e)=> setUsername(e.target.value)}
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                 />
               </div>
               <div className="grid gap-2">
                 <div className="flex items-center">
                   <Label htmlFor="password">Hasło</Label>
                 </div>
-                <Input 
-                  id="password" 
-                  type="password" 
-                  value={password} 
-                  onChange={(e)=> setPassword(e.target.value)} 
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   required />
               </div>
               <Button type="submit" className="w-full" disabled={!username || !password}>
@@ -87,11 +108,11 @@ const LoginForm = () => {
             <div className="mt-4 text-center text-sm">
               Nie masz konta?{" "}
               <a className="underline underline-offset-4 cursor-pointer"
-                  onClick={() =>
-                    toast.info("Zarejestrować cię może tylko administator", {
-                    })
-                  }
-                >
+                onClick={() =>
+                  toast.info("Zarejestrować cię może tylko administator", {
+                  })
+                }
+              >
                 Zarejestruj się
               </a>
             </div>

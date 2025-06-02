@@ -1,8 +1,5 @@
-"use client"
-
 import { useContext } from "react"
 import { Crown, LogOut, MoreHorizontal, Shield } from "lucide-react"
-
 import {
   Sidebar,
   SidebarContent,
@@ -36,6 +33,7 @@ export function MembersSidebar() {
   const selectedServer = useAppStore((state) => state.selectedServer)
   const serverDetailsLoading = useAppStore((state) => state.serverDetailsLoading)
   const kickUser = useAppStore((state) => state.kickUser)
+  const avatarBlobs = useAppStore((state) => state.avatarBlobs);
 
   const groupedMembers = () => {
     if (!selectedServer?.members) return { owner: [], admins: [], members: [] }
@@ -59,13 +57,14 @@ export function MembersSidebar() {
   const renderMemberItem = (member: User) => {
     const isOwner = member.id === selectedServer?.ownerId
     const isAdmin = member.role === "admin"
+    const memberBlobImage = avatarBlobs.get(member.id);
 
     return (
       <SidebarMenuItem key={member.id}>
         <SidebarMenuButton className="group relative transition-all duration-200 hover:bg-accent/50 rounded-lg mb-1">
           <div className="relative">
             <Avatar className="size-9 shrink-0 border-2 border-transparent group-hover:border-primary/10">
-              <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${member.id}`} alt={member.username} />
+              <AvatarImage src={memberBlobImage || (member.image ? '' : undefined)} />
               <AvatarFallback>{member.username[0]}</AvatarFallback>
             </Avatar>
           </div>

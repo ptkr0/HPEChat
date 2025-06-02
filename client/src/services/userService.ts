@@ -16,7 +16,7 @@ export const userService = {
         return response.data;
     },
 
-    getMe: async (): Promise<Omit<User, "imageBlob">> => {
+    getMe: async (): Promise<User> => {
         const response = await axiosPrivate.get(GETME_URL);
         return response.data;
     },

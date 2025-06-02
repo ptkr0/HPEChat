@@ -10,6 +10,7 @@ import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import z from "zod"
 import { serverMessageService } from "@/services/serverMessageService"
+import { useAppStore } from "@/stores/appStore"
 
 const messageEditSchema = z.object({
   editedContent: z
@@ -30,6 +31,9 @@ export function Message({ message, isSenderCurrentUser, isContinuation }: Messag
   const [isEditing, setIsEditing] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+
+  const avatarBlobs = useAppStore((state) => state.avatarBlobs);
+  const memberBlobImage = avatarBlobs.get(message.sender.id);
 
   const {
     control,
@@ -106,7 +110,7 @@ export function Message({ message, isSenderCurrentUser, isContinuation }: Messag
       {!isContinuation && (
         <Avatar className="size-10 mt-0.5 flex-shrink-0">
           <AvatarImage
-            src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${message.sender.id}`}
+            src={memberBlobImage || (message.sender.image ? '' : undefined)}
             alt={message.sender.username}
           />
           <AvatarFallback>{message.sender.username[0]}</AvatarFallback>
