@@ -71,7 +71,7 @@ export const AddUserModal = ({ isOpen, onClose }: CreateServerModalProps) => {
     if (file && ACCEPTED_IMAGE_TYPES.includes(file.type)) {
       setValue("avatar", file, { shouldValidate: true })
 
-      // Create preview URL
+      // create preview URL
       const reader = new FileReader()
       reader.onload = (e) => {
         setAvatarPreview(e.target?.result as string)

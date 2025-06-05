@@ -14,5 +14,7 @@ namespace HPEChat_Server.Models
 
 		public virtual Channel Channel { get; set; } = null!;
 		public virtual User Sender { get; set; } = null!;
+
+		public virtual Attachment? Attachment { get; set; } = null!;
 	}
 }

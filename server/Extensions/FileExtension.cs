@@ -1,8 +1,10 @@
-﻿namespace HPEChat_Server.Extensions
+﻿using HPEChat_Server.Models;
+
+namespace HPEChat_Server.Extensions
 {
 	public static class FileExtension
 	{
-		public static string? CheckFile(IFormFile file)
+		public static AttachmentType? CheckFile(IFormFile file)
 		{
 			List<string> validImageExtensions = new List<string>() { ".jpg", ".jpeg", ".png", ".gif", ".webp", ".avif" };
 			List<string> validVideoExtensions = new List<string>() { ".mp4", ".webm", ".avi", ".mov", ".mkv" };
@@ -17,27 +19,27 @@
 			var extension = Path.GetExtension(fileName)?.ToLowerInvariant();
 
 			if (string.IsNullOrEmpty(extension))
-				return "other";
+				return AttachmentType.Other;
 
 			if (validImageExtensions.Contains(extension))
 			{
-				return "image";
+				return AttachmentType.Image;
 			}
 			else if (validVideoExtensions.Contains(extension))
 			{
-				return "video";
+				return AttachmentType.Video;
 			}
 			else if (validMusicExtensions.Contains(extension))
 			{
-				return "music";
+				return AttachmentType.Audio;
 			}
 			else if (validDocumentExtensions.Contains(extension))
 			{
-				return "document";
+				return AttachmentType.Document;
 			}
 			else
 			{
-				return "other";
+				return AttachmentType.Other;
 			}
 		}
 

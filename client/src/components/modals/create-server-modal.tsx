@@ -95,7 +95,7 @@ export const CreateServerModal = ({ isOpen, onClose }: CreateServerModalProps) =
     if (file && ACCEPTED_IMAGE_TYPES.includes(file.type)) {
       setValue("image", file, { shouldValidate: true })
 
-      // Create preview URL
+      // create preview URL
       const reader = new FileReader()
       reader.onload = (e) => {
         setImagePreview(e.target?.result as string)

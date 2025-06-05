@@ -5,7 +5,9 @@ import { useAppStore } from "@/stores/appStore";
 import { useSignalR } from "@/hooks/useSignalR";
 import { fileService } from "@/services/fileService";
 
-export type UserWithBlobImage = User & { blobImage: string };
+export interface UserWithBlobImage extends User {
+  blobImage: string;
+}
 
 interface AuthContextType {
   user: UserWithBlobImage;

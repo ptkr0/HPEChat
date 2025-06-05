@@ -10,6 +10,7 @@ namespace HPEChat_Server.Data
 		public DbSet<PrivateMessage> PrivateMessages { get; set; }
 		public DbSet<ServerMessage> ServerMessages { get; set; }
 		public DbSet<Channel> Channels { get; set; }
+		public DbSet<Attachment> Attachments { get; set; }
 
 		protected override void OnModelCreating(ModelBuilder modelBuilder)
 		{
@@ -85,6 +86,14 @@ namespace HPEChat_Server.Data
 					j.HasKey("ServerId", "UserId");
 					j.ToTable("ServerMembers");
 				});
+
+			// 1 to 1 relationship between server message and attachments
+			// when server message is deleted, delete its attachments
+			modelBuilder.Entity<ServerMessage>()
+				.HasOne(m => m.Attachment)
+				.WithOne(a => a.ServerMessage)
+				.HasForeignKey<Attachment>(a => a.ServerMessageId)
+				.OnDelete(DeleteBehavior.Cascade);
 		}
 	}
 }

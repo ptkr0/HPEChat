@@ -11,6 +11,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import z from "zod"
 import { serverMessageService } from "@/services/serverMessageService"
 import { useAppStore } from "@/stores/appStore"
+import { ScrollArea } from "../ui/scroll-area"
 
 const messageEditSchema = z.object({
   editedContent: z
@@ -73,7 +74,7 @@ export function Message({ message, isSenderCurrentUser, isContinuation }: Messag
   }
 
   const handleSaveSubmit = async (data: MessageEditFormValues) => {
-    await serverMessageService.edit(message.id, data.editedContent)
+    await serverMessageService.edit(message.id, data.editedContent.trim())
       .catch((error) => {
         console.error("Error editing message:", error)
       })
@@ -134,11 +135,12 @@ export function Message({ message, isSenderCurrentUser, isContinuation }: Messag
               name="editedContent"
               control={control}
               render={({ field }) => (
+                <ScrollArea className="max-h-[200px]">
                 <Textarea
                   id="editTextarea"
                   {...field}
                   className={cn(
-                    "min-h-[80px] w-full",
+                    "min-h-[80px] w-full overflow-hidden",
                     errors.editedContent && "border-destructive focus-visible:ring-destructive",
                   )}
                   autoFocus
@@ -152,6 +154,7 @@ export function Message({ message, isSenderCurrentUser, isContinuation }: Messag
                     }
                   }}
                 />
+                </ScrollArea>
               )}
             />
             {errors.editedContent && <p className="text-sm text-destructive mt-1">{errors.editedContent.message}</p>}
