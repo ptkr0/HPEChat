@@ -12,7 +12,7 @@ import ProtectedLayout from './pages/ProtectedPage.tsx'
 import ServerLayout from './pages/ServerLayout.tsx'
 
 createRoot(document.getElementById('root')!).render(
-  <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+  <ThemeProvider defaultTheme="dark" storageKey="motyw">
     <AuthProvider>
       <BrowserRouter>
         <Toaster richColors/>

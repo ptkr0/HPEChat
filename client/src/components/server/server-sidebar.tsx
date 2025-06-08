@@ -47,7 +47,7 @@ export function ServerSidebar() {
   };
 
   return (
-    <Sidebar className="left-auto text-accent-foreground w-60 border-r" collapsible="none">
+    <Sidebar className="left-auto w-60 border-r" collapsible="none">
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuButton size="lg">

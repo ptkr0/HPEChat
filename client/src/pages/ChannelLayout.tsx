@@ -88,9 +88,9 @@ export default function ChannelLayout() {
       <header className="flex h-12 shrink-0 items-center gap-3 px-4">
         <div className="flex items-center gap-2">
           <Breadcrumb>
-            <BreadcrumbList className="text-gray-300">
+            <BreadcrumbList >
               <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbPage className="text-white font-semibold">HPEChat</BreadcrumbPage>
+                <BreadcrumbPage className="font-semibold">HPEChat</BreadcrumbPage>
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem className="hidden md:block">
@@ -100,7 +100,7 @@ export default function ChannelLayout() {
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>
-                <BreadcrumbPage className="text-white font-medium">{selectedChannel?.name}</BreadcrumbPage>
+                <BreadcrumbPage className="font-medium">{selectedChannel?.name}</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
