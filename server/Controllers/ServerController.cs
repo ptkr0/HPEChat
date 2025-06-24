@@ -1,4 +1,4 @@
-﻿﻿using HPEChat_Server.Data;
+﻿using HPEChat_Server.Data;
 using HPEChat_Server.Dtos.Channel;
 using HPEChat_Server.Dtos.Server;
 using HPEChat_Server.Dtos.User;
@@ -87,6 +87,7 @@ namespace HPEChat_Server.Controllers
 				catch
 				{
 					await transaction.RollbackAsync();
+					_fileService.DeleteFile(server.Image);
 					return StatusCode(500);
 				}
 			}
@@ -347,6 +348,8 @@ namespace HPEChat_Server.Controllers
 			var server = await _context.Servers
 				.FirstOrDefaultAsync(s => s.Id == serverGuid && s.OwnerId == userId);
 			if (server == null) return NotFound("Server not found");
+
+			if (server.Image != null) _fileService.DeleteFile(server.Image);
 
 			_context.Servers.Remove(server);
 

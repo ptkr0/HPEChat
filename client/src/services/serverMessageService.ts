@@ -26,4 +26,22 @@ export const serverMessageService = {
         const response = await axiosPrivate.patch(`${SERVER_URL}/${messageId}`, message);
         return response.data;
     },
+
+    sendWithAttachment: async (channelId: string, message: string, attachment?: File): Promise<ServerMessage> => {
+        const formData = new FormData();
+        formData.append("ChannelId", channelId);
+        formData.append("Message", message);
+
+        if (attachment){
+            formData.append("Attachment", attachment);
+        }
+        
+        const response = await axiosPrivate.post(SERVER_URL+"/attachment", formData, {
+            headers: {
+                "Content-Type": "multipart/form-data",
+            },
+        });
+
+        return response.data;
+    }
 }

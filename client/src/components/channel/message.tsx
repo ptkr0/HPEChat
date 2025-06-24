@@ -3,7 +3,7 @@ import type { ServerMessage } from "@/types/server-message.type"
 import { format } from "date-fns"
 import { Button } from "../ui/button"
 import { cn } from "@/lib/utils"
-import { Edit2, Trash2 } from "lucide-react"
+import { Edit2, FileText, Trash2, File, Music, Video } from 'lucide-react'
 import { useState } from "react"
 import { Textarea } from "../ui/textarea"
 import { useForm, Controller } from "react-hook-form"
@@ -12,6 +12,7 @@ import z from "zod"
 import { serverMessageService } from "@/services/serverMessageService"
 import { useAppStore } from "@/stores/appStore"
 import { ScrollArea } from "../ui/scroll-area"
+import { AttachmentType } from "@/types/attachment.types"
 
 const messageEditSchema = z.object({
   editedContent: z
@@ -65,6 +66,8 @@ export function Message({ message, isSenderCurrentUser, isContinuation }: Messag
   }
 
   const urlifyMessage = (message: string) => {
+    if (!message) return "";
+
     const urlRegex = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#/%?=~_|!:,.;]*[-A-Z0-9+&@#/%=~_|])/gi
     return message.replace(
       urlRegex,
@@ -168,11 +171,91 @@ export function Message({ message, isSenderCurrentUser, isContinuation }: Messag
             </div>
           </form>
         ) : (
-          <div className={cn("text-foreground relative pr-16", isContinuation ? "mt-0" : "mt-0.5")}>
-            <div className="break-all overflow-hidden whitespace-pre-wrap">
-              <span dangerouslySetInnerHTML={{ __html: urlifyMessage(message.message) }} />
-              <span className="text-[10px] text-muted-foreground ml-2">{message.isEdited && "(edytowano)"}</span>
-            </div>
+          <>
+            {message.message && (
+              <div className={cn("text-foreground relative pr-16", isContinuation ? "mt-0" : "mt-0.5")}>
+                <div className="break-all overflow-hidden whitespace-pre-wrap">
+                  <span dangerouslySetInnerHTML={{ __html: urlifyMessage(message.message) }} />
+                  <span className="text-[10px] text-muted-foreground ml-2">{message.isEdited && "(edytowano)"}</span>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* section that shows when the message has an attachment */}
+        {message.attachment && (
+          <div className="mt-2">
+            {message.attachment.type === AttachmentType.IMAGE && (
+                <div className="w-full bg-muted rounded-lg border-2 border-dashed border-muted-foreground/25 flex items-center justify-center max-w-[550px] max-h-[300px] mb-1" 
+                style={{ width: message.attachment.width, height: message.attachment.height }}>
+                  <span className="text-muted-foreground text-sm">Tu będzie zdjęcie 📸</span>
+                </div>
+            )}
+            
+            {message.attachment.type === AttachmentType.VIDEO && (
+              <Button
+                variant="ghost"
+                className="flex items-center gap-2 p-3 h-auto hover:bg-accent/50 rounded-lg border border-border"
+              >
+                <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Video className="h-5 w-5 text-purple-500" />
+                </div>
+                <div className="flex flex-col items-start">
+                  <span className="text-sm font-medium">{message.attachment.name || 'Plik Wideo'}</span>
+                  <span className="text-[10px] text-muted-foreground">{Math.ceil(message.attachment.size / 1000)} KB</span>
+                  <span className="text-xs text-muted-foreground">Kliknij aby odtworzyć</span>
+                </div>
+              </Button>
+            )}
+            
+            {message.attachment.type === AttachmentType.AUDIO && (
+              <Button
+                variant="ghost"
+                className="flex items-center gap-2 p-3 h-auto hover:bg-accent/50 rounded-lg border border-border"
+              >
+                <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Music className="h-5 w-5 text-orange-500" />
+                </div>
+                <div className="flex flex-col items-start">
+                  <span className="text-sm font-medium">{message.attachment.name || 'Plik Audio'}</span>
+                  <span className="text-[10px] text-muted-foreground">{Math.ceil(message.attachment.size / 1000)} KB</span>
+                  <span className="text-xs text-muted-foreground">Kliknij aby posłuchać</span>
+                </div>
+              </Button>
+            )}
+            
+            {message.attachment.type === AttachmentType.DOCUMENT && (
+              <Button
+                variant="ghost"
+                className="flex items-center gap-2 p-3 h-auto hover:bg-accent/50 rounded-lg border border-border"
+              >
+                <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <FileText className="h-5 w-5 text-blue-500" />
+                </div>
+                <div className="flex flex-col items-start">
+                  <span className="text-sm font-medium">{message.attachment.name || 'Dokument'}</span>
+                  <span className="text-[10px] text-muted-foreground">{Math.ceil(message.attachment.size / 1000)} KB</span>
+                  <span className="text-xs text-muted-foreground">Kliknij aby otworzyć</span>
+                </div>
+              </Button>
+            )}
+            
+            {message.attachment.type === AttachmentType.OTHER && (
+              <Button
+                variant="ghost"
+                className="flex items-center gap-2 p-3 h-auto hover:bg-accent/50 rounded-lg border border-border"
+              >
+                <div className="size-10 rounded-lg bg-muted/50 flex items-center justify-center">
+                  <File className="h-5 w-5 text-gray-500" />
+                </div>
+                <div className="flex flex-col items-start">
+                  <span className="text-sm font-medium">{message.attachment.name || 'Plik'}</span>
+                  <span className="text-[10px] text-muted-foreground">{Math.ceil(message.attachment.size / 1000)} KB</span>
+                  <span className="text-xs text-muted-foreground">Kliknij aby pobrać</span>
+                </div>
+              </Button>
+            )}
           </div>
         )}
       </div>
@@ -185,16 +268,19 @@ export function Message({ message, isSenderCurrentUser, isContinuation }: Messag
           isHovered && isSenderCurrentUser && !isEditing ? "opacity-100" : "opacity-0 pointer-events-none",
         )}
       >
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-7 hover:text-blue-400 bg-accent/50"
-          onClick={handleEdit}
-          disabled={isEditing || isSubmitting}
-        >
-          <Edit2 className="h-4 w-4" />
-          <span className="sr-only">Edytuj wiadomość</span>
-        </Button>
+
+        {message.message && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-7 hover:text-blue-400 bg-accent/50"
+            onClick={handleEdit}
+            disabled={isEditing || isSubmitting}
+          >
+            <Edit2 className="h-4 w-4" />
+            <span className="sr-only">Edytuj wiadomość</span>
+          </Button>
+        )}
 
         <Button
           variant="ghost"

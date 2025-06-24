@@ -57,20 +57,19 @@ export default function MessageInput({ onMessageSend }: MessageInputProps) {
     resolver: zodResolver(sendMessageSchema),
     mode: 'onChange',
   });
-
   const [message, setMessage] = useState("")
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const handleFileSelect = (file: File) => {
     if (file) {
       setValue("attachment", file, { shouldValidate: true })
+      setFilePreview(null)
 
-      // create preview URL
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        setFilePreview(e.target?.result as string)
-      }
-      reader.readAsDataURL(file)
+      // use setTimeout to ensure the previous URL is properly revoked
+      setTimeout(() => {
+        const objectUrl = URL.createObjectURL(file)
+        setFilePreview(objectUrl)
+      }, 0)
     }
   }
 
@@ -80,8 +79,10 @@ export default function MessageInput({ onMessageSend }: MessageInputProps) {
       handleFileSelect(file)
     }
   }
-
   const removeFile = () => {
+    if (filePreview) {
+      URL.revokeObjectURL(filePreview)
+    }
     setFilePreview(null)
     setValue("attachment", undefined, { shouldValidate: true })
     if (fileInputRef.current) {
@@ -91,13 +92,15 @@ export default function MessageInput({ onMessageSend }: MessageInputProps) {
 
   const submitHandler = async (data: SendMessageValues) => {
     try {
-      const newMessage = await serverMessageService.send(
+      const newMessage = await serverMessageService.sendWithAttachment(
         selectedChannel!.id,
         data.message.trim(),
+        data.attachment
       )
 
       if (newMessage) {
         onMessageSend()
+        removeFile()
         reset()
         if (textareaRef.current) {
           textareaRef.current.style.height = "40px"
@@ -117,6 +120,15 @@ export default function MessageInput({ onMessageSend }: MessageInputProps) {
       textarea.style.height = scrollHeight + "px"
     }
   }, [message])
+
+  // clean up object URLs when component unmounts
+  useEffect(() => {
+    return () => {
+      if (filePreview) {
+        URL.revokeObjectURL(filePreview)
+      }
+    }
+  }, [filePreview])
 
   return (
     <div className='border rounded-lg bg-background relative'>
@@ -147,13 +159,15 @@ export default function MessageInput({ onMessageSend }: MessageInputProps) {
                       <span className="text-xs text-white font-medium truncate">{file.name}</span>
                     </div>
                   </div>
-                )
+                )              
               } else if (isVideo) {
                 return (
                   <div className="relative group overflow-hidden rounded-md border border-muted">
-                    <video className="max-h-56 max-w-full object-contain rounded-md transition-transform" controls>
-                      <source src={filePreview} type={fileType} />
-                    </video>
+                    <video 
+                      className="max-h-56 max-w-full object-contain rounded-md transition-transform" 
+                      controls
+                      src={filePreview}
+                    />
                   </div>
                 )
               } else if (isAudio) {
@@ -265,8 +279,9 @@ export default function MessageInput({ onMessageSend }: MessageInputProps) {
             <Button
               type='submit'
               size='icon'
-              className={`rounded-full h-8 w-8 ${!isSubmitting && isValid
-                } ? "text-muted-foreground bg-transparent hover:bg-transparent" : "bg-emerald-500 hover:bg-emerald-600 text-white"}`}
+              className={`rounded-full h-8 w-8 ${!isSubmitting && isValid} 
+                ? "text-muted-foreground bg-transparent hover:bg-transparent" 
+                : "bg-emerald-500 hover:bg-emerald-600 text-white"`}
               disabled={isSubmitting || !isValid}>
               <Send className='h-4 w-4' />
               <span className='sr-only'>Wyślij wiadomość</span>

@@ -1,3 +1,4 @@
+import { Attachment } from "./attachment.types";
 import { User } from "./user.type";
 
 export type ServerMessage = {
@@ -7,4 +8,5 @@ export type ServerMessage = {
     sentAt: string;
     isEdited: boolean;
     sender: User;
+    attachment?: Attachment;
 }

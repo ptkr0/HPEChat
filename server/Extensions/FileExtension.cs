@@ -1,4 +1,6 @@
 ﻿using HPEChat_Server.Models;
+using SixLabors.ImageSharp;
+using Xabe.FFmpeg;
 
 namespace HPEChat_Server.Extensions
 {
@@ -57,6 +59,24 @@ namespace HPEChat_Server.Extensions
 				return false;
 
 			return validAvatarExtensions.Contains(extension);
+		}
+
+		public static (int width, int height) GetImageDimensions(IFormFile file)
+		{
+			using var img = Image.Load(file.OpenReadStream());
+
+			return (img.Width, img.Height);
+		}
+
+		public static async Task<(int width, int height)> GetVideoDimensions(string filePath)
+		{
+			var mediaInfo = await FFmpeg.GetMediaInfo(filePath);
+			var videoStream = mediaInfo.VideoStreams.FirstOrDefault();
+
+			if (videoStream == null)
+				throw new InvalidOperationException("No video stream found in the file.");
+
+			return (videoStream.Width, videoStream.Height);
 		}
 	}
 }

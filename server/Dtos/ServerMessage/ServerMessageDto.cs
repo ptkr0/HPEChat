@@ -1,4 +1,5 @@
 ﻿using HPEChat_Server.Dtos.User;
+using HPEChat_Server.Models;
 
 namespace HPEChat_Server.Dtos.ServerMessage
 {
@@ -10,6 +11,6 @@ namespace HPEChat_Server.Dtos.ServerMessage
 		public DateTimeOffset SentAt { get; set; }
 		public bool IsEdited { get; set; }
 		public UserInfoDto Sender { get; set; } = new UserInfoDto();
-
+		public AttachmentDto? Attachment { get; set; }
 	}
 }

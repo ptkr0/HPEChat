@@ -1,10 +1,13 @@
 ﻿using HPEChat_Server.Data;
+using HPEChat_Server.Dtos.Server;
 using HPEChat_Server.Dtos.ServerMessage;
 using HPEChat_Server.Dtos.User;
 using HPEChat_Server.Extensions;
 using HPEChat_Server.Hubs;
 using HPEChat_Server.Models;
+using HPEChat_Server.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -18,10 +21,12 @@ namespace HPEChat_Server.Controllers
 	{
 		private readonly ApplicationDBContext _context;
 		private readonly IHubContext<ServerHub, IServerClient> _hub;
-		public ServerMessageController(ApplicationDBContext context, IHubContext<ServerHub, IServerClient> hub)
+		private readonly FileService _fileService;
+		public ServerMessageController(ApplicationDBContext context, IHubContext<ServerHub, IServerClient> hub, FileService fileService)
 		{
 			_context = context;
 			_hub = hub;
+			_fileService = fileService;
 		}
 
 		[HttpGet]
@@ -59,6 +64,15 @@ namespace HPEChat_Server.Controllers
 						Id = m.SenderId.HasValue ? m.SenderId.Value.ToString().ToUpper() : string.Empty,
 						Username = m.Sender != null ? m.Sender.Username : string.Empty,
 					},
+					Attachment = m.Attachment != null ? new AttachmentDto
+					{
+						Id = m.Attachment.Id.ToString().ToUpper(),
+						Name = m.Attachment.Name,
+						Type = m.Attachment.ContentType.ToString(),
+						Size = m.Attachment.Size,
+						Width = m.Attachment.Width,
+						Height = m.Attachment.Height,
+					} : null
 				})
 				.Take(pageSize)
 				.ToListAsync();
@@ -75,12 +89,10 @@ namespace HPEChat_Server.Controllers
 			var userId = User.GetUserId();
 			if (userId == null) return BadRequest("User not found");
 
-			Guid channelGuid = messageDto.ChannelId;
-
 			var channel = await _context.Channels
 				.Include(c => c.Server)
 				.ThenInclude(c => c.Members)
-				.FirstOrDefaultAsync(c => c.Id == channelGuid && c.Server.Members.Any(m => m.Id == userId));
+				.FirstOrDefaultAsync(c => c.Id == messageDto.ChannelId && c.Server.Members.Any(m => m.Id == userId));
 			if (channel == null) return NotFound("Channel not found or you are not a member of the server");
 
 			await using (var transaction = await _context.Database.BeginTransactionAsync())
@@ -89,7 +101,7 @@ namespace HPEChat_Server.Controllers
 				{
 					var message = new ServerMessage
 					{
-						ChannelId = channelGuid,
+						ChannelId = messageDto.ChannelId,
 						SenderId = userId,
 						Message = messageDto.Message,
 						SentAt = DateTimeOffset.UtcNow,
@@ -131,6 +143,133 @@ namespace HPEChat_Server.Controllers
 							Username = message.Sender.Username,
 						},
 					});
+				}
+				catch (Exception ex)
+				{
+					await transaction.RollbackAsync();
+					return BadRequest($"Error sending message: {ex.Message}");
+				}
+			}
+		}
+
+		[HttpPost("attachment")]
+		[Authorize]
+		public async Task<ActionResult<ServerMessageDto>> SendMessageAttachment([FromForm] SendServerMessageWithAttachmentDto messageDto)
+		{
+			if (!ModelState.IsValid) return BadRequest(ModelState);
+
+			// user can send message without attachment or attachment without message
+			// but message and attachment cannot both be null or empty
+			if (string.IsNullOrWhiteSpace(messageDto.Message) && messageDto.Attachment == null)
+				return BadRequest("Message and attachment cannot both be null or empty.");
+
+			var userId = User.GetUserId();
+			if (userId == null) return BadRequest("User not found");
+
+			var channel = await _context.Channels
+				.Include(c => c.Server)
+				.ThenInclude(c => c.Members)
+				.FirstOrDefaultAsync(c => c.Id == messageDto.ChannelId && c.Server.Members.Any(m => m.Id == userId));
+			if (channel == null) return NotFound("Channel not found or you are not a member of the server");
+
+			await using (var transaction = await _context.Database.BeginTransactionAsync())
+			{
+				try
+				{
+					var message = new ServerMessage
+					{
+						ChannelId = messageDto.ChannelId,
+						SenderId = userId,
+						Message = messageDto.Message,
+						SentAt = DateTimeOffset.UtcNow,
+						IsEdited = false,
+					};
+
+					Attachment? attachment = null;
+					if (messageDto.Attachment != null)
+					{
+						var attachmentType = FileExtension.CheckFile(messageDto.Attachment);
+						if (attachmentType.HasValue)
+						{
+							long size = messageDto.Attachment.Length;
+
+							var filePath = await _fileService.UploadFile(messageDto.Attachment);
+							if (filePath == null) throw new Exception("Failed to upload attachment.");
+
+							int? width = null, height = null;
+							string? previewPath = null;
+
+							if (attachmentType == AttachmentType.Image)
+							{
+								(width, height) = FileExtension.GetImageDimensions(messageDto.Attachment);
+
+								// preview images are smaller and they will load when user scrolls messages
+								// if user clicks on an image original will load
+								previewPath = await _fileService.GenerateAndUploadPreviewImage(messageDto.Attachment);
+								if (previewPath == null) previewPath = filePath;
+							}
+							else if (attachmentType == AttachmentType.Video)
+							{
+								// no ffmpeg support in this version
+								//(width, height) = await FileExtension.GetVideoDimensions(filePath);
+							}
+
+							attachment = new Attachment
+							{
+								Name = messageDto.Attachment.FileName,
+								StoredFileName = filePath,
+								ContentType = attachmentType.Value,
+								Size = size,
+								Width = width,
+								Height = height,
+								PreviewName = previewPath,
+								UploadedAt = DateTimeOffset.UtcNow
+							};
+
+							await _context.Attachments.AddAsync(attachment);
+							await _context.SaveChangesAsync();
+						}
+						else
+						{
+							return BadRequest("Invalid attachment type.");
+						}
+					}
+
+					message.Attachment = attachment;
+					await _context.ServerMessages.AddAsync(message);
+					await _context.SaveChangesAsync();
+
+					var messageDtoResponse = new ServerMessageDto
+					{
+						Id = message.Id.ToString().ToUpper(),
+						ChannelId = message.ChannelId.ToString().ToUpper(),
+						Message = message.Message,
+						SentAt = message.SentAt,
+						IsEdited = message.IsEdited,
+						Sender = new UserInfoDto
+						{
+							Id = message.SenderId.HasValue ? message.SenderId.Value.ToString().ToUpper() : string.Empty,
+							Username = message.Sender?.Username ?? string.Empty,
+						},
+						Attachment = attachment != null ? new AttachmentDto
+						{
+							Id = attachment.Id.ToString().ToUpper(),
+							Name = attachment.Name,
+							Type = attachment.ContentType.ToString(),
+							Size = attachment.Size,
+							Width = attachment.Width,
+							Height = attachment.Height,
+						} : null
+					};
+
+					await _hub
+						.Clients
+						.Group(ServerHub.GroupName(channel.ServerId))
+						.MessageAdded(channel.ServerId, messageDtoResponse);
+
+					await transaction.CommitAsync();
+
+					return Ok(messageDtoResponse);
 				}
 				catch (Exception ex)
 				{

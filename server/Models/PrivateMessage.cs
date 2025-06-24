@@ -8,8 +8,8 @@ namespace HPEChat_Server.Models
 		public Guid? SenderId { get; set; }
 		public Guid? ReceiverId { get; set; }
 		[MaxLength(2000)]
-		public string Message { get; set; } = string.Empty;
-		public required DateTimeOffset SentAt { get; set; } = DateTimeOffset.UtcNow;
+		public string? Message { get; set; }
+		public DateTimeOffset SentAt { get; set; } = DateTimeOffset.UtcNow;
 		public bool IsRead { get; set; } = false;
 		public bool IsEdited { get; set; } = false;
 

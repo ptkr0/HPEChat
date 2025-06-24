@@ -28,6 +28,7 @@ namespace HPEChat_Server.Services
 		public void DeleteFile(string fileName)
 		{
 			string filePath = Path.Combine(_uploadPath, fileName);
+
 			if (File.Exists(filePath))
 			{
 				File.Delete(filePath);
@@ -70,6 +71,28 @@ namespace HPEChat_Server.Services
 				image.Mutate(x => x.Resize(width, height));
 
 				var fileName = $"server_{serverId}_{DateTime.UtcNow.ToString("yyyyMMddHHmmss")}.webp";
+				string savePath = Path.Combine(_uploadPath, fileName);
+
+				await image.SaveAsWebpAsync(savePath);
+
+				return fileName;
+			}
+		}
+
+		public async Task<string> GenerateAndUploadPreviewImage(IFormFile file)
+		{
+			using (var image = await Image.LoadAsync(file.OpenReadStream()))
+			{
+				image.Metadata.ExifProfile = null;
+				image.Metadata.IptcProfile = null;
+				image.Metadata.XmpProfile = null;
+
+				int width = image.Width > 550 ? 550 : image.Width;
+				int height = image.Height * (width / image.Width);
+
+				image.Mutate(x => x.Resize(width, height));
+
+				var fileName = $"preview_{Guid.NewGuid().ToString("n")}.webp";
 				string savePath = Path.Combine(_uploadPath, fileName);
 
 				await image.SaveAsWebpAsync(savePath);

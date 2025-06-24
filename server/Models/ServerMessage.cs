@@ -8,7 +8,7 @@ namespace HPEChat_Server.Models
 		public Guid ChannelId { get; set; }
 		public Guid? SenderId { get; set; }
 		[MaxLength(2000)]
-		public string Message { get; set; } = string.Empty;
+		public string? Message { get; set; }
 		public required DateTimeOffset SentAt { get; set; } = DateTimeOffset.UtcNow;
 		public bool IsEdited { get; set; } = false;
 

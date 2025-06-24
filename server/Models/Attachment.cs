@@ -19,12 +19,14 @@ namespace HPEChat_Server.Models
 		[MaxLength(255)]
 		public string Name { get; set; } = string.Empty;
 		public string StoredFileName { get; set; } = string.Empty;
-		public required DateTimeOffset UploadedAt { get; set; } = DateTimeOffset.UtcNow;
+		public DateTimeOffset UploadedAt { get; set; } = DateTimeOffset.UtcNow;
 		public long Size { get; set; } = 0;
 		public AttachmentType ContentType { get; set; } = AttachmentType.Other;
 
 		public int? Width { get; set; }
 		public int? Height { get; set; }
+
+		public string? PreviewName { get; set; } = string.Empty;
 
 		public virtual ServerMessage? ServerMessage { get; set; }
 	}

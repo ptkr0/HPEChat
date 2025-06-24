@@ -28,6 +28,10 @@
 - [ ] Real-time aktualizacja wiadomości
 - [ ] Wyszukiwanie wiadomości
 
+- [X] Wysyłanie wiadomości z załącznikiem
+- [ ] Usuwanie wiadomości z załącznikiem
+- [ ] Usuwanie załącznika
+
 ## Wiadomości Prywatne
 - [ ] Wysyłanie wiadomości
 - [ ] Odbieranie wiadomości
