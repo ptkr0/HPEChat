@@ -10,5 +10,8 @@ namespace HPEChat_Server.Dtos.ServerMessage
 		public long Size { get; set; }
 		public int? Width { get; set; }
 		public int? Height { get; set; }
+
+		public string? FileName { get; set; } = string.Empty;
+		public string? PreviewName { get; set; } = string.Empty;
 	}
 }

@@ -5,6 +5,8 @@ export type Attachment = {
     size: number;
     width?: number;
     height?: number;
+    previewName?: string;
+    fileName?: string;
 }
 
 export enum AttachmentType {

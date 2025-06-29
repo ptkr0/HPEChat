@@ -22,7 +22,7 @@ namespace HPEChat_Server.Services
 				await file.CopyToAsync(stream);
 			}
 
-			return filePath;
+			return fileName;
 		}
 
 		public void DeleteFile(string fileName)
@@ -32,6 +32,8 @@ namespace HPEChat_Server.Services
 			if (File.Exists(filePath))
 			{
 				File.Delete(filePath);
+				Console.BackgroundColor = ConsoleColor.DarkGreen;
+				Console.WriteLine($"File {fileName} deleted successfully.");
 			}
 		}
 

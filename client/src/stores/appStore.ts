@@ -36,6 +36,8 @@ interface AppState {
   channelMessagesError: string | null;
   cachedChannelMessages: Map<string, ServerMessage[]>;
 
+  attachmentPreviews: Map<string, string>; // map of all attachment previews (attachmentId -> blob URL)
+  
   selectChannel: (channelId: string | null) => void;
 
   createServer: (name: string, description?: string, image?: File) => Promise<Server | null>;
@@ -66,6 +68,9 @@ interface AppState {
   serverImageBlobs: Map<string, string>;
   fetchAndCacheServerImage: (serverId: string, image?: string) => Promise<void>;
   revokeServerImage: (serverId: string) => void;
+
+  fetchAndCacheAttachmentPreview: (attachmentId: string, previewName: string) => Promise<void>;
+  revokeAttachmentPreview: (attachmentId: string) => void;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -89,6 +94,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   cachedServers: new Map(),
   avatarBlobs: new Map(),
   serverImageBlobs: new Map(),
+  attachmentPreviews: new Map(),
 
   fetchServers: async () => {
     set({ serversLoading: true, serversError: null });
@@ -763,5 +769,33 @@ clearStore: () => {
         return { serverImageBlobs: newServerImageBlobs };
       });
     }  
-  }
+  },
+
+  fetchAndCacheAttachmentPreview: async (attachmentId, previewName) => {
+    if (get().attachmentPreviews.has(attachmentId)) return;
+
+    try {
+      const blob = await fileService.getServerPreview(previewName); // Zakładamy, że masz serwis API
+      const blobUrl = URL.createObjectURL(blob);
+      set((state) => ({
+        attachmentPreviews: new Map(state.attachmentPreviews).set(attachmentId, blobUrl),
+      }));
+    } catch (error) {
+      console.error("Failed to fetch attachment preview:", error);
+    }
+  },
+
+  revokeAttachmentPreview: (attachmentId) => {
+    set((state) => {
+      const newBlobs = new Map(state.attachmentPreviews);
+      const blobUrl = newBlobs.get(attachmentId);
+      if (blobUrl) {
+        URL.revokeObjectURL(blobUrl);
+        newBlobs.delete(attachmentId);
+      }
+      return { attachmentPreviews: newBlobs };
+    });
+  },
+
+
 }));

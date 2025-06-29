@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import clsx from "clsx"
 import AuthContext from "@/context/AuthProvider"
 import { AddUserModal } from "../modals/add-user-modal"
+import { ScrollArea } from "../ui/scroll-area"
 
 export function NavUsers({ users }: {users: PrivateMessageList[]}) {
   const {user, loading } = useContext(AuthContext)
@@ -28,28 +29,30 @@ export function NavUsers({ users }: {users: PrivateMessageList[]}) {
           </div>
 
           <CollapsibleContent>
-            <SidebarMenu className="mt-1">
-              {users.map((user) => (
-                <SidebarMenuButton size={"lg"} asChild key={user.id} className="py-6 px-2">
-                  <a
-                    href={`/user/${user.id}`}
-                    className="flex items-center gap-3"
-                  >
-                    <Avatar className="size-10 shrink-0">
-                      <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`} alt={user.name} />
-                      <AvatarFallback>{user.name[0]}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex min-w-0 flex-1 flex-col group-data-[collapsible=icon]:hidden">
-                      <div className="truncate font-medium">{user.name}</div>
-                      <div className="flex items-center justify-between">
-                        <span className="truncate text-xs text-muted-foreground">{user.lastMessage}</span>
-                        <span className="shrink-0 text-[10px] text-muted-foreground ml-1">{user.time}</span>
+            <ScrollArea className="h-[300px] pr-3" type="hover">
+              <SidebarMenu className="mt-1">
+                {users.map((user) => (
+                  <SidebarMenuButton size={"lg"} asChild key={user.id} className="py-6 px-2">
+                    <a
+                      href={`/user/${user.id}`}
+                      className="flex items-center gap-3"
+                    >
+                      <Avatar className="size-10 shrink-0">
+                        <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`} alt={user.name} />
+                        <AvatarFallback>{user.name[0]}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex min-w-0 flex-1 flex-col group-data-[collapsible=icon]:hidden">
+                        <div className="truncate font-medium">{user.name}</div>
+                        <div className="flex items-center justify-between">
+                          <span className="truncate text-xs text-muted-foreground">{user.lastMessage}</span>
+                          <span className="shrink-0 text-[10px] text-muted-foreground ml-1">{user.time}</span>
+                        </div>
                       </div>
-                    </div>
-                  </a>
-                </SidebarMenuButton>
-              ))}
-            </SidebarMenu>
+                    </a>
+                  </SidebarMenuButton>
+                ))}
+              </SidebarMenu>
+            </ScrollArea>
           </CollapsibleContent>
         </Collapsible>
 

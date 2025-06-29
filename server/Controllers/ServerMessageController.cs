@@ -1,5 +1,4 @@
 ﻿using HPEChat_Server.Data;
-using HPEChat_Server.Dtos.Server;
 using HPEChat_Server.Dtos.ServerMessage;
 using HPEChat_Server.Dtos.User;
 using HPEChat_Server.Extensions;
@@ -7,7 +6,6 @@ using HPEChat_Server.Hubs;
 using HPEChat_Server.Models;
 using HPEChat_Server.Services;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -50,13 +48,14 @@ namespace HPEChat_Server.Controllers
 			if (lastCreatedAt.HasValue) query = query.Where(m => m.SentAt < lastCreatedAt.Value); // only messages sent before the last loaded message  
 
 			var messages = await query
+				.AsNoTracking()
 				.OrderByDescending(m => m.SentAt)
 				.ThenByDescending(m => m.Id)
 				.Select(m => new ServerMessageDto
 				{
 					Id = m.Id.ToString().ToUpper(),
 					ChannelId = m.ChannelId.ToString().ToUpper(),
-					Message = m.Message,
+					Message = m.Message ?? string.Empty,
 					SentAt = m.SentAt,
 					IsEdited = m.IsEdited,
 					Sender = new UserInfoDto
@@ -72,6 +71,8 @@ namespace HPEChat_Server.Controllers
 						Size = m.Attachment.Size,
 						Width = m.Attachment.Width,
 						Height = m.Attachment.Height,
+						FileName = m.Attachment.StoredFileName,
+						PreviewName = m.Attachment.PreviewName != null ? m.Attachment.PreviewName : string.Empty
 					} : null
 				})
 				.Take(pageSize)
@@ -173,7 +174,10 @@ namespace HPEChat_Server.Controllers
 			if (channel == null) return NotFound("Channel not found or you are not a member of the server");
 
 			await using (var transaction = await _context.Database.BeginTransactionAsync())
-			{
+			{				
+				string? uploadedFilePath = null;
+				string? uploadedPreviewPath = null;
+
 				try
 				{
 					var message = new ServerMessage
@@ -193,8 +197,8 @@ namespace HPEChat_Server.Controllers
 						{
 							long size = messageDto.Attachment.Length;
 
-							var filePath = await _fileService.UploadFile(messageDto.Attachment);
-							if (filePath == null) throw new Exception("Failed to upload attachment.");
+							uploadedFilePath = await _fileService.UploadFile(messageDto.Attachment);
+							if (uploadedFilePath == null) throw new Exception("Failed to upload attachment.");
 
 							int? width = null, height = null;
 							string? previewPath = null;
@@ -205,8 +209,9 @@ namespace HPEChat_Server.Controllers
 
 								// preview images are smaller and they will load when user scrolls messages
 								// if user clicks on an image original will load
-								previewPath = await _fileService.GenerateAndUploadPreviewImage(messageDto.Attachment);
-								if (previewPath == null) previewPath = filePath;
+								uploadedPreviewPath = await _fileService.GenerateAndUploadPreviewImage(messageDto.Attachment);
+								if (uploadedPreviewPath == null) uploadedPreviewPath = uploadedFilePath;
+								previewPath = uploadedPreviewPath;
 							}
 							else if (attachmentType == AttachmentType.Video)
 							{
@@ -217,7 +222,7 @@ namespace HPEChat_Server.Controllers
 							attachment = new Attachment
 							{
 								Name = messageDto.Attachment.FileName,
-								StoredFileName = filePath,
+								StoredFileName = uploadedFilePath,
 								ContentType = attachmentType.Value,
 								Size = size,
 								Width = width,
@@ -243,7 +248,7 @@ namespace HPEChat_Server.Controllers
 					{
 						Id = message.Id.ToString().ToUpper(),
 						ChannelId = message.ChannelId.ToString().ToUpper(),
-						Message = message.Message,
+						Message = message.Message ?? string.Empty,
 						SentAt = message.SentAt,
 						IsEdited = message.IsEdited,
 						Sender = new UserInfoDto
@@ -259,6 +264,8 @@ namespace HPEChat_Server.Controllers
 							Size = attachment.Size,
 							Width = attachment.Width,
 							Height = attachment.Height,
+							FileName = attachment.StoredFileName,
+							PreviewName = attachment.PreviewName ?? string.Empty
 						} : null
 					};
 
@@ -274,6 +281,17 @@ namespace HPEChat_Server.Controllers
 				catch (Exception ex)
 				{
 					await transaction.RollbackAsync();
+
+					// clean up any uploaded files if transaction failed
+					if (uploadedFilePath != null)
+					{
+						_fileService.DeleteFile(uploadedFilePath);
+					}
+					if (uploadedPreviewPath != null && uploadedPreviewPath != uploadedFilePath)
+					{
+						_fileService.DeleteFile(uploadedPreviewPath);
+					}
+
 					return BadRequest($"Error sending message: {ex.Message}");
 				}
 			}
@@ -297,13 +315,13 @@ namespace HPEChat_Server.Controllers
 					m.Id == messageGuid && // check if message exists
 					m.SenderId == userId && // check if the user is the sender
 					m.Channel.Server.Members.Any(u => u.Id == userId)); // check if the user is still a member of the server
+
 			if (serverMessage == null) return NotFound("Message not found or you are not the sender");
 
 			await using (var transaction = await _context.Database.BeginTransactionAsync())
 			{
 				try
 				{
-
 					serverMessage.Message = message;
 					serverMessage.IsEdited = true;
 					await _context.SaveChangesAsync();
@@ -358,13 +376,12 @@ namespace HPEChat_Server.Controllers
 			var userId = User.GetUserId();
 			if (userId == null) return BadRequest("User not found");
 
-			Guid messageGuid = id;
-
 			var serverMessage = await _context.ServerMessages
 				.Include(u => u.Sender)
 				.Include(s => s.Channel.Server)
+				.Include(a => a.Attachment) // include attachment if it exists
 				.FirstOrDefaultAsync(m =>
-					m.Id == messageGuid && // check if message exists
+					m.Id == id && // check if message exists
 					m.SenderId == userId && // check if the user is the sender
 					m.Channel.Server.Members.Any(u => u.Id == userId)); // check if the user is still a member of the server
 			if (serverMessage == null) return NotFound("Message not found or you are not the sender");
@@ -376,7 +393,18 @@ namespace HPEChat_Server.Controllers
 			{
 				try
 				{
+					if (serverMessage.Attachment != null)
+					{
+						// delete attachment file if it exists
+						_fileService.DeleteFile(serverMessage.Attachment.StoredFileName);
+						if (serverMessage.Attachment.PreviewName != null && serverMessage.Attachment.PreviewName != serverMessage.Attachment.StoredFileName)
+						{
+							_fileService.DeleteFile(serverMessage.Attachment.PreviewName);
+						}
+					}
+
 					_context.ServerMessages.Remove(serverMessage);
+
 					await _context.SaveChangesAsync();
 
 					await _hub

@@ -61,16 +61,14 @@ export default function MessageInput({ onMessageSend }: MessageInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const handleFileSelect = (file: File) => {
-    if (file) {
-      setValue("attachment", file, { shouldValidate: true })
-      setFilePreview(null)
 
-      // use setTimeout to ensure the previous URL is properly revoked
-      setTimeout(() => {
-        const objectUrl = URL.createObjectURL(file)
-        setFilePreview(objectUrl)
-      }, 0)
+    // revoke previous URL and create new one
+    if (filePreview) {
+      URL.revokeObjectURL(filePreview)
     }
+    const objectUrl = URL.createObjectURL(file)
+    setValue("attachment", file, { shouldValidate: true })
+    setFilePreview(objectUrl)
   }
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -279,9 +277,11 @@ export default function MessageInput({ onMessageSend }: MessageInputProps) {
             <Button
               type='submit'
               size='icon'
-              className={`rounded-full h-8 w-8 ${!isSubmitting && isValid} 
-                ? "text-muted-foreground bg-transparent hover:bg-transparent" 
-                : "bg-emerald-500 hover:bg-emerald-600 text-white"`}
+              className={`rounded-full h-8 w-8 ${
+                !isSubmitting && isValid
+                  ? "bg-emerald-500 hover:bg-emerald-600 text-white"
+                  : "text-muted-foreground bg-transparent hover:bg-transparent"
+              }`}              
               disabled={isSubmitting || !isValid}>
               <Send className='h-4 w-4' />
               <span className='sr-only'>Wyślij wiadomość</span>

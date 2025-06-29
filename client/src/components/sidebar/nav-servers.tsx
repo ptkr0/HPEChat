@@ -1,5 +1,3 @@
-"use client"
-
 import { Plus, Loader2, MoreHorizontal, LogOut, Trash2, ChevronDown } from "lucide-react"
 import { SidebarGroupLabel, SidebarMenuItem, SidebarMenuButton, SidebarMenuAction } from "@/components/ui/sidebar"
 import type { Server } from "@/types/server.types"
@@ -14,6 +12,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@radix-ui/react-avatar"
 import AuthContext from "@/context/AuthProvider"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { ScrollArea } from "../ui/scroll-area"
 
 interface NavServersProps {
   servers: Server[]
@@ -51,17 +50,19 @@ export function NavServers({ servers, selectedServerId, onServerSelect, onLeaveS
 
         <CollapsibleContent>
           <div className="mt-1 space-y-0.5">
+            <ScrollArea className="h-[300px] pr-3" type="hover">
             {serversLoading || loading ? (
               <Skeleton className="h-20 w-full mb-2 flex items-center justify-center">
                 <Loader2 className="animate-spin" />
               </Skeleton>
             ) : (
+
               sortedServers.map((server) => (
                 <SidebarMenuItem key={server.id}>
                   <SidebarMenuButton
                     size={"lg"}
                     onClick={() => onServerSelect(server.id)}
-                    className={clsx("flex items-center w-full", {
+                    className={clsx("flex items-center", {
                       "bg-accent text-accent-foreground": server.id === selectedServerId,
                     })}
                   >
@@ -103,7 +104,9 @@ export function NavServers({ servers, selectedServerId, onServerSelect, onLeaveS
                   </DropdownMenu>
                 </SidebarMenuItem>
               ))
+
             )}
+                          </ScrollArea>
           </div>
         </CollapsibleContent>
       </Collapsible>

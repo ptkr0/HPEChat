@@ -41,7 +41,7 @@ namespace HPEChat_Server.Controllers
 			var user = await _context.Users.FindAsync(userId);
 			if (user == null) return BadRequest("User not found");
 
-			if (await _context.Servers.AnyAsync(s => s.Name.Equals(createServerDto.Name, StringComparison.OrdinalIgnoreCase)))
+			if (await _context.Servers.AnyAsync(s => s.Name.ToUpper() == createServerDto.Name.ToUpper()))
 				return BadRequest("Server with that name already exists");
 
 			var server = new Server
@@ -98,6 +98,7 @@ namespace HPEChat_Server.Controllers
 				Name = server.Name,
 				Description = server.Description,
 				OwnerId = server.OwnerId.ToString().ToUpper(),
+				Image = server.Image ?? string.Empty,
 				Members = new List<UserInfoDto>()
 				{
 					new UserInfoDto
@@ -175,6 +176,7 @@ namespace HPEChat_Server.Controllers
 
 			var server = await _context.Servers
 				.AsSplitQuery()
+				.AsNoTracking()
 				.Where(s => s.Id == id && s.Members.Any(m => m.Id == userId))
 				.Select(s => new ServerDto
 				{

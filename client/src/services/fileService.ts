@@ -17,4 +17,18 @@ export const fileService = {
         return response.data;
     },
 
+    getServerPreview: async (id: string): Promise<Blob> => {
+        const response = await axiosPrivate.get(`${FILE_URL}/serverPreviews/${id}`, {
+            responseType: 'blob',
+        });
+        return response.data;
+    },
+
+    getServerAttachment: async (id: string): Promise<Blob> => {
+        const response = await axiosPrivate.get(`${FILE_URL}/serverAttachments/${id}`, {
+            responseType: 'blob',
+        });
+        return response.data;
+    }
+
 }

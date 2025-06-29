@@ -12,7 +12,9 @@ import z from "zod"
 import { serverMessageService } from "@/services/serverMessageService"
 import { useAppStore } from "@/stores/appStore"
 import { ScrollArea } from "../ui/scroll-area"
-import { AttachmentType } from "@/types/attachment.types"
+import { Attachment, AttachmentType } from "@/types/attachment.types"
+import { ImageAttachment } from "./image-attachment"
+import { fileService } from "@/services/fileService"
 
 const messageEditSchema = z.object({
   editedContent: z
@@ -63,6 +65,27 @@ export function Message({ message, isSenderCurrentUser, isContinuation }: Messag
   const handleEdit = () => {
     reset({ editedContent: message.message })
     setIsEditing(true)
+  }
+
+  const downloadAttachment = async (attachment: Attachment) => {
+    if (!attachment.fileName) return;
+ 
+    try {
+      const blob = await fileService.getServerAttachment(attachment.fileName);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+
+      link.href = url;
+      link.download = attachment.name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      URL.revokeObjectURL(url);
+      
+    } catch (error) {
+      console.error('Error downloading file:', error);
+    }
   }
 
   const urlifyMessage = (message: string) => {
@@ -185,13 +208,10 @@ export function Message({ message, isSenderCurrentUser, isContinuation }: Messag
 
         {/* section that shows when the message has an attachment */}
         {message.attachment && (
-          <div className="mt-2">
-            {message.attachment.type === AttachmentType.IMAGE && (
-                <div className="w-full bg-muted rounded-lg border-2 border-dashed border-muted-foreground/25 flex items-center justify-center max-w-[550px] max-h-[300px] mb-1" 
-                style={{ width: message.attachment.width, height: message.attachment.height }}>
-                  <span className="text-muted-foreground text-sm">Tu będzie zdjęcie 📸</span>
-                </div>
-            )}
+          <div className="my-1">
+            {message.attachment.type === AttachmentType.IMAGE && message.attachment.previewName ? (
+                <ImageAttachment attachment={message.attachment} />
+            ) : (null)}
             
             {message.attachment.type === AttachmentType.VIDEO && (
               <Button
@@ -204,7 +224,7 @@ export function Message({ message, isSenderCurrentUser, isContinuation }: Messag
                 <div className="flex flex-col items-start">
                   <span className="text-sm font-medium">{message.attachment.name || 'Plik Wideo'}</span>
                   <span className="text-[10px] text-muted-foreground">{Math.ceil(message.attachment.size / 1000)} KB</span>
-                  <span className="text-xs text-muted-foreground">Kliknij aby odtworzyć</span>
+                  <span className="text-xs text-muted-foreground" onClick={() => downloadAttachment(message.attachment!)}>Kliknij aby odtworzyć</span>
                 </div>
               </Button>
             )}
@@ -220,7 +240,7 @@ export function Message({ message, isSenderCurrentUser, isContinuation }: Messag
                 <div className="flex flex-col items-start">
                   <span className="text-sm font-medium">{message.attachment.name || 'Plik Audio'}</span>
                   <span className="text-[10px] text-muted-foreground">{Math.ceil(message.attachment.size / 1000)} KB</span>
-                  <span className="text-xs text-muted-foreground">Kliknij aby posłuchać</span>
+                  <span className="text-xs text-muted-foreground" onClick={() => downloadAttachment(message.attachment!)}>Kliknij aby posłuchać</span>
                 </div>
               </Button>
             )}
@@ -236,7 +256,7 @@ export function Message({ message, isSenderCurrentUser, isContinuation }: Messag
                 <div className="flex flex-col items-start">
                   <span className="text-sm font-medium">{message.attachment.name || 'Dokument'}</span>
                   <span className="text-[10px] text-muted-foreground">{Math.ceil(message.attachment.size / 1000)} KB</span>
-                  <span className="text-xs text-muted-foreground">Kliknij aby otworzyć</span>
+                  <span className="text-xs text-muted-foreground" onClick={() => downloadAttachment(message.attachment!)}>Kliknij aby otworzyć</span>
                 </div>
               </Button>
             )}
@@ -252,7 +272,7 @@ export function Message({ message, isSenderCurrentUser, isContinuation }: Messag
                 <div className="flex flex-col items-start">
                   <span className="text-sm font-medium">{message.attachment.name || 'Plik'}</span>
                   <span className="text-[10px] text-muted-foreground">{Math.ceil(message.attachment.size / 1000)} KB</span>
-                  <span className="text-xs text-muted-foreground">Kliknij aby pobrać</span>
+                  <span className="text-xs text-muted-foreground" onClick={() => downloadAttachment(message.attachment!)}>Kliknij aby pobrać</span>
                 </div>
               </Button>
             )}
