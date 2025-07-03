@@ -83,78 +83,6 @@ namespace HPEChat_Server.Controllers
 
 		[HttpPost]
 		[Authorize]
-		public async Task<ActionResult<ServerMessageDto>> SendMessage([FromBody] SendServerMessageDto messageDto)
-		{
-			if (!ModelState.IsValid) return BadRequest(ModelState);
-
-			var userId = User.GetUserId();
-			if (userId == null) return BadRequest("User not found");
-
-			var channel = await _context.Channels
-				.Include(c => c.Server)
-				.ThenInclude(c => c.Members)
-				.FirstOrDefaultAsync(c => c.Id == messageDto.ChannelId && c.Server.Members.Any(m => m.Id == userId));
-			if (channel == null) return NotFound("Channel not found or you are not a member of the server");
-
-			await using (var transaction = await _context.Database.BeginTransactionAsync())
-			{
-				try
-				{
-					var message = new ServerMessage
-					{
-						ChannelId = messageDto.ChannelId,
-						SenderId = userId,
-						Message = messageDto.Message,
-						SentAt = DateTimeOffset.UtcNow,
-						IsEdited = false,
-					};
-
-					await _context.ServerMessages.AddAsync(message);
-					await _context.SaveChangesAsync();
-
-					await _hub
-						.Clients
-						.Group(ServerHub.GroupName(channel.ServerId))
-						.MessageAdded(channel.ServerId, new ServerMessageDto
-						{
-							Id = message.Id.ToString().ToUpper(),
-							ChannelId = message.ChannelId.ToString().ToUpper(),
-							Message = message.Message,
-							SentAt = message.SentAt,
-							IsEdited = message.IsEdited,
-							Sender = new UserInfoDto
-							{
-								Id = message.SenderId.HasValue ? message.SenderId.Value.ToString().ToUpper() : string.Empty,
-								Username = message.Sender.Username,
-							},
-						});
-
-					await transaction.CommitAsync();
-
-					return Ok(new ServerMessageDto
-					{
-						Id = message.Id.ToString().ToUpper(),
-						ChannelId = message.ChannelId.ToString().ToUpper(),
-						Message = message.Message,
-						SentAt = message.SentAt,
-						IsEdited = message.IsEdited,
-						Sender = new UserInfoDto
-						{
-							Id = message.SenderId.HasValue ? message.SenderId.Value.ToString().ToUpper() : string.Empty,
-							Username = message.Sender.Username,
-						},
-					});
-				}
-				catch (Exception ex)
-				{
-					await transaction.RollbackAsync();
-					return BadRequest($"Error sending message: {ex.Message}");
-				}
-			}
-		}
-
-		[HttpPost("attachment")]
-		[Authorize]
 		public async Task<ActionResult<ServerMessageDto>> SendMessageAttachment([FromForm] SendServerMessageWithAttachmentDto messageDto)
 		{
 			if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -393,13 +321,13 @@ namespace HPEChat_Server.Controllers
 			{
 				try
 				{
+					var filesToDelete = new List<string>();
 					if (serverMessage.Attachment != null)
 					{
-						// delete attachment file if it exists
-						_fileService.DeleteFile(serverMessage.Attachment.StoredFileName);
+						filesToDelete.Add(serverMessage.Attachment.StoredFileName);
 						if (serverMessage.Attachment.PreviewName != null && serverMessage.Attachment.PreviewName != serverMessage.Attachment.StoredFileName)
 						{
-							_fileService.DeleteFile(serverMessage.Attachment.PreviewName);
+							filesToDelete.Add(serverMessage.Attachment.PreviewName);
 						}
 					}
 
@@ -413,6 +341,11 @@ namespace HPEChat_Server.Controllers
 						.MessageRemoved(serverId, channelId, id);
 
 					await transaction.CommitAsync();
+
+					foreach (var file in filesToDelete)
+					{
+						_fileService.DeleteFile(file);
+					}
 
 					return Ok(new { message = "Message deleted successfully" });
 				}

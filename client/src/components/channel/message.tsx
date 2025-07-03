@@ -117,7 +117,7 @@ export function Message({ message, isSenderCurrentUser, isContinuation }: Messag
   return (
     <div
       className={cn(
-        "flex w-full gap-3 px-4 hover:bg-accent/50 hover:rounded-lg relative",
+        "group flex w-full gap-3 px-4 hover:bg-accent/50 hover:rounded-lg relative",
         isContinuation ? "py-0.5 mb-0.5 pl-[4.3rem]" : "py-1.5 mt-3",
       )}
       onMouseEnter={() => setIsHovered(true)}
@@ -135,7 +135,7 @@ export function Message({ message, isSenderCurrentUser, isContinuation }: Messag
 
       {/* if message is not a continuation, show the header with sender name, avatar and send time */}
       {!isContinuation && (
-        <Avatar className="size-10 mt-0.5 flex-shrink-0">
+        <Avatar className="size-10 mt-0.5 flex-shrink-0 border-2 border-transparent group-hover:border-primary/10 duration-200">
           <AvatarImage
             src={memberBlobImage || undefined}
             alt={message.sender.username}

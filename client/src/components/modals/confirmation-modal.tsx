@@ -20,7 +20,7 @@ export function ConfirmationDialog({ channelId, isOpen, onClose }: ConfirmationD
 
   const handleDelete = async () => {
     try {
-      await await channelService.deleteChannel(channelId);
+      await await channelService.delete(channelId);
     } catch (err) {
       console.error("API error deleting channel:", err);
     }

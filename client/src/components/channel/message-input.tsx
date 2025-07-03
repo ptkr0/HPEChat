@@ -90,7 +90,7 @@ export default function MessageInput({ onMessageSend }: MessageInputProps) {
 
   const submitHandler = async (data: SendMessageValues) => {
     try {
-      const newMessage = await serverMessageService.sendWithAttachment(
+      const newMessage = await serverMessageService.send(
         selectedChannel!.id,
         data.message.trim(),
         data.attachment
@@ -249,6 +249,7 @@ export default function MessageInput({ onMessageSend }: MessageInputProps) {
               register("message").ref(e);
               textareaRef.current = e;
             }}
+            disabled={isSubmitting}
             autoComplete='off'
             autoCorrect='off'
             autoCapitalize='none'

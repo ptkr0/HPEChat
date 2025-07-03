@@ -13,11 +13,6 @@ export const serverMessageService = {
         return response.data;
     },
     
-    send: async (channelId: string, message: string): Promise<ServerMessage> => {
-        const response = await axiosPrivate.post(SERVER_URL, { channelId: channelId, message: message });
-        return response.data;
-    },
-
     delete: async (messageId: string): Promise<void> => {
         await axiosPrivate.delete(`${SERVER_URL}/${messageId}`);
     },
@@ -27,7 +22,7 @@ export const serverMessageService = {
         return response.data;
     },
 
-    sendWithAttachment: async (channelId: string, message: string, attachment?: File): Promise<ServerMessage> => {
+    send: async (channelId: string, message: string, attachment?: File): Promise<ServerMessage> => {
         const formData = new FormData();
         formData.append("ChannelId", channelId);
         formData.append("Message", message);
@@ -36,7 +31,7 @@ export const serverMessageService = {
             formData.append("Attachment", attachment);
         }
         
-        const response = await axiosPrivate.post(SERVER_URL+"/attachment", formData, {
+        const response = await axiosPrivate.post(SERVER_URL, formData, {
             headers: {
                 "Content-Type": "multipart/form-data",
             },

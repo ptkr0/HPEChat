@@ -86,7 +86,7 @@ export function ImageDetailsModal({
             <ImageIcon className="w-5 h-5" />
             <div className="flex flex-col">
               <span className="font-medium text-sm">{attachment.name}</span>
-              {ImageData && (
+              {attachment.width && attachment.height && (
                 <span className="text-xs text-white/70">
                   {attachment.width} × {attachment.height}
                   {` • ${Math.ceil(attachment.size / 1000)} KB`}
@@ -102,13 +102,13 @@ export function ImageDetailsModal({
               className="bg-white/10 hover:bg-white/20 text-white border-white/20"
             >
               <Download className="w-4 h-4 mr-2" />
-              Download
+              Pobierz
             </Button>
             <Button
-              variant="ghost"
+              variant="secondary"
               size="sm"
               onClick={() => onOpenChange(false)}
-              className="text-white hover:bg-white/10"
+              className="bg-white/10 hover:bg-white/20 text-white border-white/20"
             >
               <X className="w-4 h-4" />
             </Button>

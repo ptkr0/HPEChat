@@ -1,4 +1,4 @@
-﻿using SixLabors.ImageSharp;
+﻿﻿using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 
 namespace HPEChat_Server.Services
@@ -32,8 +32,6 @@ namespace HPEChat_Server.Services
 			if (File.Exists(filePath))
 			{
 				File.Delete(filePath);
-				Console.BackgroundColor = ConsoleColor.DarkGreen;
-				Console.WriteLine($"File {fileName} deleted successfully.");
 			}
 		}
 

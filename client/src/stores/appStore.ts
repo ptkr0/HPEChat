@@ -34,7 +34,7 @@ interface AppState {
   selectedChannelMessages: ServerMessage[];
   channelMessagesLoading: boolean;
   channelMessagesError: string | null;
-  cachedChannelMessages: Map<string, ServerMessage[]>;
+  cachedChannelMessages: Map<string, ServerMessage[]>; // map of all cached server messages (channelId -> messages array)
 
   attachmentPreviews: Map<string, string>; // map of all attachment previews (attachmentId -> blob URL)
   
@@ -165,7 +165,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           ...commonStateChanges
         });
 
-        serverService.getById(serverId).then(details => { // fetch server details
+        serverService.get(serverId).then(details => { // fetch server details
           set(state => {
             const newCachedServers = new Map(state.cachedServers).set(serverId, details);
             if (state.selectedServerId === serverId) {
@@ -259,7 +259,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   createServer: async (name: string, description?: string, image?: File) => {
     try {
       // creates server
-      const newServer = await serverService.createServer(name, description, image);
+      const newServer = await serverService.create(name, description, image);
 
       if (newServer) {
         set((state) => ({ servers: [...state.servers, newServer] }));
@@ -283,7 +283,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   joinServer: async (inviteCode) => {
     try {
       // joins server and creates a new server in the store
-      const joinedServer = await serverService.joinServer(inviteCode);
+      const joinedServer = await serverService.join(inviteCode);
 
       if (joinedServer) {
         const { id, name, description, ownerId, image } = joinedServer;
@@ -327,7 +327,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         toast.error('Nie wybrano serwera.');
         return null;
       }
-      const newChannel = await channelService.createChannel({ serverId: selectedServerId, ...newChannelData });
+      const newChannel = await channelService.create({ serverId: selectedServerId, ...newChannelData });
 
       if (newChannel) {
         toast.success('Kanał został utworzony.');
@@ -351,6 +351,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       set((state) => {
         const newCachedServers = new Map(state.cachedServers);
         const cachedServer = newCachedServers.get(serverId);
+        const messagesToClear: ServerMessage[] = [];
 
         if (cachedServer) {
           newCachedServers.set(serverId, {
@@ -368,7 +369,16 @@ export const useAppStore = create<AppState>((set, get) => ({
         }
 
         const newCachedChannelMessages = new Map(state.cachedChannelMessages);
+        const messages = newCachedChannelMessages.get(channelId) || [];
+        messagesToClear.push(...messages);
         newCachedChannelMessages.delete(channelId);
+
+        // revoke attachment preview blobs for all messages that will be cleared
+        messagesToClear.forEach(message => {
+          if (message.attachment) {
+            get().revokeAttachmentPreview(message.attachment.id);
+          }
+        });
 
         return {
           selectedServer: newSelectedServer,
@@ -407,8 +417,15 @@ export const useAppStore = create<AppState>((set, get) => ({
       // always update the cache for the channel
       const newCachedChannelMessages = new Map(state.cachedChannelMessages);
       const messages = newCachedChannelMessages.get(channelId) || [];
-      const filteredMessages = messages.filter(m => m.id !== messageId);
+
+      const messageToRemove = messages.find(m => m.id === messageId);
+      const filteredMessages = messages.filter(m => m === messageToRemove);
       newCachedChannelMessages.set(channelId, filteredMessages);
+
+      // if message had attachment, revoke their URL
+      if (messageToRemove?.attachment) {
+        get().revokeAttachmentPreview(messageToRemove.attachment.id);
+      }
 
       let newSelectedChannelMessages = state.selectedChannelMessages;
 
@@ -424,7 +441,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
   },
 
-  editMessageInChannel: (serverId: string, message: ServerMessage) => {
+  // edits the message but leaves the attachment unchanged
+  editMessageInChannel: (serverId: string, message: Omit<ServerMessage, "attachment">) => {
     set((state) => {
 
       // update the cache for the message's channel, but only if the message is already cached
@@ -432,7 +450,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       const channelMessages = newCachedChannelMessages.get(message.channelId) || [];
       if (channelMessages.some(m => m.id === message.id)) {
         newCachedChannelMessages.set(message.channelId, channelMessages.map(m =>
-          m.id === message.id ? message : m
+          // ...m = original message, ...message = updated message, m.attachment = original attachment to keep it unchanged
+          m.id === message.id ? { ...m, ...message, attachment: m.attachment } : m
         ));
       }
 
@@ -440,7 +459,9 @@ export const useAppStore = create<AppState>((set, get) => ({
 
       // update selectedChannelMessages only if the message is for the currently selected channel AND server
       if (state.selectedChannelId === message.channelId && state.selectedServerId === serverId) {
-        newSelectedChannelMessages = state.selectedChannelMessages.map(m => m.id === message.id ? message : m);
+        newSelectedChannelMessages = state.selectedChannelMessages.map(m => 
+          m.id === message.id ? { ...m, ...message, attachment: m.attachment } : m
+        );
       }
 
       return {
@@ -453,7 +474,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   // this function is used when the user leaves the server by himself
   leaveServerAction: async (serverId) => {
     try {
-      await serverService.leaveServer(serverId);
+      await serverService.leave(serverId);
       get().leaveServer(serverId);
     }
     catch (error) {
@@ -477,20 +498,26 @@ export const useAppStore = create<AppState>((set, get) => ({
         const newServers = state.servers.filter(server => server.id !== serverId);
         const newCachedServers = new Map(state.cachedServers);
         newCachedServers.delete(serverId);
-
         const newCachedChannelMessages = new Map(state.cachedChannelMessages);
+        const messagesToClear: ServerMessage[] = [];
+
         if (channelIdsToClear.length > 0) {
-          channelIdsToClear.forEach(chId => newCachedChannelMessages.delete(chId));
+          channelIdsToClear.forEach(chId => {
+            const messages = newCachedChannelMessages.get(chId) || [];
+            messagesToClear.push(...messages);
+            newCachedChannelMessages.delete(chId);
+          });
         }
+
+        // revoke attachment preview blobs for all messages that will be cleared
+        messagesToClear.forEach(message => {
+          if (message.attachment) {
+            get().revokeAttachmentPreview(message.attachment.id);
+          }
+        });
 
         // revoke server image blob if it exists
-        const serverImageBlob = state.serverImageBlobs.get(serverId);
-        if (serverImageBlob) {
-          URL.revokeObjectURL(serverImageBlob);
-          const newServerImageBlobs = new Map(state.serverImageBlobs);
-          newServerImageBlobs.delete(serverId);
-          set({ serverImageBlobs: newServerImageBlobs });
-        }
+        get().revokeServerImage(serverId);
 
         return {
           servers: newServers,
@@ -517,7 +544,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   kickUser: async (serverId: string, userId: string) => {
     try {
-      await serverService.kickUser(serverId, userId);
+      await serverService.kick(serverId, userId);
       toast.success('Żądanie usunięcia użytkownika wysłane.');
 
     } catch (error) {
@@ -529,6 +556,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 clearStore: () => {
   get().avatarBlobs.forEach(blobUrl => URL.revokeObjectURL(blobUrl));
   get().serverImageBlobs.forEach(blobUrl => URL.revokeObjectURL(blobUrl));
+  get().attachmentPreviews.forEach(blobUrl => URL.revokeObjectURL(blobUrl));
   
   set({
     servers: [],
@@ -547,6 +575,7 @@ clearStore: () => {
     cachedChannelMessages: new Map(),
     avatarBlobs: new Map(),
     serverImageBlobs: new Map(),
+    attachmentPreviews: new Map(),
   });
 },
 
@@ -719,10 +748,10 @@ clearStore: () => {
     }
     try {
       const avatarBlob = await fileService.getAvatar(user.image);
-      const objectUrl = URL.createObjectURL(avatarBlob);
+      const blobUrl = URL.createObjectURL(avatarBlob);
       set((state) => {
         const newAvatarBlobs = new Map(state.avatarBlobs);
-        newAvatarBlobs.set(user.id, objectUrl);
+        newAvatarBlobs.set(user.id, blobUrl);
         return { avatarBlobs: newAvatarBlobs };
       });
     } catch (error) {
@@ -748,10 +777,10 @@ clearStore: () => {
     }
     try {
       const serverImageBlob = await fileService.getServerImage(image);
-      const objectUrl = URL.createObjectURL(serverImageBlob);
+      const blobUrl = URL.createObjectURL(serverImageBlob);
       set((state) => {
         const newServerImageBlobs = new Map(state.serverImageBlobs);
-        newServerImageBlobs.set(serverId, objectUrl);
+        newServerImageBlobs.set(serverId, blobUrl);
         return { serverImageBlobs: newServerImageBlobs };
       });
     } catch (error) {
@@ -775,7 +804,7 @@ clearStore: () => {
     if (get().attachmentPreviews.has(attachmentId)) return;
 
     try {
-      const blob = await fileService.getServerPreview(previewName); // Zakładamy, że masz serwis API
+      const blob = await fileService.getServerPreview(previewName);
       const blobUrl = URL.createObjectURL(blob);
       set((state) => ({
         attachmentPreviews: new Map(state.attachmentPreviews).set(attachmentId, blobUrl),
@@ -796,6 +825,4 @@ clearStore: () => {
       return { attachmentPreviews: newBlobs };
     });
   },
-
-
 }));

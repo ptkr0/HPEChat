@@ -53,6 +53,8 @@ namespace HPEChat_Server.Controllers
 
 			await using (var transaction = await _context.Database.BeginTransactionAsync())
 			{
+				string? uploadedServerImage = null;
+
 				try
 				{
 					server.Members.Add(user);
@@ -62,10 +64,10 @@ namespace HPEChat_Server.Controllers
 
 					if (createServerDto.Image != null && FileExtension.IsValidAvatar(createServerDto.Image))
 					{
-						var imagePath = await _fileService.UploadServerPicture(createServerDto.Image, server.Id);
-						if (imagePath == null) throw new Exception("Failed to save avatar image.");
+						uploadedServerImage = await _fileService.UploadServerPicture(createServerDto.Image, server.Id);
+						if (uploadedServerImage == null) throw new Exception("Failed to save avatar image.");
 
-						server.Image = imagePath;
+						server.Image = uploadedServerImage;
 						_context.Servers.Update(server);
 						await _context.SaveChangesAsync();
 					}
@@ -87,7 +89,11 @@ namespace HPEChat_Server.Controllers
 				catch
 				{
 					await transaction.RollbackAsync();
-					_fileService.DeleteFile(server.Image);
+
+					if(uploadedServerImage != null)
+					{
+						_fileService.DeleteFile(uploadedServerImage);
+					}
 					return StatusCode(500);
 				}
 			}

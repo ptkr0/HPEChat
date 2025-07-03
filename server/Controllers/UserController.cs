@@ -35,37 +35,45 @@ namespace HPEChat_Server.Controllers
 			if (await _context.Users.AnyAsync(u => u.Username.ToUpper() == registerDto.Username.ToUpper()))
 				return BadRequest("Username is already taken");
 
-			await using var transaction = await _context.Database.BeginTransactionAsync();
-			try
+			await using (var transaction = await _context.Database.BeginTransactionAsync())
 			{
-				User user = new()
+				string? imagePath = null;
+				try
+					{
+						User user = new()
+						{
+							Username = registerDto.Username,
+							Role = "User"
+						};
+
+						user.PasswordHash = new PasswordHasher<User>().HashPassword(user, registerDto.Password);
+						await _context.Users.AddAsync(user);
+						await _context.SaveChangesAsync();
+
+						if (registerDto.Image != null && FileExtension.IsValidAvatar(registerDto.Image))
+						{
+							imagePath = await _fileService.UploadAvatar(registerDto.Image, user.Id);
+							if (imagePath == null) throw new Exception("Failed to save avatar image.");
+
+							user.Image = imagePath;
+							_context.Users.Update(user);
+							await _context.SaveChangesAsync();
+						}
+
+						await transaction.CommitAsync();
+						return user;
+					}
+				catch (Exception ex)
 				{
-					Username = registerDto.Username,
-					Role = "User"
-				};
+					Console.WriteLine(ex.Message);
+					await transaction.RollbackAsync();
 
-				user.PasswordHash = new PasswordHasher<User>().HashPassword(user, registerDto.Password);
-				await _context.Users.AddAsync(user);
-				await _context.SaveChangesAsync();
-
-				if (registerDto.Image != null && FileExtension.IsValidAvatar(registerDto.Image))
-				{
-					var imagePath = await _fileService.UploadAvatar(registerDto.Image, user.Id);
-					if (imagePath == null) throw new Exception("Failed to save avatar image.");
-
-					user.Image = imagePath;
-					_context.Users.Update(user);
-					await _context.SaveChangesAsync();
+					if (imagePath != null)
+					{
+						_fileService.DeleteFile(imagePath);
+					}
+					return BadRequest("Error registering user: " + ex.Message);
 				}
-
-				await transaction.CommitAsync();
-				return user;
-			}
-			catch (Exception ex)
-			{
-				Console.WriteLine(ex.Message);
-				await transaction.RollbackAsync();
-				return BadRequest("Error registering user: " + ex.Message);
 			}
 		}
 
