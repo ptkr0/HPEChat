@@ -37,7 +37,7 @@ export function ServerInfoModal({ isOpen, onClose, server }: ServerInfoModalProp
                     alt={`${server.name} icon`}
                     className="object-cover"
                   />
-                  <AvatarFallback className="text-white text-2xl font-bold rounded-2xl">
+                  <AvatarFallback className="text-2xl font-bold rounded-2xl">
                     {server.name[0].toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
@@ -154,22 +154,6 @@ export function ServerInfoModal({ isOpen, onClose, server }: ServerInfoModalProp
                   </Badge>
                 </div>
               )}
-            </div>
-
-            <div className="bg-muted/30 p-4 rounded-lg">
-              <h4 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
-                Statystyki Serwera
-              </h4>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-blue-500">{server.members.length}</p>
-                  <p className="text-xs text-muted-foreground uppercase">Członków</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-green-500">{server.channels.length}</p>
-                  <p className="text-xs text-muted-foreground uppercase">Kanałów</p>
-                </div>
-              </div>
             </div>
           </div>
         </ScrollArea>

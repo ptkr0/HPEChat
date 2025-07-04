@@ -62,7 +62,7 @@ export function MembersSidebar() {
         <div className="relative">
           <Avatar className="size-10 shrink-0 border-2 border-transparent group-hover:border-primary/10">
             <AvatarImage src={memberBlobImage || undefined} />
-            <AvatarFallback>{member.username[0]}</AvatarFallback>
+            <AvatarFallback>{member.username[0].toUpperCase()}</AvatarFallback>
           </Avatar>
         </div>
 

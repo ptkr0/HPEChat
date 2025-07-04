@@ -140,7 +140,7 @@ export function Message({ message, isSenderCurrentUser, isContinuation }: Messag
             src={memberBlobImage || undefined}
             alt={message.sender.username}
           />
-          <AvatarFallback>{message.sender.username[0]}</AvatarFallback>
+          <AvatarFallback>{message.sender.username[0].toUpperCase()}</AvatarFallback>
         </Avatar>
       )}
 

@@ -29,7 +29,7 @@ export function NavUsers({ users }: {users: PrivateMessageList[]}) {
           </div>
 
           <CollapsibleContent>
-            <ScrollArea className="h-[300px] pr-3" type="hover">
+            <ScrollArea className="h-[30vh] pr-3" type="hover">
               <SidebarMenu className="mt-1">
                 {users.map((user) => (
                   <SidebarMenuButton size={"lg"} asChild key={user.id} className="py-6 px-2">
@@ -39,7 +39,7 @@ export function NavUsers({ users }: {users: PrivateMessageList[]}) {
                     >
                       <Avatar className="size-10 shrink-0">
                         <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`} alt={user.name} />
-                        <AvatarFallback>{user.name[0]}</AvatarFallback>
+                        <AvatarFallback>{user.name[0].toUpperCase()}</AvatarFallback>
                       </Avatar>
                       <div className="flex min-w-0 flex-1 flex-col group-data-[collapsible=icon]:hidden">
                         <div className="truncate font-medium">{user.name}</div>

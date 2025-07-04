@@ -14,7 +14,7 @@ import {
 import { useAppStore } from "@/stores/appStore";
 import { useNavigate } from "react-router";
 import clsx from "clsx";
-import { MoreHorizontal, Plus, Settings, Trash } from "lucide-react";
+import { Hash, MoreHorizontal, Plus, Settings, Trash } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@radix-ui/react-avatar";
 import { Skeleton } from "../ui/skeleton";
 import { useContext, useState } from "react";
@@ -112,7 +112,7 @@ export function ServerSidebar() {
                                 )}
                               >
                                 <div className="flex items-center overflow-hidden">
-                                  <div className="text-lg flex-shrink-0 mr-1">#</div>
+                                  <Hash className="size-4 text-muted-foreground mr-1" />
                                   <span className="truncate">{channel.name}</span>
                                 </div>
                               </SidebarMenuButton>

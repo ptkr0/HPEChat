@@ -50,7 +50,7 @@ export function NavServers({ servers, selectedServerId, onServerSelect, onLeaveS
 
         <CollapsibleContent>
           <div className="mt-1 space-y-0.5">
-            <ScrollArea className="h-[300px] pr-3" type="hover">
+            <ScrollArea className="h-[30vh] pr-3" type="hover">
             {serversLoading || loading ? (
               <Skeleton className="h-20 w-full mb-2 flex items-center justify-center">
                 <Loader2 className="animate-spin" />
