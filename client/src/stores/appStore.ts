@@ -419,9 +419,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       const messages = newCachedChannelMessages.get(channelId) || [];
 
       const messageToRemove = messages.find(m => m.id === messageId);
-      const filteredMessages = messages.filter(m => m === messageToRemove);
-      newCachedChannelMessages.set(channelId, filteredMessages);
+      const filteredMessages = messages.filter(m => m.id !== messageId);
 
+      newCachedChannelMessages.set(channelId, filteredMessages);
+      
       // if message had attachment, revoke their URL
       if (messageToRemove?.attachment) {
         get().revokeAttachmentPreview(messageToRemove.attachment.id);
@@ -429,7 +430,8 @@ export const useAppStore = create<AppState>((set, get) => ({
 
       let newSelectedChannelMessages = state.selectedChannelMessages;
 
-      // update selectedChannelMessages only if the message was in the currently selected channel AND server
+      // only update selectedChannelMessages if both the selected channel and server match,
+      // to ensure consistency with other message update methods.
       if (state.selectedChannelId === channelId && state.selectedServerId === serverId) {
         newSelectedChannelMessages = state.selectedChannelMessages.filter(m => m.id !== messageId);
       }

@@ -22,6 +22,7 @@ import AuthContext from "@/context/AuthProvider";
 import { CreateChannelModal } from "../modals/create-channel-modal";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "../ui/dropdown-menu";
 import { ConfirmationDialog } from "../modals/confirmation-modal";
+import { ServerInfoModal } from "../modals/server-info-modal";
 
 export function ServerSidebar() {
   const {
@@ -38,6 +39,7 @@ export function ServerSidebar() {
   const { user, loading } = useContext(AuthContext);
   const [showCreateChannelModal, setShowCreateChannelModal] = useState(false);
   const [showDeleteChannelModal, setShowDeleteChannelModal] = useState(false);
+  const [isServerDetailsOpen, setServerDetailsOpen] = useState(false);
   const [selectedChannelOptionsId, setSelectedChannelOptionsId] = useState<string>('');
 
   const sortedChannels = selectedServer?.channels?.sort((a, b) => a.name.localeCompare(b.name)) || [];
@@ -50,7 +52,7 @@ export function ServerSidebar() {
     <Sidebar className="left-auto w-60 border-r" collapsible="none">
       <SidebarHeader>
         <SidebarMenu>
-          <SidebarMenuButton size="lg">
+          <SidebarMenuButton size="lg" onClick={() => setServerDetailsOpen(true)}>
             {!serverDetailsLoading && selectedServer ? (
               <>
                 <Avatar className="size-10 rounded-lg flex items-center justify-center shrink-0 overflow-hidden">
@@ -161,6 +163,8 @@ export function ServerSidebar() {
         isOpen={showDeleteChannelModal}
         onClose={() => setShowDeleteChannelModal(false)}
       />
+
+      {selectedServer && <ServerInfoModal isOpen={isServerDetailsOpen} onClose={() => setServerDetailsOpen(false)} server={selectedServer} />}
     </Sidebar>
   );
 }
