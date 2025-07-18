@@ -19,7 +19,7 @@ const createChannelSchema = z.object({
   name: z
     .string()
     .min(1, 'Nazwa jest wymagana')
-    .max(50, 'Maksymalnie 20 znaków'),
+    .max(50, 'Maksymalnie 50 znaków'),
 });
 
 type CreateChannelValues = z.infer<typeof createChannelSchema>;

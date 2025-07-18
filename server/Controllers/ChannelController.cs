@@ -3,6 +3,7 @@ using HPEChat_Server.Dtos.Channel;
 using HPEChat_Server.Extensions;
 using HPEChat_Server.Hubs;
 using HPEChat_Server.Models;
+using HPEChat_Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
@@ -16,10 +17,12 @@ namespace HPEChat_Server.Controllers
 	{
 		private readonly ApplicationDBContext _context;
 		private readonly IHubContext<ServerHub, IServerClient> _hub;
-		public ChannelController(ApplicationDBContext context, IHubContext<ServerHub, IServerClient> hub)
+		private readonly FileService _fileService;
+		public ChannelController(ApplicationDBContext context, IHubContext<ServerHub, IServerClient> hub, FileService fileService)
 		{
 			_context = context;
 			_hub = hub;
+			_fileService = fileService;
 		}
 
 		[HttpPost]
@@ -134,10 +137,15 @@ namespace HPEChat_Server.Controllers
 			var userId = User.GetUserId();
 			if (userId == null) return Unauthorized("User not found");
 
-			Guid channelGuid = id;
-
+			// channel to delete
 			var channel = await _context.Channels
-				.FirstOrDefaultAsync(c => c.Id == channelGuid && c.Server.OwnerId == userId);
+				.FirstOrDefaultAsync(c => c.Id == id && c.Server.OwnerId == userId);
+
+			// attachments that were sent on the channel
+			var files = await _context.Attachments
+				.AsNoTracking()
+				.Where(a => a.ServerMessage!.ChannelId == id)
+				.ToListAsync();
 
 			if (channel == null) return NotFound("Channel not found or access denied");
 
@@ -145,6 +153,12 @@ namespace HPEChat_Server.Controllers
 			{
 				try
 				{
+					foreach (var file in files)
+					{
+						if (file.PreviewName != null) _fileService.DeleteFile(file.PreviewName);
+						if (file.StoredFileName != null) _fileService.DeleteFile(file.StoredFileName);
+					}
+
 					_context.Channels.Remove(channel);
 					await _context.SaveChangesAsync();
 

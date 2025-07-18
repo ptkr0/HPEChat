@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HPEChat_Server.Initialization
 {
-	public class AdminInitialization
+	public class OwnerInitialization
 	{
 		public static async Task InitializeAdminAccount(IServiceProvider serviceProvider)
 		{
@@ -23,7 +23,7 @@ namespace HPEChat_Server.Initialization
 
 			admin.Username = "admin";
 			admin.PasswordHash = new PasswordHasher<User>().HashPassword(admin, "admin");
-			admin.Role = "Admin";
+			admin.Role = "Owner";
 
 			await dbContext.Users.AddAsync(admin);
 			await dbContext.SaveChangesAsync();

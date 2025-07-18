@@ -1,4 +1,5 @@
-﻿using HPEChat_Server.Data;
+﻿using Azure.Identity;
+using HPEChat_Server.Data;
 using HPEChat_Server.Dtos.User;
 using HPEChat_Server.Extensions;
 using HPEChat_Server.Models;
@@ -16,14 +17,12 @@ namespace HPEChat_Server.Controllers
 	{
 		private readonly ApplicationDBContext _context;
 		private readonly FileService _fileService;
-		private readonly IConfiguration _configuration;
 		private readonly UserService _userService;
 
-		public UserController(ApplicationDBContext context, FileService fileService, IConfiguration configuration, UserService userService)
+		public UserController(ApplicationDBContext context, FileService fileService, UserService userService)
 		{
 			_context = context;
 			_fileService = fileService;
-			_configuration = configuration;
 			_userService = userService;
 		}
 
@@ -111,16 +110,14 @@ namespace HPEChat_Server.Controllers
 			};
 		}
 
-		[HttpPatch("grant-admin/{id}")]
-		[Authorize(Roles = "Admin")]
+		[HttpPut("grant-admin/{id}")]
+		[Authorize(Roles = "Owner")]
 		public async Task<ActionResult<User>> GrantAdmin(Guid id)
 		{
 			if (!ModelState.IsValid) return BadRequest(ModelState);
 
 			var userId = User.GetUserId();
 			if (userId == null) return BadRequest("User not found");
-
-			if (string.Equals(_configuration.GetValue<string>("RootId"), userId.ToString())) return Unauthorized("You are not head admin");
 
 			var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
 			if (user == null) return BadRequest("User not found");
@@ -146,16 +143,14 @@ namespace HPEChat_Server.Controllers
 			}
 		}
 
-		[HttpPatch("revoke-admin/{id}")]
-		[Authorize(Roles = "Admin")]
+		[HttpPut("revoke-admin/{id}")]
+		[Authorize(Roles = "Owner")]
 		public async Task<ActionResult<User>> RevokeAdmin(Guid id)
 		{
 			if (!ModelState.IsValid) return BadRequest(ModelState);
 
 			var userId = User.GetUserId();
 			if (userId == null) return BadRequest("User not found");
-
-			if (string.Equals(_configuration.GetValue<string>("RootId"), userId.ToString())) return Unauthorized("You are not head admin");
 
 			var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
 			if (user == null) return BadRequest("User not found");
@@ -181,7 +176,7 @@ namespace HPEChat_Server.Controllers
 			}
 		}
 
-		[HttpPatch]
+		[HttpPut("password")]
 		[Authorize]
 		public async Task<ActionResult<User>> ChangePassword([FromBody] ChangePasswordDto passwordDto)
 		{
@@ -213,6 +208,36 @@ namespace HPEChat_Server.Controllers
 			}
 		}
 
+		[HttpPut("username")]
+		[Authorize]
+		public async Task<ActionResult<User>> ChangeUsername([FromBody] string username)
+		{
+			if (!ModelState.IsValid) return BadRequest(ModelState);
+
+			var userId = User.GetUserId();
+			if (userId == null) return BadRequest("User not found");
+
+			var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+			if (user == null) return BadRequest("User not found");
+
+			var exists = await _context.Users.AnyAsync(u => u.Username.ToUpper() == username.ToUpper());
+			if (exists) return BadRequest("Username is already taken");
+
+			try
+			{
+				user.Username = username;
+				_context.Users.Update(user);
+				await _context.SaveChangesAsync();
+
+				return Ok(new { message = "Username changed" });
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine(ex.Message);
+				return BadRequest("Error changing username: " + ex.Message);
+			}
+		}
+
 		[HttpPost("logout")]
 		public IActionResult Logout()
 		{
@@ -236,7 +261,7 @@ namespace HPEChat_Server.Controllers
 			var userId = User.GetUserId();
 			if (userId == null) return Unauthorized("User not found");
 
-			var user = _context.Users.FirstOrDefault(u => u.Id == userId);
+			var user = _context.Users.AsNoTracking().FirstOrDefault(u => u.Id == userId);
 			if (user == null) return Unauthorized("User not found");
 
 			return Ok(new UserInfoDto

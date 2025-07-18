@@ -4,7 +4,7 @@ import { format } from "date-fns"
 import { Button } from "../ui/button"
 import { cn } from "@/lib/utils"
 import { Edit2, FileText, Trash2, File, Music, Video } from 'lucide-react'
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Textarea } from "../ui/textarea"
 import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -15,6 +15,7 @@ import { ScrollArea } from "../ui/scroll-area"
 import { Attachment, AttachmentType } from "@/types/attachment.types"
 import { ImageAttachment } from "./image-attachment"
 import { fileService } from "@/services/fileService"
+import { useOnScreen } from "@/hooks/useOnScreen"
 
 const messageEditSchema = z.object({
   editedContent: z
@@ -36,8 +37,10 @@ export function Message({ message, isSenderCurrentUser, isContinuation }: Messag
   const [isHovered, setIsHovered] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
 
-  const avatarBlobs = useAppStore((state) => state.avatarBlobs);
-  const memberBlobImage = avatarBlobs.get(message.sender.id);
+  const ref = useRef<HTMLDivElement>(null);
+  const isVisible = useOnScreen(ref as React.RefObject<HTMLElement>, { rootMargin: "200px" });
+  const avatarBlob = useAppStore((state) => state.avatarBlobs.get(message.sender.id));
+  const fetchAndCacheAvatar = useAppStore((state) => state.fetchAndCacheAvatar);
 
   const {
     control,
@@ -50,6 +53,12 @@ export function Message({ message, isSenderCurrentUser, isContinuation }: Messag
       editedContent: message.message,
     },
   })
+
+  useEffect(() => {
+    if (isVisible && message.sender.image) {
+      fetchAndCacheAvatar(message.sender);
+    }
+  }, [isVisible, message.sender, fetchAndCacheAvatar]);
 
   const handleDelete = async () => {
     setIsDeleting(true)
@@ -135,9 +144,9 @@ export function Message({ message, isSenderCurrentUser, isContinuation }: Messag
 
       {/* if message is not a continuation, show the header with sender name, avatar and send time */}
       {!isContinuation && (
-        <Avatar className="size-10 mt-0.5 flex-shrink-0 border-2 border-transparent group-hover:border-primary/10 duration-200">
+        <Avatar className="size-10 mt-0.5 flex-shrink-0 border-2 border-transparent group-hover:border-primary/10 duration-200" ref={ref}>
           <AvatarImage
-            src={memberBlobImage || undefined}
+            src={avatarBlob}
             alt={message.sender.username}
           />
           <AvatarFallback>{message.sender.username[0].toUpperCase()}</AvatarFallback>

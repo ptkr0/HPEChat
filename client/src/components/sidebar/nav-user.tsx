@@ -25,17 +25,19 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import AuthContext from "@/context/AuthProvider"
-import { useContext } from "react"
+import { useContext, useState } from "react"
 import { toast } from "sonner"
 import { useNavigate } from "react-router"
 import { userService } from "@/services/userService"
 import { useAppStore } from "@/stores/appStore"
+import { UserSettingsModal } from "../modals/user-settings-modal"
 
 export function NavUser() {
   const { isMobile } = useSidebar()
   const { user, setUser } = useContext(AuthContext);
   const clearStore = useAppStore((state) => state.clearStore);
   const navigate = useNavigate();
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
 
   const logOut = async () => {
 
@@ -61,56 +63,64 @@ export function NavUser() {
 
 
   return (
-    <SidebarMenu>
-      <SidebarMenuItem>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <SidebarMenuButton
-              size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-            >
-              <Avatar className="size-10 rounded-full">
-                <AvatarImage src={user.blobImage} alt={user.username} />
-                <AvatarFallback className="rounded-full">{user.username[0]}</AvatarFallback>
-              </Avatar>
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">{user.username}</span>
-              </div>
-              <ChevronsUpDown className="ml-auto size-4" />
-            </SidebarMenuButton>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
-            side={isMobile ? "bottom" : "right"}
-            align="end"
-            sideOffset={4}
-          >
-            <DropdownMenuLabel className="p-0 font-normal">
-              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+    <>
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <SidebarMenuButton
+                size="lg"
+                className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+              >
                 <Avatar className="size-10 rounded-full">
                   <AvatarImage src={user.blobImage} alt={user.username} />
-                  <AvatarFallback className="rounded-full">{user.username[0]}</AvatarFallback>
+                  <AvatarFallback className="rounded-full">{user.username[0].toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">{user.username}</span>
                 </div>
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <Settings />
-                Ustawienia
+                <ChevronsUpDown className="ml-auto size-4" />
+              </SidebarMenuButton>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+              side={isMobile ? "bottom" : "right"}
+              align="end"
+              sideOffset={4}
+            >
+              <DropdownMenuLabel className="p-0 font-normal">
+                <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                  <Avatar className="size-10 rounded-full">
+                    <AvatarImage src={user.blobImage} alt={user.username} />
+                    <AvatarFallback className="rounded-full">{user.username[0].toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                  <div className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-semibold">{user.username}</span>
+                  </div>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuGroup>
+                { /*  this div fixes the issue with too much recursion error 
+                      updating dependencies would probably also fix this issue */ }
+                <div onClick={() => setShowSettingsModal(true)}>
+                  <DropdownMenuItem>
+                    <Settings />
+                    Ustawienia
+                  </DropdownMenuItem>
+                </div>
+              </DropdownMenuGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={logOut}>
+                <LogOut />
+                Wyloguj się
               </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={logOut}>
-              <LogOut />
-              Wyloguj się
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </SidebarMenuItem>
-    </SidebarMenu>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </SidebarMenuItem>
+      </SidebarMenu>
+
+      <UserSettingsModal isOpen={showSettingsModal} onClose={() => setShowSettingsModal(false)} />
+    </>
   )
 }

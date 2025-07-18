@@ -1,4 +1,4 @@
-import { Plus, Loader2, MoreHorizontal, LogOut, Trash2, ChevronDown } from "lucide-react"
+import { Plus, MoreHorizontal, LogOut, Trash2, ChevronDown } from "lucide-react"
 import { SidebarGroupLabel, SidebarMenuItem, SidebarMenuButton, SidebarMenuAction } from "@/components/ui/sidebar"
 import type { Server } from "@/types/server.types"
 import clsx from "clsx"
@@ -36,6 +36,32 @@ export function NavServers({ servers, selectedServerId, onServerSelect, onLeaveS
     return 0
   });
 
+
+  const renderDropdownMenu = (server: Server) => {
+    return (
+      <DropdownMenu modal={false}>
+        <DropdownMenuTrigger asChild>
+          <SidebarMenuAction>
+            <MoreHorizontal />
+          </SidebarMenuAction>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent side="right" align="center">
+          {server.ownerId.toUpperCase() === user.id.toUpperCase() ? (
+            <DropdownMenuItem>
+              <Trash2 className="mr-2 h-4 w-4" />
+              <span className="text-red-500 focus:text-red-500">Usuń Serwer</span>
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem onClick={() => onLeaveServer(server.id)}>
+              <LogOut className="mr-2 h-4 w-4" />
+              <span className="text-red-500 focus:text-red-500">Opuść Serwer</span>
+            </DropdownMenuItem>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  };
+
   return (
     <div>
       <Collapsible open={isServersOpen} onOpenChange={setIsServersOpen} className="group/collapsible">
@@ -43,75 +69,53 @@ export function NavServers({ servers, selectedServerId, onServerSelect, onLeaveS
           <SidebarGroupLabel className="text-base font-semibold">Serwery</SidebarGroupLabel>
           <CollapsibleTrigger asChild>
             <Button variant="ghost" size="icon" className="h-7 w-7 text-center">
-                <ChevronDown className="transition-transform group-data-[state=open]/collapsible:rotate-180" />
+              <ChevronDown className="transition-transform group-data-[state=open]/collapsible:rotate-180" />
             </Button>
           </CollapsibleTrigger>
         </div>
 
         <CollapsibleContent>
-          <div className="mt-1 space-y-0.5">
-            <ScrollArea className="h-[30vh] pr-3" type="hover">
-            {serversLoading || loading ? (
-              <Skeleton className="h-20 w-full mb-2 flex items-center justify-center">
-                <Loader2 className="animate-spin" />
-              </Skeleton>
-            ) : (
-
-              sortedServers.map((server) => (
-                <SidebarMenuItem key={server.id}>
-                  <SidebarMenuButton
-                    size={"lg"}
-                    onClick={() => onServerSelect(server.id)}
-                    className={clsx("flex items-center", {
-                      "bg-accent text-accent-foreground": server.id === selectedServerId,
-                    })}
-                  >
-                    {(() => {
-                      const serverImage = serverImageBlobs.get(server.id);
-                      return (
-                      <Avatar className="size-10 rounded-lg flex items-center justify-center shrink-0 mr-2 overflow-hidden">
-                        <AvatarImage src={serverImage || (serverImage ? '' : undefined)} />
-                        <AvatarFallback className="bg-muted flex items-center justify-center text-sm font-medium w-full h-full">
-                        {server.name[0].toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      );
-                    })()}
-                    <div className="flex flex-col min-w-0 flex-1">
-                      <div className="truncate font-medium">{server.name}</div>
-                      <div className="truncate text-xs text-muted-foreground">{server.description}</div>
-                    </div>
-                  </SidebarMenuButton>
-                  <DropdownMenu modal={false}>
-                    <DropdownMenuTrigger asChild>
-                      <SidebarMenuAction>
-                        <MoreHorizontal />
-                      </SidebarMenuAction>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent side="right" align="center">
-                      {server.ownerId.toUpperCase() === user.id.toUpperCase() ? (
-                        <DropdownMenuItem>
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          <span className="text-red-500 focus:text-red-500">Usuń Serwer</span>
-                        </DropdownMenuItem>
-                      ) : (
-                        <DropdownMenuItem onClick={() => onLeaveServer(server.id)}>
-                          <LogOut className="mr-2 h-4 w-4" />
-                          <span className="text-red-500 focus:text-red-500">Opuść Serwer</span>
-                        </DropdownMenuItem>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </SidebarMenuItem>
-              ))
-
-            )}
-                          </ScrollArea>
+          <div className="mt-1 max-h-[30vh] space-y-0.5">
+            <ScrollArea className="pr-3 h-[30vh]" type="hover">
+              {serversLoading || loading ? (
+                Array.from({ length: 4 }).map((_, index) => (
+                  <Skeleton key={index} className="h-10 w-full mb-2 flex items-center justify-center"/>
+                ))
+              ) : (
+                sortedServers.map((server) => (
+                  <SidebarMenuItem key={server.id}>
+                    <SidebarMenuButton
+                      size={"lg"}
+                      onClick={() => onServerSelect(server.id)}
+                      className={clsx("items-center mt-1", {
+                        "bg-accent text-accent-foreground": server.id === selectedServerId,
+                      })}
+                    >
+                      {(() => {
+                        const serverImage = serverImageBlobs.get(server.id);
+                        return (
+                          <Avatar className="size-10 rounded-lg flex items-center justify-center shrink-0 mr-2 overflow-hidden">
+                            <AvatarImage src={serverImage || (serverImage ? '' : undefined)} />
+                            <AvatarFallback className="bg-muted flex items-center justify-center text-sm font-medium w-full h-full">
+                              {server.name[0].toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                        );
+                      })()}
+                      <div className="flex flex-col min-w-0 flex-1 w-0">
+                        <div className="truncate font-medium w-full">{server.name}</div>
+                        <div className="truncate text-xs text-muted-foreground w-full">{server.description}</div>
+                      </div>
+                    </SidebarMenuButton>
+                    {renderDropdownMenu(server)}
+                  </SidebarMenuItem>
+                ))
+              )}
+            </ScrollArea>
           </div>
         </CollapsibleContent>
       </Collapsible>
 
-      {/* Dropdown "More" section - kept outside the collapsible */}
       <SidebarMenuItem className="mt-1">
         <div className="relative">
           <SidebarMenuButton

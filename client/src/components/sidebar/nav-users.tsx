@@ -56,7 +56,7 @@ export function NavUsers({ users }: {users: PrivateMessageList[]}) {
           </CollapsibleContent>
         </Collapsible>
 
-    {!loading && user.role === "Admin" && (
+    {!loading && (user.role === "Admin" || user.role === "Owner") && (
     <SidebarMenuItem className="mt-1">
       <div className="relative">
         <SidebarMenuButton

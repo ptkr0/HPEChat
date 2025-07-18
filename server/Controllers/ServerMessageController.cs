@@ -62,6 +62,7 @@ namespace HPEChat_Server.Controllers
 					{
 						Id = m.SenderId.HasValue ? m.SenderId.Value.ToString().ToUpper() : string.Empty,
 						Username = m.Sender != null ? m.Sender.Username : string.Empty,
+						Image = m.Sender!.Image ?? string.Empty,
 					},
 					Attachment = m.Attachment != null ? new AttachmentDto
 					{

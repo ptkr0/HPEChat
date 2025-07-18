@@ -93,6 +93,6 @@ app.MapControllers();
 
 app.MapHub<ServerHub>("/hubs/server");
 
-await AdminInitialization.InitializeAdminAccount(app.Services);
+await OwnerInitialization.InitializeAdminAccount(app.Services);
 
 app.Run();
