@@ -178,7 +178,7 @@ namespace HPEChat_Server.Controllers
 
 		[HttpPut("password")]
 		[Authorize]
-		public async Task<ActionResult<User>> ChangePassword([FromBody] ChangePasswordDto passwordDto)
+		public async Task<ActionResult<string>> ChangePassword([FromBody] ChangePasswordDto passwordDto)
 		{
 			if (!ModelState.IsValid) return BadRequest(ModelState);
 
@@ -210,7 +210,7 @@ namespace HPEChat_Server.Controllers
 
 		[HttpPut("username")]
 		[Authorize]
-		public async Task<ActionResult<User>> ChangeUsername([FromBody] string username)
+		public async Task<ActionResult<string>> ChangeUsername([FromBody] string username)
 		{
 			if (!ModelState.IsValid) return BadRequest(ModelState);
 

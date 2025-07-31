@@ -16,6 +16,13 @@ export function NavUsers({ users }: {users: PrivateMessageList[]}) {
   const [dropdownMenu, setDropdownMenu] = useState(false)
   const [showAddUserModal, setShowAddUserModal] = useState(false)
 
+  // calculate height based on number of users
+  // each user item is approximately 64px (py-6 means 24px top + 24px bottom + content)
+  const itemHeight = 64 // approximate height of each user item
+  const maxHeight = window.innerHeight * 0.3 // 30vh in pixels
+  const calculatedHeight = Math.min(users.length * itemHeight, maxHeight)
+  const scrollAreaHeight = users.length > 0 ? calculatedHeight : 60 // minimum height when no users
+
   return (
       <div className="mt-2">
         <Collapsible open={isUsersOpen} onOpenChange={setIsUsersOpen} className="group/collapsible">
@@ -29,7 +36,7 @@ export function NavUsers({ users }: {users: PrivateMessageList[]}) {
           </div>
 
           <CollapsibleContent>
-            <ScrollArea className="h-[30vh] pr-3" type="hover">
+            <ScrollArea className="pr-3" style={{ height: `${scrollAreaHeight}px` }} type="hover">
               <SidebarMenu className="mt-1">
                 {users.map((user) => (
                   <SidebarMenuButton size={"lg"} asChild key={user.id} className="py-6 px-2">

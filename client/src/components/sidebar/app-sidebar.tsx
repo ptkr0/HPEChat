@@ -66,7 +66,7 @@ export function AppSidebar() {
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupContent>
-            {/* Servers navigation */}
+            {/* servers navigation */}
             <SidebarMenu>
               <NavServers
                 servers={servers}
@@ -80,7 +80,7 @@ export function AppSidebar() {
 
         <SidebarGroup>
           <SidebarGroupContent>
-            {/* Users navigation */}
+            {/* users navigation */}
             <SidebarMenu>
               <NavUsers users={users} />
             </SidebarMenu>

@@ -36,6 +36,13 @@ export function NavServers({ servers, selectedServerId, onServerSelect, onLeaveS
     return 0
   });
 
+  // calculate height based on number of servers
+  // each server item is approximately 56px (size="lg" + margins)
+  // add some padding for spacing
+  const itemHeight = 56 // approximate height of each server item
+  const maxHeight = window.innerHeight * 0.3 // 30vh in pixels
+  const calculatedHeight = Math.min(sortedServers.length * itemHeight, maxHeight)
+  const scrollAreaHeight = sortedServers.length > 0 ? calculatedHeight : 60 // minimum height when no servers
 
   const renderDropdownMenu = (server: Server) => {
     return (
@@ -75,8 +82,8 @@ export function NavServers({ servers, selectedServerId, onServerSelect, onLeaveS
         </div>
 
         <CollapsibleContent>
-          <div className="mt-1 max-h-[30vh] space-y-0.5">
-            <ScrollArea className="pr-3 h-[30vh]" type="hover">
+          <div className="mt-1 space-y-0.5">
+            <ScrollArea className="pr-3" style={{ height: `${scrollAreaHeight}px` }} type="hover">
               {serversLoading || loading ? (
                 Array.from({ length: 4 }).map((_, index) => (
                   <Skeleton key={index} className="h-10 w-full mb-2 flex items-center justify-center"/>

@@ -18,9 +18,7 @@ import {
 import { Upload, X, Camera } from "lucide-react"
 import { userService } from "@/services/userService"
 import { toast } from "sonner"
-
-const MAX_FILE_SIZE = 5000000 // 5MB
-const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"]
+import { ACCEPTED_AVATAR_TYPES, MAX_PROFILE_PICTURE_SIZE } from "@/constants/constants"
 
 const addUserSchema = z.object({
   username: z
@@ -35,10 +33,10 @@ const addUserSchema = z.object({
     .max(200, "Maksymalnie 200 znaków"),
   avatar: z
     .custom<File | undefined>()
-    .refine((file) => !file || file?.size <= MAX_FILE_SIZE, {
+    .refine((file) => !file || file?.size <= MAX_PROFILE_PICTURE_SIZE, {
       message: "Maksymalny rozmiar pliku to 5MB",
     })
-    .refine((file) => !file || ACCEPTED_IMAGE_TYPES.includes(file?.type), {
+    .refine((file) => !file || ACCEPTED_AVATAR_TYPES.includes(file?.type), {
       message: "Tylko formaty .jpg, .jpeg, .png, .webp są wspierane",
     })
     .optional(),
@@ -68,7 +66,7 @@ export const AddUserModal = ({ isOpen, onClose }: CreateServerModalProps) => {
   })
 
   const handleFileSelect = (file: File) => {
-    if (file && ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+    if (file && ACCEPTED_AVATAR_TYPES.includes(file.type)) {
       setValue("avatar", file, { shouldValidate: true })
 
       // create preview URL
@@ -163,7 +161,7 @@ export const AddUserModal = ({ isOpen, onClose }: CreateServerModalProps) => {
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept={ACCEPTED_IMAGE_TYPES.join(",")}
+                  accept={ACCEPTED_AVATAR_TYPES.join(",")}
                   onChange={handleFileInputChange}
                   className="hidden"
                   disabled={isSubmitting}
@@ -184,7 +182,7 @@ export const AddUserModal = ({ isOpen, onClose }: CreateServerModalProps) => {
                   </div>
                 )}
 
-                {/* Overlay for drag state when avatar exists */}
+                {/* overlay for drag state when avatar exists */}
                 {avatarPreview && isDragOver && (
                   <div className="absolute inset-0 bg-primary/10 flex items-center justify-center rounded-full">
                     <Upload className="w-6 h-6 text-primary" />
@@ -216,7 +214,7 @@ export const AddUserModal = ({ isOpen, onClose }: CreateServerModalProps) => {
             {errors.avatar && <p className="text-xs text-red-500">{errors.avatar.message}</p>}
           </div>
 
-          {/* Username Field */}
+          {/* username field */}
           <div className="grid gap-1.5">
             <Label htmlFor="username">
               Login <span className="text-red-500">*</span>
@@ -230,7 +228,7 @@ export const AddUserModal = ({ isOpen, onClose }: CreateServerModalProps) => {
             {errors.username && <p className="text-xs text-red-500">{errors.username.message}</p>}
           </div>
 
-          {/* Password Field */}
+          {/* password field */}
           <div className="grid gap-1.5">
             <Label htmlFor="password">
               Hasło <span className="text-red-500">*</span>

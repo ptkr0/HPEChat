@@ -27,8 +27,6 @@ namespace HPEChat_Server.Initialization
 
 			await dbContext.Users.AddAsync(admin);
 			await dbContext.SaveChangesAsync();
-
-			Console.WriteLine("Admin account created with username: admin and password: admin");
 		}
 	}
 }

@@ -1,14 +1,3 @@
-import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import {
   Tabs,
   TabsContent,
@@ -19,8 +8,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog"
 import { useContext } from "react"
 import AuthContext from "@/context/AuthProvider"
 import { cn } from "@/lib/utils"
-import { AboutUserSettingsCard } from "./user-settings-modal/about-user-settings-card"
+import { AboutSettingsCard } from "./user-settings-modal/about-settings-card"
 import { ChangePasswordSettingsCard } from "./user-settings-modal/change-password-settings-card"
+import { AdminOptionsSettingsCard } from "./user-settings-modal/admin-options-settings-card"
+import { AccountSettingsCard } from "./user-settings-modal/account-settings-card"
 
 interface UserSettingsModal {
   isOpen: boolean
@@ -32,7 +23,7 @@ export function UserSettingsModal({ isOpen, onClose }: UserSettingsModal) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[600px]">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Ustawienia</DialogTitle>
         </DialogHeader>
@@ -46,23 +37,7 @@ export function UserSettingsModal({ isOpen, onClose }: UserSettingsModal) {
 
           <div className="min-h-[400px] mt-4">
             <TabsContent value="account" className="mt-0">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Konto</CardTitle>
-                  <CardDescription>
-                    Zarządzaj tutaj ustawieniami swojego konta, zapisz zmiany, aby je zastosować.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="grid gap-6">
-                  <div className="grid gap-3">
-                    <Label htmlFor="name">Nazwa</Label>
-                    <Input id="name" defaultValue={user.username} />
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button>Zapisz zmiany</Button>
-                </CardFooter>
-              </Card>
+              <AccountSettingsCard />
             </TabsContent>
 
             <TabsContent value="password" className="mt-0">
@@ -70,26 +45,12 @@ export function UserSettingsModal({ isOpen, onClose }: UserSettingsModal) {
             </TabsContent>
 
             <TabsContent value="other" className="mt-0">
-              <AboutUserSettingsCard />
+              <AboutSettingsCard />
             </TabsContent>
 
             { /* section that only owner can see */ }
             <TabsContent value="admin" className="mt-0">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Opcje administracyjne</CardTitle>
-                  <CardDescription>Jednym kliknięciem usuń całą bazę danych.</CardDescription>
-                </CardHeader>
-                <CardContent className="grid gap-3">
-                  <Label htmlFor="password">Potwierdź hasło</Label>
-                  <Input id="password" type="password" />
-                </CardContent>
-                <CardFooter>
-                  <Button variant="destructive" className="w-full">
-                    Usuń bazę danych
-                  </Button>
-                </CardFooter>
-              </Card>
+              <AdminOptionsSettingsCard />
             </TabsContent>
           </div>
         </Tabs>

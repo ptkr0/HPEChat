@@ -139,7 +139,7 @@ namespace HPEChat_Server.Controllers
 								// preview images are smaller and they will load when user scrolls messages
 								// if user clicks on an image original will load
 								uploadedPreviewPath = await _fileService.GenerateAndUploadPreviewImage(messageDto.Attachment);
-								if (uploadedPreviewPath == null) uploadedPreviewPath = uploadedFilePath;
+								uploadedPreviewPath ??= uploadedFilePath;
 								previewPath = uploadedPreviewPath;
 							}
 							else if (attachmentType == AttachmentType.Video)
@@ -269,6 +269,7 @@ namespace HPEChat_Server.Controllers
 								{
 									Id = serverMessage.SenderId.HasValue ? serverMessage.SenderId.Value.ToString().ToUpper() : string.Empty,
 									Username = serverMessage.Sender != null ? serverMessage.Sender.Username : string.Empty,
+									Image = serverMessage.Sender?.Image ?? string.Empty,
 								},
 							});
 
@@ -285,6 +286,7 @@ namespace HPEChat_Server.Controllers
 						{
 							Id = serverMessage.SenderId.HasValue ? serverMessage.SenderId.Value.ToString().ToUpper() : string.Empty,
 							Username = serverMessage.Sender != null ? serverMessage.Sender.Username : string.Empty,
+							Image = serverMessage.Sender?.Image ?? string.Empty,
 						},
 					});
 				}
