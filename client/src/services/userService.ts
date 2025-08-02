@@ -31,15 +31,10 @@ export const userService = {
             formData.append("Image", avatar);
         }
 
-        const response = await axiosPrivate.post(REGISTER_URL, formData, {
-            headers: {
-                "Content-Type": "multipart/form-data",
-            },
-        });
+        const response = await axiosPrivate.post(REGISTER_URL, formData);
 
         return response.data;
     },
-
     password: async (oldPassword: string, newPassword: string): Promise<string> => {
         const response = await axiosPrivate.put(CHANGE_PASSWORD_URL, {
             oldPassword,

@@ -28,15 +28,28 @@ export function AboutSettingsCard() {
           <div className="grid gap-3">
             <Label>Znajdź mnie tutaj</Label>
             <div className="flex flex-row">
-              <a href="https://ptkr.me" target="_blank"><Button variant="link" className="mr-2">
-                <Globe />ptkr.me
+            <div className="flex flex-row gap-2">
+              <Button variant="link" className="p-0" asChild>
+                <a
+                  href="https://ptkr.me"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Globe className="mr-1" />
+                  ptkr.me
+                </a>
               </Button>
-              </a>
-              <a href="https://github.com/ptkr0" target="_blank"><Button variant="link">
-                <Github />Github
+              <Button variant="link" className="p-0" asChild>
+                <a
+                  href="https://github.com/ptkr0"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Github className="mr-1" />
+                  Github
+                </a>
               </Button>
-              </a>
-            </div>
+            </div>            </div>
           </div>
         </CardContent>
       </Card>
