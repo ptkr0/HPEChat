@@ -1,13 +1,16 @@
-﻿using Azure.Identity;
-using HPEChat_Server.Data;
+﻿using HPEChat_Server.Data;
 using HPEChat_Server.Dtos.User;
 using HPEChat_Server.Extensions;
+using HPEChat_Server.Hubs;
 using HPEChat_Server.Models;
 using HPEChat_Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
+using System.Runtime.InteropServices;
 
 namespace HPEChat_Server.Controllers
 {
@@ -16,14 +19,16 @@ namespace HPEChat_Server.Controllers
 	public class UserController : ControllerBase
 	{
 		private readonly ApplicationDBContext _context;
+		private readonly IHubContext<UserHub, IUserClient> _hub;
 		private readonly FileService _fileService;
 		private readonly UserService _userService;
 
-		public UserController(ApplicationDBContext context, FileService fileService, UserService userService)
+		public UserController(ApplicationDBContext context, FileService fileService, UserService userService, IHubContext<UserHub, IUserClient> hub)
 		{
 			_context = context;
 			_fileService = fileService;
 			_userService = userService;
+			_hub = hub;
 		}
 
 		[HttpPost("register")]
@@ -210,7 +215,7 @@ namespace HPEChat_Server.Controllers
 
 		[HttpPut("username")]
 		[Authorize]
-		public async Task<ActionResult<object>> ChangeUsername([FromBody] string username)
+		public async Task<ActionResult<object>> ChangeUsername([FromBody][MaxLength(50)] string username)
 		{
 			if (!ModelState.IsValid) return BadRequest(ModelState);
 
@@ -229,12 +234,113 @@ namespace HPEChat_Server.Controllers
 				_context.Users.Update(user);
 				await _context.SaveChangesAsync();
 
-				return Ok(new { message = "Username changed" });
+				await _hub
+						.Clients
+						.All
+						.UsernameChanged(new UserInfoDto
+						{
+							Id = user.Id.ToString().ToUpper(),
+							Username = user.Username,
+							Role = user.Role,
+							Image = user.Image ?? string.Empty
+						});
+
+				return Ok(new { message = "Username changed", user });
 			}
 			catch (Exception ex)
 			{
 				Console.WriteLine(ex.Message);
 				return BadRequest("Error changing username: " + ex.Message);
+			}
+		}
+
+		[HttpPut("avatar")]
+		[Authorize]
+		public async Task<ActionResult<object>> ChangeAvatar([FromForm] IFormFile? avatar = null)
+		{
+			// validate the avatar file
+			if (avatar != null && !FileExtension.IsValidAvatar(avatar))
+				return BadRequest("Invalid file type or file size");
+
+			var userId = User.GetUserId();
+			if (userId == null) return BadRequest("User not found");
+
+			var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+			if (user == null) return BadRequest("User not found");
+
+			try
+			{
+				// only deleting the old one
+				if (avatar == null)
+				{
+					// if deleting file from the storage goes fine
+					if (!string.IsNullOrEmpty(user.Image) && _fileService.DeleteFile(user.Image))
+					{
+						user.Image = string.Empty;
+
+						_context.Users.Update(user);
+						await _context.SaveChangesAsync();
+
+						await _hub
+							.Clients
+							.All
+							.AvatarChanged(new UserInfoDto
+							{
+								Id = user.Id.ToString().ToUpper(),
+								Username = user.Username,
+								Role = user.Role,
+								Image = user.Image ?? string.Empty
+							});
+
+						return Ok(new { message = "Avatar removed", user });
+					}
+					else
+					{
+						return BadRequest("Error deleting avatar image");
+					}
+				}
+
+				// if avatar is not null, we are changing it
+				else
+				{
+					// first save the new one, because if that fails we don't want to delete the old one
+					var imagePath = await _fileService.UploadAvatar(avatar, user.Id);
+
+					if (imagePath == null) return BadRequest("Failed to save avatar image.");
+
+					// if user already has an avatar we need to delete the old one
+					if (user.Image != null)
+					{
+						if (!_fileService.DeleteFile(user.Image))
+						{
+							_fileService.DeleteFile(imagePath);
+							return BadRequest("Error deleting old avatar image");
+						}
+					}
+
+					user.Image = imagePath;
+
+					_context.Users.Update(user);
+					await _context.SaveChangesAsync();
+
+					await _hub
+						.Clients
+						.All
+						.AvatarChanged(new UserInfoDto
+						{
+							Id = user.Id.ToString().ToUpper(),
+							Username = user.Username,
+							Role = user.Role,
+							Image = user.Image ?? string.Empty
+						});
+
+					return Ok(new { message = "Avatar updated", user });
+				}
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine(ex.Message);
+				return BadRequest("Error changing avatar: " + ex.Message);
 			}
 		}
 
@@ -255,9 +361,6 @@ namespace HPEChat_Server.Controllers
 		[Authorize]
 		public IActionResult AuthTest()
 		{
-			Console.ForegroundColor = ConsoleColor.Yellow;
-			Console.WriteLine("AuthTest called");
-			Console.ResetColor();
 			var userId = User.GetUserId();
 			if (userId == null) return Unauthorized("User not found");
 

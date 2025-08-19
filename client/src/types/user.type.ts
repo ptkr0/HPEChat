@@ -4,3 +4,8 @@ export type User = {
     role: string;
     image: string;
 }
+
+export type UserResponse = {
+    message: string;
+    user: User | null;
+}

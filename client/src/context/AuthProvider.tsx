@@ -3,24 +3,20 @@ import { User } from "@/types/user.type";
 import { createContext, useState, ReactNode, useEffect } from "react";
 import { useAppStore } from "@/stores/appStore";
 import { useSignalR } from "@/hooks/useSignalR";
-import { fileService } from "@/services/fileService";
-
-export interface UserWithBlobImage extends User {
-  blobImage: string;
-}
 
 interface AuthContextType {
-  user: UserWithBlobImage;
-  setUser: React.Dispatch<React.SetStateAction<UserWithBlobImage>>;
+  user: User;
+  setUser: React.Dispatch<React.SetStateAction<User>>;
   loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<UserWithBlobImage>({ id: '', username: '', role: '', image: '', blobImage: '' });
+  const [user, setUser] = useState<User>({ id: '', username: '', role: '', image: '' });
   const [loading, setLoading] = useState(true);
-  const { initializeSignalR, closeSignalRConnection } = useSignalR();
+  const { initializeServerHub, initializeUserHub, closeUserHub, closeServerHub } = useSignalR();
+  const fetchAndCacheAvatar = useAppStore((state) => state.fetchAndCacheAvatar);
   const clearStore = useAppStore((state) => state.clearStore);
   const fetchServers = useAppStore((state) => state.fetchServers);
 
@@ -44,20 +40,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         // if user has an avatar, fetch it and convert to object URL
         if (userData.image) {
-          const avatarBlob = await fileService.getAvatar(userData.image);
-          if (!isMounted) return;
-
-          const objectUrl = URL.createObjectURL(avatarBlob);
-          setUser(prevUser => ({
-            ...prevUser,
-            blobImage: objectUrl,
-          }));
-
+          fetchAndCacheAvatar(userData);
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
         if (isMounted) {
-          setUser({ id: '', username: '', role: '', image: '', blobImage: '' });
+          setUser({ id: '', username: '', role: '', image: '' });
         }
       } finally {
         if (isMounted) {
@@ -70,38 +58,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     return () => {
       isMounted = false;
-      setUser(currentUser => {
-        if (currentUser.blobImage) {
-          URL.revokeObjectURL(currentUser.blobImage);
-        }
-        return { id: '', username: '', role: '', image: '', blobImage: '' };
+      setUser(() => {
+        return { id: '', username: '', role: '', image: '' };
       });
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
 
-    if (!loading && user.blobImage && user.id === '') {
-      URL.revokeObjectURL(user.blobImage);
-      setUser(prev => ({ ...prev, blobImage: '' }));
+    if (!loading && user.id === '') {
+      setUser(prev => ({ ...prev }));
     }
 
     if (user.id && !loading) {
       fetchServers().then(() => {
-        initializeSignalR();
+        initializeServerHub();
+        initializeUserHub();
       }).catch(error => {
         console.error("AuthProvider: Error fetching servers before SignalR init:", error);
       });
     } else if (!user.id && !loading) {
       clearStore();
-      closeSignalRConnection();
-      if (user.blobImage) {
-        URL.revokeObjectURL(user.blobImage);
-        setUser(prev => ({ ...prev, blobImage: '' }));
-      }
+      closeServerHub();
+      closeUserHub();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user.id, user.blobImage, loading]);
+  }, [user.id, loading]);
 
 
   return (

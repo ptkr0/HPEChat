@@ -224,6 +224,7 @@ export function Message({ message, isSenderCurrentUser, isContinuation }: Messag
             
             {message.attachment.type === AttachmentType.VIDEO && (
               <Button
+                onClick={() => downloadAttachment(message.attachment!)}
                 variant="ghost"
                 className="flex items-center gap-2 p-3 h-auto hover:bg-accent/50 rounded-lg border border-border"
               >
@@ -233,7 +234,7 @@ export function Message({ message, isSenderCurrentUser, isContinuation }: Messag
                 <div className="flex flex-col items-start">
                   <span className="text-sm font-medium">{message.attachment.name || 'Plik Wideo'}</span>
                   <span className="text-[10px] text-muted-foreground">{Math.ceil(message.attachment.size / 1000)} KB</span>
-                  <span className="text-xs text-muted-foreground" onClick={() => downloadAttachment(message.attachment!)}>Kliknij aby odtworzyć</span>
+                  <span className="text-xs text-muted-foreground">Kliknij aby odtworzyć</span>
                 </div>
               </Button>
             )}
@@ -242,6 +243,7 @@ export function Message({ message, isSenderCurrentUser, isContinuation }: Messag
               <Button
                 variant="ghost"
                 className="flex items-center gap-2 p-3 h-auto hover:bg-accent/50 rounded-lg border border-border"
+                onClick={() => downloadAttachment(message.attachment!)}
               >
                 <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center">
                   <Music className="h-5 w-5 text-orange-500" />
@@ -249,7 +251,7 @@ export function Message({ message, isSenderCurrentUser, isContinuation }: Messag
                 <div className="flex flex-col items-start">
                   <span className="text-sm font-medium">{message.attachment.name || 'Plik Audio'}</span>
                   <span className="text-[10px] text-muted-foreground">{Math.ceil(message.attachment.size / 1000)} KB</span>
-                  <span className="text-xs text-muted-foreground" onClick={() => downloadAttachment(message.attachment!)}>Kliknij aby posłuchać</span>
+                  <span className="text-xs text-muted-foreground">Kliknij aby posłuchać</span>
                 </div>
               </Button>
             )}
@@ -258,6 +260,7 @@ export function Message({ message, isSenderCurrentUser, isContinuation }: Messag
               <Button
                 variant="ghost"
                 className="flex items-center gap-2 p-3 h-auto hover:bg-accent/50 rounded-lg border border-border"
+                onClick={() => downloadAttachment(message.attachment!)}
               >
                 <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center">
                   <FileText className="h-5 w-5 text-blue-500" />
@@ -265,7 +268,7 @@ export function Message({ message, isSenderCurrentUser, isContinuation }: Messag
                 <div className="flex flex-col items-start">
                   <span className="text-sm font-medium">{message.attachment.name || 'Dokument'}</span>
                   <span className="text-[10px] text-muted-foreground">{Math.ceil(message.attachment.size / 1000)} KB</span>
-                  <span className="text-xs text-muted-foreground" onClick={() => downloadAttachment(message.attachment!)}>Kliknij aby otworzyć</span>
+                  <span className="text-xs text-muted-foreground">Kliknij aby otworzyć</span>
                 </div>
               </Button>
             )}
@@ -274,6 +277,7 @@ export function Message({ message, isSenderCurrentUser, isContinuation }: Messag
               <Button
                 variant="ghost"
                 className="flex items-center gap-2 p-3 h-auto hover:bg-accent/50 rounded-lg border border-border"
+                onClick={() => downloadAttachment(message.attachment!)}
               >
                 <div className="size-10 rounded-lg bg-muted/50 flex items-center justify-center">
                   <File className="h-5 w-5 text-gray-500" />
@@ -281,7 +285,7 @@ export function Message({ message, isSenderCurrentUser, isContinuation }: Messag
                 <div className="flex flex-col items-start">
                   <span className="text-sm font-medium">{message.attachment.name || 'Plik'}</span>
                   <span className="text-[10px] text-muted-foreground">{Math.ceil(message.attachment.size / 1000)} KB</span>
-                  <span className="text-xs text-muted-foreground" onClick={() => downloadAttachment(message.attachment!)}>Kliknij aby pobrać</span>
+                  <span className="text-xs text-muted-foreground">Kliknij aby pobrać</span>
                 </div>
               </Button>
             )}

@@ -3,15 +3,16 @@ import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useContext, useRef, useState } from "react"
-import { Camera, Upload, X, RotateCcw, CheckCircle, AlertCircle } from "lucide-react"
+import { Camera, Upload, X, RotateCcw } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import AuthContext from "@/context/AuthProvider"
 import { userService } from "@/services/userService"
 import { ACCEPTED_AVATAR_TYPES, MAX_PROFILE_PICTURE_SIZE } from "@/constants/constants"
+import { FormAlert } from "./settings-alert"
+import { useAppStore } from "@/stores/appStore"
 
 // username validation schema
 const usernameSchema = z.object({
@@ -44,9 +45,10 @@ interface FeedbackState {
 }
 
 export function AccountSettingsCard() {
-  const { user } = useContext(AuthContext);
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(user?.blobImage || null)
-  const [originalAvatarPreview, setOriginalAvatarPreview] = useState<string | null>(user?.blobImage || null)
+  const { user, setUser } = useContext(AuthContext);
+  const avatarBlob = user ? useAppStore((state) => state.avatarBlobs.get(user.id)) : null;
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(avatarBlob || null)
+  const [originalAvatarPreview, setOriginalAvatarPreview] = useState<string | null>(avatarBlob || null)
   const [isDragOver, setIsDragOver] = useState(false)
   const [usernameFeedback, setUsernameFeedback] = useState<FeedbackState>({ type: null, message: "" })
   const [avatarFeedback, setAvatarFeedback] = useState<FeedbackState>({ type: null, message: "" })
@@ -68,7 +70,7 @@ export function AccountSettingsCard() {
   })
 
   const handleFileSelect = (file: File) => {
-    
+
     if (file && ACCEPTED_AVATAR_TYPES.includes(file.type)) {
       avatarForm.setValue("avatar", file, { shouldValidate: true })
       const reader = new FileReader()
@@ -81,6 +83,7 @@ export function AccountSettingsCard() {
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
+
     if (file) {
       handleFileSelect(file)
     }
@@ -90,6 +93,7 @@ export function AccountSettingsCard() {
     e.preventDefault()
     setIsDragOver(false)
     const file = e.dataTransfer.files?.[0]
+
     if (file) {
       handleFileSelect(file)
     }
@@ -98,6 +102,7 @@ export function AccountSettingsCard() {
   const removeAvatar = () => {
     avatarForm.setValue("avatar", undefined, { shouldValidate: true })
     setAvatarPreview(null)
+
     if (fileInputRef.current) {
       fileInputRef.current.value = ""
     }
@@ -112,6 +117,7 @@ export function AccountSettingsCard() {
     avatarForm.reset()
     setAvatarPreview(originalAvatarPreview)
     setAvatarFeedback({ type: null, message: "" })
+
     if (fileInputRef.current) {
       fileInputRef.current.value = ""
     }
@@ -124,9 +130,13 @@ export function AccountSettingsCard() {
       const result = await userService.username(data.username)
       setUsernameFeedback({
         type: result ? "success" : "error",
-        message: result || "Wystąpił błąd podczas aktualizacji nazwy użytkownika.",
+        message: result.message || "Nazwa użytkownika została zaktualizowana.",
       })
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setUser((prevUser) => ({
+        ...prevUser,
+        username: data.username,
+      }))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       setUsernameFeedback({
         type: "error",
@@ -142,14 +152,18 @@ export function AccountSettingsCard() {
       const result = await userService.avatar(data.avatar || null)
       setAvatarFeedback({
         type: result ? "success" : "error",
-        message: result || "Zdjęcie profilowe zostało zaktualizowane.",
+        message: result.message || "Zdjęcie profilowe zostało zaktualizowane.",
       })
 
       // update the original preview to the new one
       if (result) {
+        setUser((prevUser) => ({
+          ...prevUser,
+          image: result.user?.image || "",
+        }))
         setOriginalAvatarPreview(avatarPreview)
       }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       setAvatarFeedback({
         type: "error",
@@ -257,16 +271,11 @@ export function AccountSettingsCard() {
                 </div>
               </div>
             </div>
-            {avatarFeedback.type && (
-              <Alert variant={avatarFeedback.type === "success" ? "default" : "destructive"} className="mt-3">
-                {avatarFeedback.type === "success" ? (
-                  <CheckCircle className="h-3 w-3" />
-                ) : (
-                  <AlertCircle className="h-3 w-3" />
-                )}
-                <AlertDescription className="text-xs">{avatarFeedback.message}</AlertDescription>
-              </Alert>
-            )}
+            <div className="mt-3">
+              {avatarFeedback.type && (
+                <FormAlert type={avatarFeedback.type} message={avatarFeedback.message} small />
+              )}
+            </div>
           </form>
         </div>
 
@@ -276,7 +285,7 @@ export function AccountSettingsCard() {
             Nazwa użytkownika
           </Label>
           <form onSubmit={usernameForm.handleSubmit(onUsernameSubmit)}>
-            <div className="flex gap-2 space-y-3">
+            <div className="flex gap-2">
               <div className="flex-1">
                 <Input
                   id="username"
@@ -284,16 +293,6 @@ export function AccountSettingsCard() {
                   disabled={usernameForm.formState.isSubmitting}
                   className="h-9"
                 />
-                {usernameForm.formState.errors.username && (
-                  <div className="mt-2">
-                    <Alert variant="destructive" className="flex items-center gap-2">
-                      <span>
-                        <AlertCircle className="size-4" />
-                      </span>
-                      <AlertDescription className="text-xs">{usernameForm.formState.errors.username.message}</AlertDescription>
-                    </Alert>
-                  </div>
-                )}
               </div>
               <Button
                 type="submit"
@@ -312,17 +311,13 @@ export function AccountSettingsCard() {
                 <RotateCcw className="w-3 h-3" />
               </Button>
             </div>
-            {usernameFeedback.type && (
-              <Alert variant={usernameFeedback.type === "success" ? "default" : "destructive"} className="mt-3">
-                {usernameFeedback.type === "success" ? (
-                  <CheckCircle className="h-3 w-3" />
-                ) : (
-                  <AlertCircle className="h-3 w-3" />
-                )}
-                <AlertDescription className="text-xs">{usernameFeedback.message}</AlertDescription>
-              </Alert>
-            )}
           </form>
+          {usernameForm.formState.errors.username && (
+            <FormAlert type="error" message={usernameForm.formState.errors.username.message || ""} small />
+          )}
+          {usernameFeedback.type && (
+            <FormAlert type={usernameFeedback.type} message={usernameFeedback.message} small />
+          )}
         </div>
       </CardContent>
     </Card>

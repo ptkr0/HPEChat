@@ -7,8 +7,7 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { userService } from "@/services/userService"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { CheckCircle, AlertCircle } from "lucide-react"
+import { FormAlert } from "./settings-alert"
 
 const changePasswordSchema = z
   .object({
@@ -85,14 +84,7 @@ export function ChangePasswordSettingsCard() {
 
             {/* on submit feedback */}
             {feedback.type && (
-              <Alert variant={feedback.type === "success" ? "default" : "destructive"} className="border-l-4">
-                {feedback.type === "success" ? (
-                  <CheckCircle className="h-4 w-4" />
-                ) : (
-                  <AlertCircle className="h-4 w-4" />
-                )}
-                <AlertDescription className="font-medium">{feedback.message}</AlertDescription>
-              </Alert>
+              <FormAlert type={feedback.type} message={feedback.message} />
             )}
 
             <div className="space-y-4">
@@ -111,12 +103,7 @@ export function ChangePasswordSettingsCard() {
                   disabled={isSubmitting}
                 />
                 {errors.oldPassword && (
-                    <Alert variant="destructive" className="py-2 flex items-center gap-2">
-                      <span>
-                        <AlertCircle className="size-4" />
-                      </span>
-                      <AlertDescription className="text-xs">{errors.oldPassword.message}</AlertDescription>
-                    </Alert>
+                    <FormAlert type="error" message={errors.oldPassword.message || ""} small />
                 )}
               </div>
 
@@ -134,12 +121,7 @@ export function ChangePasswordSettingsCard() {
                   disabled={isSubmitting}
                 />
                 {errors.newPassword && (
-                    <Alert variant="destructive" className="py-2 flex items-center gap-2">
-                      <span>
-                        <AlertCircle className="size-4" />
-                      </span>
-                      <AlertDescription className="text-xs">{errors.newPassword.message}</AlertDescription>
-                    </Alert>
+                    <FormAlert type="error" message={errors.newPassword.message || ""} small />
                 )}
               </div>
             </div>

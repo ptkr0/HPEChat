@@ -3,6 +3,7 @@ using HPEChat_Server.Dtos.Channel;
 using HPEChat_Server.Dtos.ServerMessage;
 using HPEChat_Server.Dtos.User;
 using HPEChat_Server.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
@@ -36,6 +37,7 @@ namespace HPEChat_Server.Hubs
 		Task MessageRemoved(Guid serverId, Guid channelId, Guid messageId);
 	}
 
+	[Authorize]
 	public class ServerHub : Hub<IServerClient>, IServerHub
 	{
 		private readonly ApplicationDBContext _context;

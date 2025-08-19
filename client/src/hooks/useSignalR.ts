@@ -6,9 +6,10 @@ import { Channel } from "@/types/channel.types";
 import { ServerMessage } from "@/types/server-message.type";
 import { setSignalRConnection } from "@/services/signalrService";
 
-export const SIGNALR_URL = 'https://localhost:7056/hubs/server';
+const SERVER_HUB_URL = 'https://localhost:7056/hubs/server';
+const USER_HUB_URL = 'https://localhost:7056/hubs/user';
 
-const EventNames = {
+const ServerEventNames = {
     MessageAdded: "MessageAdded",
     MessageEdited: "MessageEdited",
     MessageRemoved: "MessageRemoved",
@@ -19,68 +20,52 @@ const EventNames = {
     UserLeft: "UserLeft",
 };
 
+const UserEventNames = {
+    UsernameChanged: "UsernameChanged",
+    AvatarChanged: "AvatarChanged",
+};
+
 export const useSignalR = () => {
     const appStoreActions = useAppStore.getState();
 
-    const connectionRef = useRef<HubConnection | null>(null);
-    const [isConnected, setIsConnected] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const serverConnectionRef = useRef<HubConnection | null>(null);
+    const userConnectionRef = useRef<HubConnection | null>(null);
 
-    const unregisterEventHandlers = useCallback((connection: HubConnection) => {
-        Object.values(EventNames).forEach(eventName => connection.off(eventName));
-    }, []);
+    const [isServerConnected, setIsServerConnected] = useState(false);
+    const [serverError, setServerError] = useState<string | null>(null);
 
-    const closeSignalRConnection = useCallback(async () => {
-        if (connectionRef.current) {
-            unregisterEventHandlers(connectionRef.current);
-            try {
-                await connectionRef.current.stop();
-                console.log("SignalR: Connection stopped.");
-            } catch (err) {
-                console.error("SignalR: Error stopping connection: ", err);
-                const errorMessage = err instanceof Error ? err.message : String(err);
-                setError(`SignalR Stop Error: ${errorMessage}`);
-            } finally {
-                setIsConnected(false);
-                connectionRef.current = null;
-            }
-        }
-    }, [unregisterEventHandlers]);
+    const [isUserConnected, setIsUserConnected] = useState(false);
+    const [userError, setUserError] = useState<string | null>(null);
 
-    const registerEventHandlers = useCallback((connection: HubConnection) => {
+    const registerServerEventHandlers = useCallback((connection: HubConnection) => {
+        Object.values(ServerEventNames).forEach(eventName => connection.off(eventName));
 
-        connection.on(EventNames.MessageAdded, (serverId: string, message: ServerMessage) => {
+        connection.on(ServerEventNames.MessageAdded, (serverId: string, message: ServerMessage) => {
             appStoreActions.addMessageToChannel(serverId.toUpperCase(), { ...message, id: message.id.toUpperCase() });
         });
-
-        connection.on(EventNames.MessageEdited, (serverId: string, message: ServerMessage) => {
+        connection.on(ServerEventNames.MessageEdited, (serverId: string, message: ServerMessage) => {
             appStoreActions.editMessageInChannel(serverId.toUpperCase(), { ...message, id: message.id.toUpperCase() });
         });
-
-        connection.on(EventNames.MessageRemoved, (serverId: string, channelId: string, messageId: string) => {
+        connection.on(ServerEventNames.MessageRemoved, (serverId: string, channelId: string, messageId: string) => {
             appStoreActions.removeMessageFromChannel(serverId.toUpperCase(), channelId.toUpperCase(), messageId.toUpperCase());
         });
-
-        connection.on(EventNames.ChannelAdded, (serverId: string, channel: Channel) => {
+        connection.on(ServerEventNames.ChannelAdded, (serverId: string, channel: Channel) => {
             appStoreActions.addChannel(serverId.toUpperCase(), { ...channel, id: channel.id.toUpperCase() });
         });
-
-        connection.on(EventNames.ChannelRemoved, (serverId: string, channelId: string) => {
+        connection.on(ServerEventNames.ChannelRemoved, (serverId: string, channelId: string) => {
             appStoreActions.removeChannel(serverId.toUpperCase(), channelId.toUpperCase());
         });
-
-        connection.on(EventNames.ChannelUpdated, (serverId: string, channel: Channel) => {
+        connection.on(ServerEventNames.ChannelUpdated, (serverId: string, channel: Channel) => {
             appStoreActions.updateChannel(serverId.toUpperCase(), { ...channel, id: channel.id.toUpperCase() });
         });
-
-        connection.on(EventNames.UserJoined, (serverId: string, user: User) => {
+        connection.on(ServerEventNames.UserJoined, (serverId: string, user: User) => {
             appStoreActions.addUserToServer(serverId.toUpperCase(), { ...user, id: user.id.toUpperCase() });
         });
-
-        connection.on(EventNames.UserLeft, (serverId: string, userId: string) => {
+        connection.on(ServerEventNames.UserLeft, (serverId: string, userId: string) => {
             appStoreActions.removeUserFromServer(serverId.toUpperCase(), userId.toUpperCase());
         });
 
+        // in case of losing connection, reconnect to all server groups
         connection.onreconnected(async () => {
             console.log("SignalR: Connection reconnected. Rejoining server groups...");
             const currentServers = useAppStore.getState().servers;
@@ -95,76 +80,128 @@ export const useSignalR = () => {
         });
     }, [appStoreActions]);
 
-    const initializeSignalR = useCallback(async () => {
-        if (connectionRef.current && connectionRef.current.state === "Connected") {
-            console.log("SignalR: Already connected.");
-            return;
-        }
-        if (connectionRef.current) {
-            await closeSignalRConnection();
-        }
+    const registerUserEventHandlers = useCallback((connection: HubConnection) => {
+        Object.values(UserEventNames).forEach(eventName => connection.off(eventName));
+
+        // todo: finish this
+        connection.on(UserEventNames.UsernameChanged, (user: User) => {
+            console.log("Username changed:", user);
+        });
+
+        connection.on(UserEventNames.AvatarChanged, (user: User) => { 
+            appStoreActions.changeAvatar(user);
+        });
+    }, [appStoreActions]);
+
+    const initializeServerHub = useCallback(async () => {
+        if (serverConnectionRef.current?.state === "Connected") return;
 
         const connection = new HubConnectionBuilder()
-            .withUrl(SIGNALR_URL)
+            .withUrl(SERVER_HUB_URL)
             .configureLogging(LogLevel.Information)
             .withAutomaticReconnect()
             .build();
 
-        registerEventHandlers(connection);
-        connectionRef.current = connection;
+        serverConnectionRef.current = connection;
+        registerServerEventHandlers(connection);
 
         try {
             await connection.start();
-            setIsConnected(true);
-            setError(null);
-            console.log("SignalR: Connection started successfully.");
+            setIsServerConnected(true);
+            setServerError(null);
+            console.log("SignalR (Server): Connection started.");
+            setSignalRConnection(connection);
 
+            // join all server groups
             const currentServers = useAppStore.getState().servers;
-            console.log(`SignalR: Attempting to join groups for ${currentServers.length} servers.`);
             for (const server of currentServers) {
-                try {
-                    await connection.invoke("JoinServer", server.id);
-                    console.log(`SignalR: Successfully joined server group ${server.id} on initial connect.`);
-                } catch (err) {
-                    console.error(`SignalR: Error auto-joining server group ${server.id} on initial connect:`, err);
-                }
+                await connection.invoke("JoinServer", server.id);
             }
-            setSignalRConnection(connection); // for global access (signalrService)
         } catch (err) {
-            setIsConnected(false);
-            const errorMessage = err instanceof Error ? err.message : String(err);
-            setError(`SignalR Connection Error: ${errorMessage}`);
-            console.error("SignalR Connection Error: ", err);
-            connectionRef.current = null; 
+            const msg = err instanceof Error ? err.message : String(err);
+            setServerError(`Connection Error: ${msg}`);
+            console.error("SignalR (Server) Connection Error: ", err);
         }
-    }, [registerEventHandlers, closeSignalRConnection]); 
+    }, [registerServerEventHandlers]);
 
-    const invokeHubMethod = useCallback(async (methodName: string, ...args: unknown[]) => {
-        if (connectionRef.current && connectionRef.current.state === "Connected") {
+    const closeServerHub = useCallback(async () => {
+        if (serverConnectionRef.current) {
             try {
-                return await connectionRef.current.invoke(methodName, ...args);
+                await serverConnectionRef.current.stop();
             } catch (err) {
-                console.error(`SignalR: Error invoking method ${methodName}:`, err);
-                const errorMessage = err instanceof Error ? err.message : String(err);
-                setError(`SignalR Invoke Error (${methodName}): ${errorMessage}`);
-                throw err; 
+                console.error("SignalR (Server): Error stopping connection.", err);
+            } finally {
+                setIsServerConnected(false);
+                serverConnectionRef.current = null;
             }
-        } else {
-            const notConnectedMsg = "SignalR: Cannot invoke method, not connected.";
-            console.error(notConnectedMsg);
-            setError(notConnectedMsg);
-            throw new Error(notConnectedMsg);
         }
     }, []);
 
+    const invokeOnServerHub = useCallback(async (methodName: string, ...args: unknown[]) => {
+        if (!serverConnectionRef.current || serverConnectionRef.current.state !== "Connected") {
+            throw new Error("Server Hub is not connected.");
+        }
+        return await serverConnectionRef.current.invoke(methodName, ...args);
+    }, []);
+
+    const initializeUserHub = useCallback(async () => {
+        if (userConnectionRef.current?.state === "Connected") return;
+
+        const connection = new HubConnectionBuilder()
+            .withUrl(USER_HUB_URL)
+            .configureLogging(LogLevel.Information)
+            .withAutomaticReconnect()
+            .build();
+        
+        userConnectionRef.current = connection;
+        registerUserEventHandlers(connection);
+
+        try {
+            await connection.start();
+            setIsUserConnected(true);
+            setUserError(null);
+            console.log("SignalR (User): Connection started.");
+        } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            setUserError(`Connection Error: ${msg}`);
+            console.error("SignalR (User) Connection Error: ", err);
+        }
+    }, [registerUserEventHandlers]);
+
+    const closeUserHub = useCallback(async () => {
+        if (userConnectionRef.current) {
+            try {
+                await userConnectionRef.current.stop();
+            } catch (err) {
+                console.error("SignalR (User): Error stopping connection.", err);
+            } finally {
+                setIsUserConnected(false);
+                userConnectionRef.current = null;
+            }
+        }
+    }, []);
+
+    const invokeOnUserHub = useCallback(async (methodName: string, ...args: unknown[]) => {
+        if (!userConnectionRef.current || userConnectionRef.current.state !== "Connected") {
+            throw new Error("User Hub is not connected.");
+        }
+        return await userConnectionRef.current.invoke(methodName, ...args);
+    }, []);
+
     return {
-        initializeSignalR,
-        closeSignalRConnection,
-        isConnected,
-        error,
-        invokeHubMethod,
-        joinServerGroup: useCallback((serverId: string) => invokeHubMethod("JoinServer", serverId), [invokeHubMethod]),
-        leaveServerGroup: useCallback((serverId: string) => invokeHubMethod("LeaveServer", serverId), [invokeHubMethod]),
+        // server hub
+        isServerConnected,
+        serverError,
+        initializeServerHub,
+        closeServerHub,
+        invokeOnServerHub,
+        
+        // user hub
+        isUserConnected,
+        userError,
+        initializeUserHub,
+        closeUserHub,
+        invokeOnUserHub,
     };
 };
 

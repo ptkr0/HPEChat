@@ -36,6 +36,7 @@ export function NavUser() {
   const { isMobile } = useSidebar()
   const { user, setUser } = useContext(AuthContext);
   const clearStore = useAppStore((state) => state.clearStore);
+  const avatarBlob = useAppStore((state) => state.avatarBlobs.get(user.id));
   const navigate = useNavigate();
   const [showSettingsModal, setShowSettingsModal] = useState(false);
 
@@ -55,7 +56,7 @@ export function NavUser() {
     }
 
     finally {
-      setUser({ id: '', username: '', role: '', image: '', blobImage: '' });
+      setUser({ id: '', username: '', role: '', image: '' });
       clearStore();
       navigate("/login", { replace: true });
     }
@@ -73,7 +74,7 @@ export function NavUser() {
                 className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
               >
                 <Avatar className="size-10 rounded-full">
-                  <AvatarImage src={user.blobImage} alt={user.username} />
+                  <AvatarImage src={avatarBlob} alt={user.username} />
                   <AvatarFallback className="rounded-full">{user.username[0].toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
@@ -91,7 +92,7 @@ export function NavUser() {
               <DropdownMenuLabel className="p-0 font-normal">
                 <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                   <Avatar className="size-10 rounded-full">
-                    <AvatarImage src={user.blobImage} alt={user.username} />
+                    <AvatarImage src={avatarBlob} alt={user.username} />
                     <AvatarFallback className="rounded-full">{user.username[0].toUpperCase()}</AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">

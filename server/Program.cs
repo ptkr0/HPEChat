@@ -73,7 +73,6 @@ builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<FileService>();
 
 var app = builder.Build();
-app.UseCors("CorsPolicy");
 
 if (app.Environment.IsDevelopment())
 {
@@ -85,6 +84,8 @@ app.UseHttpsRedirection();
 
 app.UseRouting();
 
+app.UseCors("CorsPolicy");
+
 app.UseAuthentication();
 
 app.UseAuthorization();
@@ -92,6 +93,7 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.MapHub<ServerHub>("/hubs/server");
+app.MapHub<UserHub>("/hubs/user");
 
 await OwnerInitialization.InitializeAdminAccount(app.Services);
 

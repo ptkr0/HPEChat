@@ -1,4 +1,4 @@
-﻿﻿using SixLabors.ImageSharp;
+﻿using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 
 namespace HPEChat_Server.Services
@@ -25,13 +25,21 @@ namespace HPEChat_Server.Services
 			return fileName;
 		}
 
-		public void DeleteFile(string fileName)
+		public bool DeleteFile(string fileName)
 		{
-			string filePath = Path.Combine(_uploadPath, fileName);
-
-			if (File.Exists(filePath))
+			try
 			{
+				string filePath = Path.Combine(_uploadPath, fileName);
+
+				if (!File.Exists(filePath))
+					return true; // already "deleted"
+
 				File.Delete(filePath);
+				return true;
+			}
+			catch
+			{
+				return false; // deletion failed for some reason (in use, permissions, etc.)
 			}
 		}
 

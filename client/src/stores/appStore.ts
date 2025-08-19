@@ -71,6 +71,8 @@ interface AppState {
 
   fetchAndCacheAttachmentPreview: (attachmentId: string, previewName: string) => Promise<void>;
   revokeAttachmentPreview: (attachmentId: string) => void;
+
+  changeAvatar: (user: User) => Promise<void>;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -826,5 +828,13 @@ clearStore: () => {
       }
       return { attachmentPreviews: newBlobs };
     });
+  },
+
+  changeAvatar: async (user) => {
+    await get().revokeAvatar(user.id);
+
+    if (user.image) {
+      await get().fetchAndCacheAvatar(user);
+    }
   },
 }));

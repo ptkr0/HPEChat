@@ -1,10 +1,12 @@
 import { axiosPrivate } from "@/api/axios";
-import { User } from "@/types/user.type";
+import { User, UserResponse } from "@/types/user.type";
 const LOGIN_URL = "User/login"
 const LOGOUT_URL = "User/logout"
 const GETME_URL = "User/auth-test"
 const REGISTER_URL = "User/register"
 const CHANGE_PASSWORD_URL = "User/password"
+const CHANGE_USERNAME_URL = "User/username"
+const CHANGE_AVATAR_URL = "User/avatar"
 
 
 export const userService = {
@@ -44,18 +46,18 @@ export const userService = {
         return response.data;
     },
 
-    username: async (username: string): Promise<string> => {
-        const response = await axiosPrivate.put("User/username", { username });
+    username: async (username: string): Promise<UserResponse> => {
+        const response = await axiosPrivate.put(CHANGE_USERNAME_URL, username);
         return response.data;
     },
 
-    avatar: async (avatar: File | null): Promise<string> => {
+    avatar: async (avatar: File | null): Promise<UserResponse> => {
         const formData = new FormData();
         if (avatar) {
-            formData.append("Image", avatar);
+            formData.append("avatar", avatar);
         }
 
-        const response = await axiosPrivate.put("User/avatar", formData, {
+        const response = await axiosPrivate.put(CHANGE_AVATAR_URL, formData, {
             headers: {
                 "Content-Type": "multipart/form-data",
             },
