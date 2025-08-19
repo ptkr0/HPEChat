@@ -94,6 +94,7 @@ Client: React 19, Zustand, TailwindCSS, shadcn/ui
 - [ ] Mobile support
 - [ ] Finishing this list
 - [ ] Finishing this README
+- [ ] Localizing app
 
 ## Contributing
 

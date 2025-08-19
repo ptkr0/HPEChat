@@ -46,7 +46,7 @@ interface FeedbackState {
 
 export function AccountSettingsCard() {
   const { user, setUser } = useContext(AuthContext);
-  const avatarBlob = user ? useAppStore((state) => state.avatarBlobs.get(user.id)) : null;
+  const avatarBlob = useAppStore((state) => state.avatarBlobs.get(user.id));
   const [avatarPreview, setAvatarPreview] = useState<string | null>(avatarBlob || null)
   const [originalAvatarPreview, setOriginalAvatarPreview] = useState<string | null>(avatarBlob || null)
   const [isDragOver, setIsDragOver] = useState(false)
