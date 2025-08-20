@@ -82,10 +82,10 @@ Client: React 19, Zustand, TailwindCSS, shadcn/ui
 - [X] Registering user
 - [X] User login
 - [X] User logout
-- [ ] Editing user info (frontend not done)
+- [X] Editing user info
 - [X] Password change
-- [X] Granting admin privileges (frontend not done)
-- [X] Revoking admin privileges (frontend not done)
+- [ ] Granting admin privileges (frontend not done)
+- [ ] Revoking admin privileges (frontend not done)
 - [ ] User status
 
 ### Other
@@ -95,6 +95,7 @@ Client: React 19, Zustand, TailwindCSS, shadcn/ui
 - [ ] Finishing this list
 - [ ] Finishing this README
 - [ ] Localizing app
+- [ ] Tests
 
 ## Contributing
 

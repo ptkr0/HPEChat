@@ -85,7 +85,7 @@ export const useSignalR = () => {
 
         // todo: finish this
         connection.on(UserEventNames.UsernameChanged, (user: User) => {
-            console.log("Username changed:", user);
+            appStoreActions.changeUsername(user, user.username);
         });
 
         connection.on(UserEventNames.AvatarChanged, (user: User) => { 

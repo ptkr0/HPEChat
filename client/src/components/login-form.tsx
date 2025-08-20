@@ -32,6 +32,8 @@ const LoginForm = () => {
       clearStore();
       const loginResponse = await userService.login(username, password);
 
+      setUser(loginResponse);
+      
       // if user has an avatar, fetch it and convert to object URL
       if (loginResponse.image) {
         try {
@@ -40,7 +42,6 @@ const LoginForm = () => {
           console.error("Login successful but avatar load error", avatarError);
         }
       }
-      setUser(loginResponse);
       navigate("/home", { replace: true });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

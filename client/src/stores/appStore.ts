@@ -1,4 +1,4 @@
-// over 700 lines of code
+// over 800 lines of code
 // i am afraid of this store
 
 import { create } from 'zustand';
@@ -73,6 +73,7 @@ interface AppState {
   revokeAttachmentPreview: (attachmentId: string) => void;
 
   changeAvatar: (user: User) => Promise<void>;
+  changeUsername: (user: User, newUsername: string) => Promise<void>;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -836,5 +837,49 @@ clearStore: () => {
     if (user.image) {
       await get().fetchAndCacheAvatar(user);
     }
+  },
+
+  changeUsername: async (user, newUsername) => {
+    set(state => {
+
+      // update cached servers
+      const newCachedServers = new Map(state.cachedServers);
+      newCachedServers.forEach((server, serverId) => {
+        if (server.members.some(member => member.id === user.id)) {
+          const updatedMembers = server.members.map(member =>
+            member.id === user.id ? { ...member, username: newUsername } : member
+          );
+          newCachedServers.set(serverId, { ...server, members: updatedMembers });
+        }
+      });
+
+      // update currently selected server
+      let newSelectedServer = state.selectedServer;
+      if (state.selectedServer && newCachedServers.has(state.selectedServer.id)) {
+        newSelectedServer = newCachedServers.get(state.selectedServer.id)!;
+      }
+
+      // update cached messages
+      const newCachedMessages = new Map(state.cachedChannelMessages);
+      newCachedMessages.forEach((messages, channelId) => {
+        const updatedMessages = messages.map(message =>
+          message.sender.id === user.id ? { ...message, sender: { ...message.sender, username: newUsername } } : message
+        );
+        newCachedMessages.set(channelId, updatedMessages);
+      });
+
+      // update currently selected channel messages
+      let newSelectedChannelMessages = state.selectedChannelMessages;
+      if (state.selectedChannel && newCachedMessages.has(state.selectedChannel.id)) {
+        newSelectedChannelMessages = newCachedMessages.get(state.selectedChannel.id)!;
+      }
+
+      return {
+        cachedServers: newCachedServers,
+        selectedServer: newSelectedServer,
+        cachedMessages: newCachedMessages,
+        selectedChannelMessages: newSelectedChannelMessages,
+      };
+    });
   },
 }));
