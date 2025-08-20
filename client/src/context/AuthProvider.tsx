@@ -34,7 +34,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           username: userData.username,
           role: userData.role,
           image: userData.image || '',
-          blobImage: '',
         };
         setUser(basicUser);
 

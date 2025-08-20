@@ -8,8 +8,6 @@ namespace HPEChat_Server.Hubs
 {
 	public interface IUserHub
 	{
-		Task ChangeUsername(UserInfoDto user);
-		Task ChangeAvatar(UserInfoDto user);
 	}
 
 	public interface IUserClient
@@ -33,16 +31,6 @@ namespace HPEChat_Server.Hubs
 		public override async Task OnConnectedAsync()
 		{
 			await base.OnConnectedAsync();
-		}
-
-		public async Task ChangeAvatar(UserInfoDto user)
-		{
-			await Clients.All.AvatarChanged(user);
-		}
-
-		public async Task ChangeUsername(UserInfoDto user)
-		{
-			await Clients.All.UsernameChanged(user);
 		}
 	}
 }

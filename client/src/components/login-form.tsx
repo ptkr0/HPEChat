@@ -11,11 +11,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import { useContext, useState } from "react"
-import AuthContext, { UserWithBlobImage } from "@/context/AuthProvider"
+import AuthContext from "@/context/AuthProvider"
 import { useNavigate } from "react-router"
 import { userService } from "@/services/userService"
 import { useAppStore } from "@/stores/appStore"
-import { fileService } from "@/services/fileService"
 
 const LoginForm = () => {
   const [username, setUsername] = useState("");
@@ -24,35 +23,24 @@ const LoginForm = () => {
   const { setUser } = useContext(AuthContext);
   const navigate = useNavigate();
   const clearStore = useAppStore((state) => state.clearStore);
+  const fetchAndCacheAvatar = useAppStore((state) => state.fetchAndCacheAvatar);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     try {
+      clearStore();
       const loginResponse = await userService.login(username, password);
-
-      const finalUserObject: UserWithBlobImage = {
-        id: loginResponse.id,
-        username: loginResponse.username,
-        role: loginResponse.role,
-        image: loginResponse.image || '',
-        blobImage: '',
-      };
 
       // if user has an avatar, fetch it and convert to object URL
       if (loginResponse.image) {
         try {
-          const avatarBlob = await fileService.getAvatar(loginResponse.image);
-          const objectUrl = URL.createObjectURL(avatarBlob);
-          finalUserObject.blobImage = objectUrl;
+          await fetchAndCacheAvatar(loginResponse);
         } catch (avatarError) {
           console.error("Login successful but avatar load error", avatarError);
         }
       }
-
-      setUser(finalUserObject);
-
-      clearStore();
+      setUser(loginResponse);
       navigate("/home", { replace: true });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

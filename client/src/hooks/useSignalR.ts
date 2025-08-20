@@ -137,13 +137,6 @@ export const useSignalR = () => {
         }
     }, []);
 
-    const invokeOnServerHub = useCallback(async (methodName: string, ...args: unknown[]) => {
-        if (!serverConnectionRef.current || serverConnectionRef.current.state !== "Connected") {
-            throw new Error("Server Hub is not connected.");
-        }
-        return await serverConnectionRef.current.invoke(methodName, ...args);
-    }, []);
-
     const initializeUserHub = useCallback(async () => {
         if (userConnectionRef.current?.state === "Connected") return;
 
@@ -181,27 +174,18 @@ export const useSignalR = () => {
         }
     }, []);
 
-    const invokeOnUserHub = useCallback(async (methodName: string, ...args: unknown[]) => {
-        if (!userConnectionRef.current || userConnectionRef.current.state !== "Connected") {
-            throw new Error("User Hub is not connected.");
-        }
-        return await userConnectionRef.current.invoke(methodName, ...args);
-    }, []);
-
     return {
         // server hub
         isServerConnected,
         serverError,
         initializeServerHub,
         closeServerHub,
-        invokeOnServerHub,
         
         // user hub
         isUserConnected,
         userError,
         initializeUserHub,
         closeUserHub,
-        invokeOnUserHub,
     };
 };
 

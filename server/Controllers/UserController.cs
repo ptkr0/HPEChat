@@ -306,10 +306,10 @@ namespace HPEChat_Server.Controllers
 					// first save the new one, because if that fails we don't want to delete the old one
 					var imagePath = await _fileService.UploadAvatar(avatar, user.Id);
 
-					if (imagePath == null) return BadRequest("Failed to save avatar image.");
+					if (string.IsNullOrEmpty(imagePath)) return BadRequest("Failed to save avatar image.");
 
 					// if user already has an avatar we need to delete the old one
-					if (user.Image != null)
+					if (!string.IsNullOrEmpty(user.Image))
 					{
 						if (!_fileService.DeleteFile(user.Image))
 						{
