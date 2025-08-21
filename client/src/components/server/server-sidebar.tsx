@@ -26,15 +26,14 @@ import { ServerInfoModal } from "../modals/server-info-modal";
 
 export function ServerSidebar() {
   const {
-    selectedServerId,
     selectedServer,
-    selectedChannelId,
+    selectedChannel,
     serverDetailsLoading,
   } = useAppStore();
   const navigate = useNavigate();
 
   const serverImageBlobs = useAppStore((state) => state.serverImageBlobs);
-  const serverBlobImage = serverImageBlobs.get(selectedServerId || '');
+  const serverBlobImage = serverImageBlobs.get(selectedServer?.id || '');
 
   const { user, loading } = useContext(AuthContext);
   const [showCreateChannelModal, setShowCreateChannelModal] = useState(false);
@@ -45,7 +44,7 @@ export function ServerSidebar() {
   const sortedChannels = selectedServer?.channels?.sort((a, b) => a.name.localeCompare(b.name)) || [];
 
   const handleChannelClick = (channelId: string) => {
-    navigate(`/servers/${selectedServerId}/${channelId}`);
+    navigate(`/servers/${selectedServer?.id}/${channelId}`);
   };
 
   return (
@@ -108,7 +107,7 @@ export function ServerSidebar() {
                                 onClick={() => handleChannelClick(channel.id)}
                                 className={clsx(
                                   "text-left flex-1 mr-2",
-                                  channel.id === selectedChannelId && "bg-accent"
+                                  channel.id === selectedChannel?.id && "bg-accent"
                                 )}
                               >
                                 <div className="flex items-center overflow-hidden">

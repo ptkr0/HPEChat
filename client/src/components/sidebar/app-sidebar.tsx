@@ -25,7 +25,7 @@ const users: PrivateMessageList[] = [
 
 export function AppSidebar() {
   const servers = useAppStore((state) => state.servers);
-  const selectedServerId = useAppStore((state) => state.selectedServerId);
+  const selectedServer = useAppStore((state) => state.selectedServer);
   const fetchServers = useAppStore((state) => state.fetchServers);
   const selectServer = useAppStore((state) => state.selectServer);
   const leaveServer = useAppStore((state) => state.leaveServerAction);
@@ -57,7 +57,7 @@ export function AppSidebar() {
         <SidebarMenuButton
           size={"lg"}
           onClick={() => handleServerSelect(null)}
-          className={`py-3 ${!selectedServerId ? "bg-accent" : ""}`}
+          className={`py-3 ${!selectedServer?.id ? "bg-accent" : ""}`}
         >
           <span className="font-semibold text-lg">HPEChat</span>
         </SidebarMenuButton>
@@ -70,7 +70,7 @@ export function AppSidebar() {
             <SidebarMenu>
               <NavServers
                 servers={servers}
-                selectedServerId={selectedServerId}
+                selectedServerId={selectedServer?.id ?? null}
                 onServerSelect={handleServerSelect}
                 onLeaveServer={handleLeaveServer}
               />
