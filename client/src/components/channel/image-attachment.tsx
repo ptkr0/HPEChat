@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Attachment } from "@/types/attachment.types";
-import { useAppStore } from "@/stores/appStore";
+import { useAppStore } from "@/stores/useAppStore";
 import { useOnScreen } from "@/hooks/useOnScreen";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ImageDetailsModal } from "../modals/image-details-modal";

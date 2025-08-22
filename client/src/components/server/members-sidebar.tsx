@@ -23,7 +23,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
-import { useAppStore } from "@/stores/appStore"
+import { useAppStore } from "@/stores/useAppStore"
 import AuthContext from "@/context/AuthProvider"
 import { User } from "@/types/user.type"
 

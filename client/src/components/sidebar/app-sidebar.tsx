@@ -13,7 +13,7 @@ import { NavUsers } from "./nav-users";
 import { PrivateMessageList } from "@/types/private-message.types";
 import { NavUser } from "./nav-user";
 import { useEffect } from "react";
-import { useAppStore } from "@/stores/appStore";
+import { useAppStore } from "@/stores/useAppStore";
 import { useNavigate } from "react-router";
 
 const users: PrivateMessageList[] = [

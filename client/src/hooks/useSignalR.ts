@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback } from "react";
 import { HubConnectionBuilder, LogLevel, HubConnection } from "@microsoft/signalr";
-import { useAppStore } from "@/stores/appStore";
+import { useAppStore } from "@/stores/useAppStore";
 import { User } from "@/types/user.type";
 import { Channel } from "@/types/channel.types";
 import { ServerMessage } from "@/types/server-message.type";

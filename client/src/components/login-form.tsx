@@ -14,7 +14,7 @@ import { useContext, useState } from "react"
 import AuthContext from "@/context/AuthProvider"
 import { useNavigate } from "react-router"
 import { userService } from "@/services/userService"
-import { useAppStore } from "@/stores/appStore"
+import { useAppStore } from "@/stores/useAppStore"
 
 const LoginForm = () => {
   const [username, setUsername] = useState("");

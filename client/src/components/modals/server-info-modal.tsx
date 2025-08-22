@@ -4,7 +4,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { ServerIcon, Users, Hash, Crown } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { useAppStore } from "@/stores/appStore"
+import { useAppStore } from "@/stores/useAppStore"
 import type { ServerDetails } from "@/types/server.types"
 
 interface ServerInfoModalProps {

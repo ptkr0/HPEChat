@@ -3,7 +3,7 @@ import { MessageBubbleSkeleton } from "@/components/channel/message-skeleton";
 import MessageInput from "@/components/channel/message-input";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbSeparator, BreadcrumbPage } from "@/components/ui/breadcrumb";
 import AuthContext from "@/context/AuthProvider";
-import { useAppStore } from "@/stores/appStore";
+import { useAppStore } from "@/stores/useAppStore";
 import { useContext, useEffect, useRef, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 

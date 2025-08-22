@@ -12,7 +12,7 @@ import AuthContext from "@/context/AuthProvider"
 import { userService } from "@/services/userService"
 import { ACCEPTED_AVATAR_TYPES, MAX_PROFILE_PICTURE_SIZE } from "@/constants/constants"
 import { FormAlert } from "./settings-alert"
-import { useAppStore } from "@/stores/appStore"
+import { useAppStore } from "@/stores/useAppStore"
 
 // username validation schema
 const usernameSchema = z.object({

@@ -1,7 +1,7 @@
 import { userService } from "@/services/userService";
 import { User } from "@/types/user.type";
 import { createContext, useState, ReactNode, useEffect } from "react";
-import { useAppStore } from "@/stores/appStore";
+import { useAppStore } from "@/stores/useAppStore";
 import { useSignalR } from "@/hooks/useSignalR";
 
 interface AuthContextType {

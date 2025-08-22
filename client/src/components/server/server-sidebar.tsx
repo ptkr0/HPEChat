@@ -11,7 +11,7 @@ import {
   SidebarGroupAction,
   SidebarMenuAction,
 } from "@/components/ui/sidebar";
-import { useAppStore } from "@/stores/appStore";
+import { useAppStore } from "@/stores/useAppStore";
 import { useNavigate } from "react-router";
 import clsx from "clsx";
 import { Hash, MoreHorizontal, Plus, Settings, Trash } from "lucide-react";
@@ -52,7 +52,7 @@ export function ServerSidebar() {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuButton size="lg" onClick={() => setServerDetailsOpen(true)}>
-            {!serverDetailsLoading && selectedServer ? (
+            {!serverDetailsLoading && selectedServer?.id ? (
               <>
                 <Avatar className="size-10 rounded-lg flex items-center justify-center shrink-0 overflow-hidden">
                   <AvatarImage 

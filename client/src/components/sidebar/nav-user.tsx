@@ -29,7 +29,7 @@ import { useContext, useState } from "react"
 import { toast } from "sonner"
 import { useNavigate } from "react-router"
 import { userService } from "@/services/userService"
-import { useAppStore } from "@/stores/appStore"
+import { useAppStore } from "@/stores/useAppStore"
 import { UserSettingsModal } from "../modals/user-settings-modal"
 
 export function NavUser() {

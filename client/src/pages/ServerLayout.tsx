@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
-import { useAppStore } from "@/stores/appStore";
+import { useAppStore } from "@/stores/useAppStore";
 import { ServerSidebar } from "@/components/server/server-sidebar";
 import { MembersSidebar } from "@/components/server/members-sidebar";
 import ChannelLayout from "./ChannelLayout";

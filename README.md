@@ -89,7 +89,7 @@ Client: React 19, Zustand, TailwindCSS, shadcn/ui
 - [ ] User status
 
 ### Other
-- [ ] Refactoring app store
+- [X] Refactoring app store
 - [ ] Better lazy load for images
 - [ ] Mobile support
 - [ ] Finishing this list

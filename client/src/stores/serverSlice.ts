@@ -1,7 +1,7 @@
-// over 800 lines of code
+// over 700 lines of code
 // i am afraid of this store
 
-import { create } from 'zustand';
+import { StateCreator } from 'zustand';
 import { Server, ServerDetails } from '@/types/server.types';
 import { Channel } from '@/types/channel.types';
 import { serverService } from '@/services/serverService';
@@ -11,9 +11,9 @@ import { serverMessageService } from '@/services/serverMessageService';
 import { User } from '@/types/user.type';
 import { userService } from '@/services/userService';
 import { joinServerGroup, leaveServerGroup } from '@/services/signalrService';
-import { fileService } from '@/services/fileService';
+import { AppState } from './useAppStore';
 
-interface AppState {
+export interface ServerSlice {
   servers: Server[];
   serversLoading: boolean;
   serversError: string | null;
@@ -33,8 +33,6 @@ interface AppState {
   channelMessagesError: string | null;
   cachedChannelMessages: Map<string, ServerMessage[]>; // map of all cached server messages (channelId -> messages array)
 
-  attachmentPreviews: Map<string, string>; // map of all attachment previews (attachmentId -> blob URL)
-  
   selectChannel: (channelId: string | null) => void;
 
   createServer: (name: string, description?: string, image?: File) => Promise<Server | null>;
@@ -58,22 +56,11 @@ interface AppState {
   getMeInfo: () => Promise<User | null>;
   clearStore: () => void;
 
-  avatarBlobs: Map<string, string>; // map of all avatars (userId -> blob URL)
-  fetchAndCacheAvatar: (user: User) => Promise<void>;
-  revokeAvatar: (userId: string) => void;
-
-  serverImageBlobs: Map<string, string>;
-  fetchAndCacheServerImage: (serverId: string, image?: string) => Promise<void>;
-  revokeServerImage: (serverId: string) => void;
-
-  fetchAndCacheAttachmentPreview: (attachmentId: string, previewName: string) => Promise<void>;
-  revokeAttachmentPreview: (attachmentId: string) => void;
-
   changeAvatar: (user: User) => Promise<void>;
   changeUsername: (user: User, newUsername: string) => Promise<void>;
 }
 
-export const useAppStore = create<AppState>((set, get) => ({
+export const createServerSlice: StateCreator<AppState, [], [], ServerSlice> = (set, get) => ({
   servers: [],
   serversLoading: false,
   serversError: null,
@@ -90,9 +77,6 @@ export const useAppStore = create<AppState>((set, get) => ({
   cachedChannelMessages: new Map(),
 
   cachedServers: new Map(),
-  avatarBlobs: new Map(),
-  serverImageBlobs: new Map(),
-  attachmentPreviews: new Map(),
 
   fetchServers: async () => {
     set({ serversLoading: true, serversError: null });
@@ -522,10 +506,6 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
 clearStore: () => {
-  get().avatarBlobs.forEach(blobUrl => URL.revokeObjectURL(blobUrl));
-  get().serverImageBlobs.forEach(blobUrl => URL.revokeObjectURL(blobUrl));
-  get().attachmentPreviews.forEach(blobUrl => URL.revokeObjectURL(blobUrl));
-  
   set({
     servers: [],
     serversLoading: false,
@@ -538,10 +518,6 @@ clearStore: () => {
     selectedChannelMessages: [],
     channelMessagesLoading: false,
     channelMessagesError: null,
-    cachedChannelMessages: new Map(),
-    avatarBlobs: new Map(),
-    serverImageBlobs: new Map(),
-    attachmentPreviews: new Map(),
   });
 },
 
@@ -708,91 +684,7 @@ clearStore: () => {
     }
   },
 
-  fetchAndCacheAvatar: async (user: User) => {
-    if (!user.image || get().avatarBlobs.has(user.id)) {
-      return; // no image or already cached
-    }
-    try {
-      const avatarBlob = await fileService.getAvatar(user.image);
-      const blobUrl = URL.createObjectURL(avatarBlob);
-      set((state) => {
-        const newAvatarBlobs = new Map(state.avatarBlobs);
-        newAvatarBlobs.set(user.id, blobUrl);
-        return { avatarBlobs: newAvatarBlobs };
-      });
-    } catch (error) {
-      console.error(`Error fetching avatar for user ${user.id}:`, error);
-    }
-  },
-
-  revokeAvatar: (userId: string) => {
-    const blobUrl = get().avatarBlobs.get(userId);
-    if (blobUrl) {
-      URL.revokeObjectURL(blobUrl);
-      set(state => {
-        const newAvatarBlobs = new Map(state.avatarBlobs);
-        newAvatarBlobs.delete(userId);
-        return { avatarBlobs: newAvatarBlobs };
-      });
-    }
-  },
-
-  fetchAndCacheServerImage: async (serverId: string, image?: string) => {
-    if (!image || get().serverImageBlobs.has(serverId)) {
-      return; // no image or already cached
-    }
-    try {
-      const serverImageBlob = await fileService.getServerImage(image);
-      const blobUrl = URL.createObjectURL(serverImageBlob);
-      set((state) => {
-        const newServerImageBlobs = new Map(state.serverImageBlobs);
-        newServerImageBlobs.set(serverId, blobUrl);
-        return { serverImageBlobs: newServerImageBlobs };
-      });
-    } catch (error) {
-      console.error(`Error fetching image for server ${serverId}:`, error);
-    }
-  },
-
-  revokeServerImage: async (serverId: string) => {
-    const blobUrl = get().serverImageBlobs.get(serverId);
-    if (blobUrl) {
-      URL.revokeObjectURL(blobUrl);
-      set(state => {
-        const newServerImageBlobs = new Map(state.serverImageBlobs);
-        newServerImageBlobs.delete(serverId);
-        return { serverImageBlobs: newServerImageBlobs };
-      });
-    }  
-  },
-
-  fetchAndCacheAttachmentPreview: async (attachmentId, previewName) => {
-    if (get().attachmentPreviews.has(attachmentId)) return;
-
-    try {
-      const blob = await fileService.getServerPreview(previewName);
-      const blobUrl = URL.createObjectURL(blob);
-      set((state) => ({
-        attachmentPreviews: new Map(state.attachmentPreviews).set(attachmentId, blobUrl),
-      }));
-    } catch (error) {
-      console.error("Failed to fetch attachment preview:", error);
-    }
-  },
-
-  revokeAttachmentPreview: (attachmentId) => {
-    set((state) => {
-      const newBlobs = new Map(state.attachmentPreviews);
-      const blobUrl = newBlobs.get(attachmentId);
-      if (blobUrl) {
-        URL.revokeObjectURL(blobUrl);
-        newBlobs.delete(attachmentId);
-      }
-      return { attachmentPreviews: newBlobs };
-    });
-  },
-
-  changeAvatar: async (user) => {
+  changeAvatar: async (user: User) => {
     await get().revokeAvatar(user.id);
 
     if (user.image) {
@@ -843,4 +735,4 @@ clearStore: () => {
       };
     });
   },
-}));
+});
