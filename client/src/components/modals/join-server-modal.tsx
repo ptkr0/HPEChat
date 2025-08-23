@@ -7,6 +7,7 @@ import { z } from "zod";
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
+import { toast } from 'sonner';
 
 const joinServerSchema = z.object({
   name: z
@@ -44,10 +45,11 @@ export const JoinServerModal = ({ isOpen, onClose }: JoinServerModalProps) => {
       if (newServer) {
         selectServer(newServer.id);
         navigate(`/servers/${newServer.id}`);
+        toast.success('Pomyślnie dołączono do serwera!');
         onClose();
         reset();
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('API error creating server:', err);
     }
   };

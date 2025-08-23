@@ -57,7 +57,7 @@ export function AppSidebar() {
         <SidebarMenuButton
           size={"lg"}
           onClick={() => handleServerSelect(null)}
-          className={`py-3 ${!selectedServer?.id ? "bg-accent" : ""}`}
+          className={`py-3 ${!selectedServer ? "bg-accent" : ""}`}
         >
           <span className="font-semibold text-lg">HPEChat</span>
         </SidebarMenuButton>
@@ -70,7 +70,7 @@ export function AppSidebar() {
             <SidebarMenu>
               <NavServers
                 servers={servers}
-                selectedServerId={selectedServer?.id ?? null}
+                selectedServerId={selectedServer ? selectedServer.id : null}
                 onServerSelect={handleServerSelect}
                 onLeaveServer={handleLeaveServer}
               />

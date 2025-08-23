@@ -78,7 +78,7 @@ export const createServerSlice: StateCreator<AppState, [], [], ServerSlice> = (s
 
   cachedServers: new Map(),
 
-  fetchServers: async () => {
+  fetchServers: async (initialServerId?: string) => {
     set({ serversLoading: true, serversError: null });
     try {
       const fetchedServers = await serverService.getAll();
@@ -90,6 +90,10 @@ export const createServerSlice: StateCreator<AppState, [], [], ServerSlice> = (s
           get().fetchAndCacheServerImage(server.id, server.image);
         }
       });
+
+      if (initialServerId) {
+        get().selectServer(initialServerId);
+      }
     } catch (error) {
       console.error("Error fetching servers:", error);
       set({ serversError: 'Nie udało się pobrać listy serwerów.', serversLoading: false });
@@ -99,6 +103,8 @@ export const createServerSlice: StateCreator<AppState, [], [], ServerSlice> = (s
   selectServer: async (serverId: string | null) => {
 
     // function to process server members avatars (fetch and cache them if not already cached)
+    // it will be changed to more elegant way (lazy loading user images when component is in viewport)
+    // but for now (small scale) it's enough
     const processServerMembersAvatars = (serverDetails: ServerDetails | null) => {
       if (serverDetails?.members) {
         serverDetails.members.forEach(member => {
@@ -145,31 +151,19 @@ export const createServerSlice: StateCreator<AppState, [], [], ServerSlice> = (s
         serverService.get(serverId).then(details => { // fetch server details
           set(state => {
             const newCachedServers = new Map(state.cachedServers).set(serverId, details);
-            if (state.selectedServer?.id === serverId) {
-              return {
-                selectedServer: details,
-                serverDetailsLoading: false,
-                serverDetailsError: null,
-                cachedServers: newCachedServers
-              };
-            }
-
-            return { cachedServers: newCachedServers };
+            return {
+              selectedServer: details,
+              serverDetailsLoading: false,
+              serverDetailsError: null,
+              cachedServers: newCachedServers
+            };
           });
           processServerMembersAvatars(details);
 
         }).catch(error => {
           console.error("Error fetching server details:", error);
-
-          if (get().selectedServer?.id === serverId) {
-            set({ serverDetailsError: 'Nie udało się załadować szczegółów serwera.', serverDetailsLoading: false });
-            set({
-              selectedServer: null,
-              ...commonStateChanges
-            });
-          }
+          set({ serverDetailsError: 'Nie udało się załadować szczegółów serwera.', serverDetailsLoading: false });
         });
-
       }
     } else {
       set({

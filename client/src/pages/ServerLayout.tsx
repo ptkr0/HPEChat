@@ -18,10 +18,10 @@ export default function ServerLayout() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (serverId) {
+    if (serverId && selectedServer?.id !== serverId) {
       selectServer(serverId);
     }
-  }, [selectServer, serverId]);
+  }, [selectServer, serverId, selectedServer?.id]);
 
   // this useEffect was made to properly handle the case when user deletes channel that is currently selected
   // is deleted channel was also the one that was selected user will be redirected to the first channel in the server

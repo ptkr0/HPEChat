@@ -124,7 +124,7 @@ export function ServerSidebar() {
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent side="right" align="start">
                                     <DropdownMenuItem onClick={() => [setSelectedChannelOptionsId(channel.id)]}>
-                                      <Settings /><span>Edytuj kanał</span>
+                                      <Settings /><span className="text-blue-400 focus:text-blue-400">Edytuj kanał</span>
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem onClick={() => [setSelectedChannelOptionsId(channel.id), setShowDeleteChannelModal(true)]}>

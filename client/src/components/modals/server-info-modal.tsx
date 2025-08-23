@@ -43,7 +43,7 @@ export function ServerInfoModal({ isOpen, onClose, server }: ServerInfoModalProp
                 </Avatar>
               ) : (
                 <div className="h-full w-full rounded-2xl flex items-center justify-center">
-                  <ServerIcon className="h-10 w-10 text-white" />
+                  <ServerIcon className="h-10 w-10" />
                 </div>
               )}
             </div>

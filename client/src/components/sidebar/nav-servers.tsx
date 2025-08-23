@@ -1,4 +1,4 @@
-import { Plus, MoreHorizontal, LogOut, Trash2, ChevronDown } from "lucide-react"
+import { Plus, MoreHorizontal, LogOut, Trash2, ChevronDown, Settings } from "lucide-react"
 import { SidebarGroupLabel, SidebarMenuItem, SidebarMenuButton, SidebarMenuAction } from "@/components/ui/sidebar"
 import type { Server } from "@/types/server.types"
 import clsx from "clsx"
@@ -54,10 +54,16 @@ export function NavServers({ servers, selectedServerId, onServerSelect, onLeaveS
         </DropdownMenuTrigger>
         <DropdownMenuContent side="right" align="center">
           {server.ownerId.toUpperCase() === user.id.toUpperCase() ? (
-            <DropdownMenuItem>
-              <Trash2 className="mr-2 h-4 w-4" />
+            <>
+              <DropdownMenuItem>
+                <Settings className="mr-2 h-4 w-4" />
+                <span className="text-blue-400 focus:text-blue-400">Edytuj Serwer</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <Trash2 className="mr-2 h-4 w-4" />
               <span className="text-red-500 focus:text-red-500">Usuń Serwer</span>
             </DropdownMenuItem>
+            </>
           ) : (
             <DropdownMenuItem onClick={() => onLeaveServer(server.id)}>
               <LogOut className="mr-2 h-4 w-4" />
