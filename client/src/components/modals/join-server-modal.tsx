@@ -8,6 +8,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
+import { useState } from 'react';
+import { FormAlert } from './simple-alert';
 
 const joinServerSchema = z.object({
   name: z
@@ -34,27 +36,33 @@ export const JoinServerModal = ({ isOpen, onClose }: JoinServerModalProps) => {
     mode: 'onChange',
   });
 
+  const [error, setError] = useState<string | null>(null);
   const joinServer = useAppStore((state) => state.joinServer);
   const selectServer = useAppStore((state) => state.selectServer);
   const navigate = useNavigate();
 
   const submitHandler = async (data: JoinServerValues) => {
     try {
-      const newServer = await joinServer(data.name.trim(),);
+      setError(null);
+      const newServer = await joinServer(data.name.trim());
 
-      if (newServer) {
-        selectServer(newServer.id);
-        navigate(`/servers/${newServer.id}`);
-        toast.success('Pomyślnie dołączono do serwera!');
-        onClose();
-        reset();
+      if (!newServer) {
+        setError('Wystąpił błąd podczas dołączania do serwera.');
+        return;
       }
-    } catch (err: unknown) {
-      console.error('API error creating server:', err);
+
+      selectServer(newServer.id);
+      navigate(`/servers/${newServer.id}`);
+      toast.success('Pomyślnie dołączono do serwera!');
+      onClose();
+      reset();
+    } catch (error: unknown) {
+      setError((error as Error)?.message || 'Wystąpił błąd podczas dołączania do serwera.');
     }
   };
 
   const handleClose = () => {
+    setError(null);
     reset();
     onClose();
   };
@@ -69,7 +77,7 @@ export const JoinServerModal = ({ isOpen, onClose }: JoinServerModalProps) => {
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(submitHandler)}>
-          <div className="grid gap-4 py-4">
+          <div className="grid gap-2 py-4">
             <div className="grid w-full max-w-sm items-center gap-1.5">
               <Label htmlFor="name" className="text-right">
                 Nazwa
@@ -82,6 +90,9 @@ export const JoinServerModal = ({ isOpen, onClose }: JoinServerModalProps) => {
                 placeholder="Nazwa serwera"
               />
             </div>
+          {error && (
+            <FormAlert type="error" message={error} small />
+          )}
           </div>
           <DialogFooter>
             <DialogClose asChild>

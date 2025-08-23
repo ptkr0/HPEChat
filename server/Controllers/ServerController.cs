@@ -286,22 +286,18 @@ namespace HPEChat_Server.Controllers
 			}
 		}
 
-		[HttpDelete("leave/{id}")]
+		[HttpDelete("leave/{serverId}")]
 		[Authorize]
-		public async Task<ActionResult<ServerDto>> LeaveServer(Guid id)
+		public async Task<ActionResult> LeaveServer(Guid serverId)
 		{
 			var userId = User.GetUserId();
 			if (userId == null) return BadRequest("User not found");
 
-			Guid serverGuid = id;
-
 			var server = await _context.Servers
 				.Include(s => s.Members)
-				.FirstOrDefaultAsync(s => s.Id == serverGuid);
+				.FirstOrDefaultAsync(s => s.Id == serverId);
 
 			if (server == null) return NotFound("Server not found");
-			if (server.OwnerId == userId) return BadRequest("You are the owner of this server, you can't leave it");
-
 			if (!server.Members.Any(m => m.Id == userId)) return BadRequest("You are not a member of this server");
 
 			await using (var transaction = await _context.Database.BeginTransactionAsync())
@@ -310,8 +306,8 @@ namespace HPEChat_Server.Controllers
 				{
 					var userEntity = server.Members.FirstOrDefault(m => m.Id == userId);
 					if (userEntity == null) return BadRequest("User not found in server members");
-					server.Members.Remove(userEntity);
 
+					server.Members.Remove(userEntity);
 					await _context.SaveChangesAsync();
 
 					await _hub
@@ -319,7 +315,7 @@ namespace HPEChat_Server.Controllers
 						.Group(ServerHub.GroupName(server.Id))
 						.UserLeft(server.Id, userId.Value);
 
-					// forcefully remove user from the SignalR group
+					// remove user from SignalR group
 					var connectionIds = _mapper.GetConnections(userId.Value);
 					foreach (var connId in connectionIds)
 					{
@@ -327,19 +323,12 @@ namespace HPEChat_Server.Controllers
 					}
 
 					await transaction.CommitAsync();
-
-					return Ok(new ServerDto
-					{
-						Id = server.Id.ToString().ToUpper(),
-						Name = server.Name,
-						Description = server.Description,
-						OwnerId = server.OwnerId.ToString().ToUpper()
-					});
+					return Ok(new { message = "User successfully left the server" });
 				}
 				catch
 				{
 					await transaction.RollbackAsync();
-					return StatusCode(500);
+					return StatusCode(500, "An error occurred while leaving the server");
 				}
 			}
 		}

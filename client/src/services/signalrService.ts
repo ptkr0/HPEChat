@@ -11,8 +11,3 @@ export async function joinServerGroup(serverId: string) {
     if (!connection || connection.state !== "Connected") throw new Error("Not connected");
     await connection.invoke("JoinServer", serverId);
 }
-
-export async function leaveServerGroup(serverId: string) {
-    if (!connection || connection.state !== "Connected") throw new Error("Not connected");
-    await connection.invoke("LeaveServer", serverId);
-}

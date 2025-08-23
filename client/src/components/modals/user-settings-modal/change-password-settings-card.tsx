@@ -7,7 +7,7 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { userService } from "@/services/userService"
-import { FormAlert } from "./settings-alert"
+import { FormAlert } from "../simple-alert"
 
 const changePasswordSchema = z
   .object({

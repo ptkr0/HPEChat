@@ -67,6 +67,7 @@ namespace HPEChat_Server.Hubs
 			_mapper.Remove(userId, Context.ConnectionId);
 			await base.OnDisconnectedAsync(ex);
 		}
+
 		public async Task JoinServer(Guid serverId)
 		{
 			// check if user is a member of the server

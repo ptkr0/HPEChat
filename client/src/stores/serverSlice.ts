@@ -10,7 +10,7 @@ import { ServerMessage } from '@/types/server-message.type';
 import { serverMessageService } from '@/services/serverMessageService';
 import { User } from '@/types/user.type';
 import { userService } from '@/services/userService';
-import { joinServerGroup, leaveServerGroup } from '@/services/signalrService';
+import { joinServerGroup } from '@/services/signalrService';
 import { AppState } from './useAppStore';
 
 export interface ServerSlice {
@@ -426,7 +426,6 @@ export const createServerSlice: StateCreator<AppState, [], [], ServerSlice> = (s
   leaveServerAction: async (serverId) => {
     try {
       await serverService.leave(serverId);
-      get().leaveServer(serverId);
     }
     catch (error) {
       console.error("Error leaving server:", error);
@@ -437,12 +436,11 @@ export const createServerSlice: StateCreator<AppState, [], [], ServerSlice> = (s
   leaveServer: async (serverId) => {
     try {
 
-      leaveServerGroup(serverId); // leave the SignalR group for the server
-
       // remove server from state, cache, clear server channel messages
       // if the server was selected, select the first remaining server or null
       const wasSelectedServer = get().selectedServer?.id === serverId;
       const channelIdsToClear = get().cachedServers.get(serverId)?.channels.map(channel => channel.id) || [];
+      console.log(wasSelectedServer, serverId, get().selectedServer?.id);
 
       set((state) => {
         const newServers = state.servers.filter(server => server.id !== serverId);

@@ -19,9 +19,17 @@ export default function ServerLayout() {
 
   useEffect(() => {
     if (serverId && selectedServer?.id !== serverId) {
-      selectServer(serverId);
+      // check if the server exists in the store before attempting to select it
+      if (useAppStore.getState().servers.some(server => server.id === serverId)) {
+          selectServer(serverId);
+      } else {
+          // if the server doesn't exist, navigate to home
+          selectServer(null);
+          navigate('/home', { replace: true });
+          return;
+      }
     }
-  }, [selectServer, serverId, selectedServer?.id]);
+  }, [selectServer, serverId, selectedServer?.id, navigate]);
 
   // this useEffect was made to properly handle the case when user deletes channel that is currently selected
   // is deleted channel was also the one that was selected user will be redirected to the first channel in the server
