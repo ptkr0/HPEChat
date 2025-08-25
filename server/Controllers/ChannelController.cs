@@ -87,10 +87,8 @@ namespace HPEChat_Server.Controllers
 			var userId = User.GetUserId();
 			if (userId == null) return Unauthorized("User not found");
 
-			Guid channelGuid = id;
-
 			var channel = await _context.Channels
-				.FirstOrDefaultAsync(c => c.Id == channelGuid && c.Server.OwnerId == userId);
+				.FirstOrDefaultAsync(c => c.Id == id && c.Server.OwnerId == userId);
 
 			if (channel == null) return NotFound("Channel not found or access denied");
 			if (channel.Name == name) return BadRequest("Channel name is the same");

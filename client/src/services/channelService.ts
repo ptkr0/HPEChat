@@ -17,5 +17,10 @@ export const channelService = {
 
     delete: async (channelId: string): Promise<void> => {
         await axiosPrivate.delete(`${CHANNEL_URL}/${channelId}`);
+    },
+
+    edit: async (channelId: string, newName: string): Promise<Channel> => {
+        const response = await axiosPrivate.patch(`${CHANNEL_URL}/${channelId}`, newName );
+        return response.data;
     }
 };

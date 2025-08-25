@@ -23,6 +23,8 @@ import { CreateChannelModal } from "../modals/create-channel-modal";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "../ui/dropdown-menu";
 import { ConfirmationDialog } from "../modals/confirmation-modal";
 import { ServerInfoModal } from "../modals/server-info-modal";
+import { EditChannelModal } from "../modals/edit-channel-modal";
+import { Channel } from "@/types/channel.types";
 
 export function ServerSidebar() {
   const {
@@ -38,8 +40,9 @@ export function ServerSidebar() {
   const { user, loading } = useContext(AuthContext);
   const [showCreateChannelModal, setShowCreateChannelModal] = useState(false);
   const [showDeleteChannelModal, setShowDeleteChannelModal] = useState(false);
+  const [showEditChannelModal, setShowEditChannelModal] = useState(false);
   const [isServerDetailsOpen, setServerDetailsOpen] = useState(false);
-  const [selectedChannelOptionsId, setSelectedChannelOptionsId] = useState<string>('');
+  const [selectedChannelOptions, setSelectedChannelOptions] = useState<Channel | null>(null);
 
   const sortedChannels = selectedServer?.channels?.sort((a, b) => a.name.localeCompare(b.name)) || [];
 
@@ -123,11 +126,11 @@ export function ServerSidebar() {
                                     </SidebarMenuAction>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent side="right" align="start">
-                                    <DropdownMenuItem onClick={() => [setSelectedChannelOptionsId(channel.id)]}>
+                                    <DropdownMenuItem onClick={() => [setSelectedChannelOptions(channel), setShowEditChannelModal(true)]}>
                                       <Settings /><span className="text-blue-400 focus:text-blue-400">Edytuj kanał</span>
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
-                                    <DropdownMenuItem onClick={() => [setSelectedChannelOptionsId(channel.id), setShowDeleteChannelModal(true)]}>
+                                    <DropdownMenuItem onClick={() => [setSelectedChannelOptions(channel), setShowDeleteChannelModal(true)]}>
                                       <Trash /><span className="text-red-500 focus:text-red-500">Usuń kanał</span>
                                     </DropdownMenuItem>
                                   </DropdownMenuContent>
@@ -158,9 +161,15 @@ export function ServerSidebar() {
       />
 
       <ConfirmationDialog
-        channelId={selectedChannelOptionsId}
+        channelId={selectedChannelOptions?.id || ''}
         isOpen={showDeleteChannelModal}
         onClose={() => setShowDeleteChannelModal(false)}
+      />
+
+      <EditChannelModal
+        existingChannel={selectedChannelOptions || { id: '', name: '' }}
+        isOpen={showEditChannelModal}
+        onClose={() => setShowEditChannelModal(false)}
       />
 
       {selectedServer && <ServerInfoModal isOpen={isServerDetailsOpen} onClose={() => setServerDetailsOpen(false)} server={selectedServer} />}

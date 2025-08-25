@@ -57,7 +57,7 @@ Client: React 19, Zustand, TailwindCSS, shadcn/ui
 
 ### Channel
 - [X] Creating channel
-- [ ] Editing channel (frontend not done)
+- [X] Editing channel
 - [X] Deleting channel
 - [X] Displaying channel info
 
