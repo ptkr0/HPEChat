@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 
 namespace HPEChat_Server.Controllers
 {
@@ -80,7 +81,7 @@ namespace HPEChat_Server.Controllers
 
 		[HttpPatch("{id}")]
 		[Authorize]
-		public async Task<ActionResult<ChannelDto>> UpdateChannel(Guid id, [FromBody] string name)
+		public async Task<ActionResult<ChannelDto>> UpdateChannel(Guid id, [FromBody][Required] string name)
 		{
 			if (!ModelState.IsValid) return BadRequest(ModelState);
 

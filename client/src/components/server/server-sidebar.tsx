@@ -19,11 +19,11 @@ import { Avatar, AvatarImage, AvatarFallback } from "@radix-ui/react-avatar";
 import { Skeleton } from "../ui/skeleton";
 import { useContext, useState } from "react";
 import AuthContext from "@/context/AuthProvider";
-import { CreateChannelModal } from "../modals/create-channel-modal";
+import { CreateChannelModal } from "../modals/channel-modals/create-channel-modal";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "../ui/dropdown-menu";
-import { ConfirmationDialog } from "../modals/confirmation-modal";
-import { ServerInfoModal } from "../modals/server-info-modal";
-import { EditChannelModal } from "../modals/edit-channel-modal";
+import { ConfirmationDialog } from "../modals/channel-modals/confirmation-modal";
+import { ServerInfoModal } from "../modals/server-modals/server-info-modal";
+import { EditChannelModal } from "../modals/channel-modals/edit-channel-modal";
 import { Channel } from "@/types/channel.types";
 
 export function ServerSidebar() {

@@ -9,7 +9,7 @@ import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { useState } from 'react';
-import { FormAlert } from './simple-alert';
+import { FormAlert } from '@/components/modals/simple-alert';
 
 const joinServerSchema = z.object({
   name: z
