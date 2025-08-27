@@ -1,5 +1,6 @@
 ﻿using HPEChat_Server.Data;
 using HPEChat_Server.Dtos.Channel;
+using HPEChat_Server.Dtos.Server;
 using HPEChat_Server.Dtos.ServerMessage;
 using HPEChat_Server.Dtos.User;
 using HPEChat_Server.Services;
@@ -16,6 +17,7 @@ namespace HPEChat_Server.Hubs
 
 	public interface IServerClient
 	{
+		Task ServerUpdated(ServerDto server);
 		Task UserJoined(Guid serverId, UserInfoDto user);
 		Task UserLeft(Guid serverId, Guid userId);
 

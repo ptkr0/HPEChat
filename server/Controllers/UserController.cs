@@ -256,7 +256,7 @@ namespace HPEChat_Server.Controllers
 
 		[HttpPut("avatar")]
 		[Authorize]
-		public async Task<ActionResult<object>> ChangeAvatar([FromForm] IFormFile? avatar = null)
+		public async Task<ActionResult<object>> ChangeAvatar(IFormFile? avatar = null)
 		{
 			// validate the avatar file
 			if (avatar != null && !FileExtension.IsValidAvatar(avatar))

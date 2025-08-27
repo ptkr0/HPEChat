@@ -13,6 +13,7 @@ import AuthContext from "@/context/AuthProvider"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { ScrollArea } from "../ui/scroll-area"
+import { EditServerModal } from "../modals/server-modals/edit-server-modal"
 
 interface NavServersProps {
   servers: Server[]
@@ -26,9 +27,11 @@ export function NavServers({ servers, selectedServerId, onServerSelect, onLeaveS
   const [dropdownMenu, setDropdownMenu] = useState(false)
   const [showCreateServerModal, setShowCreateServerModal] = useState(false)
   const [showJoinServerModal, setShowJoinServerModal] = useState(false)
+  const [showEditServerModal, setShowEditServerModal] = useState(false)
   const serversLoading = useAppStore((state) => state.serversLoading)
   const [isServersOpen, setIsServersOpen] = useState(true)
   const serverImageBlobs = useAppStore((state) => state.serverImageBlobs)
+  const [selectedServer, setSelectedServer] = useState<Server | null>(null)
 
   const sortedServers = servers.sort((a, b) => {
     if (a.name.toLowerCase() < b.name.toLowerCase()) return -1
@@ -55,7 +58,10 @@ export function NavServers({ servers, selectedServerId, onServerSelect, onLeaveS
         <DropdownMenuContent side="right" align="center">
           {server.ownerId.toUpperCase() === user.id.toUpperCase() ? (
             <>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => {
+                setSelectedServer(server);
+                setShowEditServerModal(true);
+              }}>
                 <Settings className="mr-2 h-4 w-4" />
                 <span className="text-blue-400 focus:text-blue-400">Edytuj Serwer</span>
               </DropdownMenuItem>
@@ -171,6 +177,12 @@ export function NavServers({ servers, selectedServerId, onServerSelect, onLeaveS
       <CreateServerModal isOpen={showCreateServerModal} onClose={() => setShowCreateServerModal(false)} />
 
       <JoinServerModal isOpen={showJoinServerModal} onClose={() => setShowJoinServerModal(false)} />
+
+      <EditServerModal
+        existingServer={selectedServer || { id: '', name: '', description: '', ownerId: '', image: '' }}
+        isOpen={showEditServerModal}
+        onClose={() => setShowEditServerModal(false)}
+      />
     </div>
   )
 }

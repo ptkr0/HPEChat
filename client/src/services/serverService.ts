@@ -32,6 +32,23 @@ export const serverService = {
         return response.data;
     },
 
+    edit: async (serverId: string, name: string, description: string, image?: File, deleteImage: boolean = false): Promise<Server> => {
+        const formData = new FormData();
+        formData.append("Name", name);
+        formData.append("Description", description);
+
+        if (image) {
+            formData.append("Image", image);
+        }
+
+        const response = await axiosPrivate.put(`${SERVER_URL}/${serverId}?deleteImage=${deleteImage}`, formData, {
+            headers: {
+                "Content-Type": "multipart/form-data",
+            },
+        });
+        return response.data;
+    },
+
     join: async (inviteCode: string): Promise<ServerDetails> => {
         const response = await axiosPrivate.post(`${SERVER_URL}/join/${ inviteCode }`);
         console.log(response.data);

@@ -120,23 +120,54 @@ namespace HPEChat_Server.Controllers
 
 		[HttpPatch("{id}")]
 		[Authorize]
-		public async Task<ActionResult<ServerDto>> UpdateServer(Guid id, [FromBody] CreateServerDto updateServerDto)
+		public async Task<ActionResult<ServerDto>> UpdateServer(Guid id, [FromForm] CreateServerDto updateServerDto, bool deleteImage = false)
 		{
 			if (!ModelState.IsValid) return BadRequest(ModelState);
 
 			var userId = User.GetUserId();
 			if (userId == null) return BadRequest("User not found");
 
-			Guid serverGuid = id;
-
-			var server = await _context.Servers.FindAsync(serverGuid);
+			var server = await _context.Servers.FindAsync(id);
 			if (server == null) return NotFound("Server not found");
 			if (server.OwnerId != userId) return BadRequest("You are not the owner of this server");
+
+			// check if user wants to delete image (deleteImage = true and no new image provided)
+			if (deleteImage && !string.IsNullOrWhiteSpace(server.Image))
+			{
+				_fileService.DeleteFile(server.Image);
+				server.Image = "";
+			}
+
+			// check if user provided a new image (wants to change or add new)
+			else if (!deleteImage && updateServerDto.Image != null && FileExtension.IsValidAvatar(updateServerDto.Image))
+			{
+				var uploadedImage = await _fileService.UploadServerPicture(updateServerDto.Image, server.Id);
+
+				if (uploadedImage == null) return StatusCode(500, "Failed to save server image.");
+
+				if (!string.IsNullOrWhiteSpace(server.Image))
+				{
+					_fileService.DeleteFile(server.Image);
+				}
+				server.Image = uploadedImage;
+			}
 
 			server.Name = updateServerDto.Name ?? server.Name;
 			server.Description = updateServerDto.Description ?? server.Description;
 
 			await _context.SaveChangesAsync();
+
+			await _hub
+					.Clients
+					.Group(ServerHub.GroupName(server.Id))
+					.ServerUpdated(new ServerDto
+					{
+						Id = server.Id.ToString().ToUpper(),
+						Name = server.Name,
+						Description = server.Description,
+						OwnerId = server.OwnerId.ToString().ToUpper(),
+						Image = server.Image ?? string.Empty,
+					});
 
 			return Ok(new ServerDto
 			{

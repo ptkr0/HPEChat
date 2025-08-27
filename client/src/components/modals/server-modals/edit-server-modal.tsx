@@ -1,98 +1,149 @@
-import { z } from 'zod';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useAppStore } from '@/stores/useAppStore';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import type React from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { useEffect, useRef, useState, useCallback } from "react"
+import { Camera, Upload, X, RotateCcw } from "lucide-react"
+import { useForm } from "react-hook-form"
+import { z } from "zod"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { ACCEPTED_AVATAR_TYPES, MAX_PROFILE_PICTURE_SIZE } from "@/constants/constants"
+import { useAppStore } from "@/stores/useAppStore"
+import type { Server } from "@/types/server.types"
 import {
   Dialog,
+  DialogClose,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
-  DialogClose,
-  DialogDescription,
-} from '@/components/ui/dialog';
-import { Upload, Camera, X } from 'lucide-react';
-import { useRef, useState } from 'react';
+} from "@/components/ui/dialog"
 
-const MAX_FILE_SIZE = 5000000 // 5MB
-const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"]
-
-const createServerSchema = z.object({
-  name: z
-    .string()
-    .min(1, 'Nazwa jest wymagana')
-    .max(50, 'Maksymalnie 50 znaków'),
-  description: z
-    .string()
-    .max(1000, 'Maksymalnie 1000 znaków')
-    .optional()
-    .or(z.literal('')),
+const editServerSchema = z.object({
+  name: z.string().min(1, "Nazwa jest wymagana").max(50, "Maksymalnie 50 znaków"),
+  description: z.string().max(1000, "Maksymalnie 1000 znaków").optional().or(z.literal("")),
   image: z
     .custom<File | undefined>()
-    .refine((file) => !file || file?.size <= MAX_FILE_SIZE, {
+    .refine((file) => !file || file?.size <= MAX_PROFILE_PICTURE_SIZE, {
       message: "Maksymalny rozmiar pliku to 5MB",
     })
-    .refine((file) => !file || ACCEPTED_IMAGE_TYPES.includes(file?.type), {
+    .refine((file) => !file || ACCEPTED_AVATAR_TYPES.includes(file?.type), {
       message: "Tylko formaty .jpg, .jpeg, .png, .webp są wspierane",
     })
     .optional(),
-});
+})
 
-type CreateServerValues = z.infer<typeof createServerSchema>;
+type EditServerValues = z.infer<typeof editServerSchema>
 
-interface CreateServerModalProps {
-  isOpen: boolean;
-  onClose: () => void;
+interface EditServerModalProps {
+  existingServer: Server
+  isOpen: boolean
+  onClose: () => void
 }
 
-export const CreateServerModal = ({ isOpen, onClose }: CreateServerModalProps) => {
+export const EditServerModal = ({ existingServer, isOpen, onClose }: EditServerModalProps) => {
+  const serverImageBlob = useAppStore((state) => state.serverImageBlobs.get(existingServer.id))
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
+  const [isClosing, setIsClosing] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const nameInputRef = useRef<HTMLInputElement>(null)
+
+  const originalValues = useCallback(
+    () => ({
+      name: existingServer.name,
+      description: existingServer.description,
+      image: serverImageBlob || null,
+    }),
+    [existingServer.name, existingServer.description, serverImageBlob],
+  )
 
   const {
     register,
     handleSubmit,
     reset,
     setValue,
+    watch,
     formState: { errors, isSubmitting, isValid },
-  } = useForm<CreateServerValues>({
-    resolver: zodResolver(createServerSchema),
-    mode: 'onChange',
-  });
+  } = useForm<EditServerValues>({
+    resolver: zodResolver(editServerSchema),
+    mode: "onChange",
+    defaultValues: {
+      name: existingServer.name,
+      description: existingServer.description,
+    },
+  })
 
-  const createServer = useAppStore((state) => state.createServer);
-  const selectServer = useAppStore((state) => state.selectServer);
+  const watchedValues = watch()
+  const watchedImage = watch("image")
 
-  const submitHandler = async (data: CreateServerValues) => {
+  const hasChanges = useCallback(() => {
+    const original = originalValues()
+    const currentName = watchedValues.name?.trim() || ""
+    const currentDescription = watchedValues.description?.trim() || ""
+    const originalName = original.name?.trim() || ""
+    const originalDescription = original.description?.trim() || ""
+
+    const nameChanged = currentName !== originalName
+    const descriptionChanged = currentDescription !== originalDescription
+    const imageChanged = watchedImage !== undefined || imagePreview !== original.image
+
+    return nameChanged || descriptionChanged || imageChanged
+  }, [watchedValues, watchedImage, imagePreview, originalValues])
+
+  const submitHandler = async (data: EditServerValues) => {
     try {
-      const newServer = await createServer(
-        data.name.trim(),
-        data.description?.trim(),
-        data.image
-      );
-
-      if (newServer) {
-        selectServer(newServer.id);
-        onClose();
-        reset();
-      }
+      console.log(data)
     } catch (err) {
-      console.error('API error creating server:', err);
+      console.error("API error creating server:", err)
     }
-  };
+  }
 
   const handleClose = () => {
-    reset();
-    setImagePreview(null)
-    onClose();
-  };
+    setIsClosing(true)
+    onClose()
+    // Delay reset until after modal close animation (typically 200-300ms)
+    setTimeout(() => {
+      reset()
+      setImagePreview(null)
+      setIsClosing(false)
+    }, 300)
+  }
+
+  const handleReset = () => {
+    const original = originalValues()
+    reset({
+      name: original.name,
+      description: original.description,
+    })
+    setImagePreview(original.image)
+    setValue("image", undefined, { shouldValidate: true })
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
+    }
+  }
+
+  useEffect(() => {
+    if (isOpen && !isClosing) {
+      const original = originalValues()
+      reset({
+        name: original.name,
+        description: original.description,
+      })
+      // Set image preview immediately when modal opens
+      setImagePreview(original.image)
+    }
+  }, [isOpen, isClosing, reset, originalValues])
+
+  useEffect(() => {
+    if (isOpen && nameInputRef.current) {
+      nameInputRef.current.blur()
+    }
+  }, [isOpen])
 
   const handleFileSelect = (file: File) => {
-    if (file && ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+    if (file && ACCEPTED_AVATAR_TYPES.includes(file.type)) {
       setValue("image", file, { shouldValidate: true })
 
       // create preview URL
@@ -143,14 +194,11 @@ export const CreateServerModal = ({ isOpen, onClose }: CreateServerModalProps) =
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Utwórz nowy serwer</DialogTitle>
-          <DialogDescription>
-            Jeden formularz dzieli cię od utworzenia nowego serwera.
-          </DialogDescription>
+          <DialogTitle>Edytuj swój serwer.</DialogTitle>
+          <DialogDescription>Zmodyfikuj szczegóły swojego serwera.</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(submitHandler)} className="space-y-6">
-
           <div className="flex flex-col items-center space-y-2">
             <div className="relative">
               <div
@@ -168,7 +216,7 @@ export const CreateServerModal = ({ isOpen, onClose }: CreateServerModalProps) =
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept={ACCEPTED_IMAGE_TYPES.join(",")}
+                  accept={ACCEPTED_AVATAR_TYPES.join(",")}
                   onChange={handleFileInputChange}
                   className="hidden"
                   disabled={isSubmitting}
@@ -176,8 +224,9 @@ export const CreateServerModal = ({ isOpen, onClose }: CreateServerModalProps) =
 
                 {imagePreview ? (
                   <img
-                    src={imagePreview}
+                    src={imagePreview || "/placeholder.svg"}
                     className="w-full h-full object-cover"
+                    alt="Server preview"
                   />
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center bg-muted/50">
@@ -228,45 +277,41 @@ export const CreateServerModal = ({ isOpen, onClose }: CreateServerModalProps) =
             <Input
               id="name"
               placeholder="Mój serwer"
-              {...register('name')}
+              {...register("name")}
               disabled={isSubmitting}
+              autoFocus={false}
             />
-            {errors.name && (
-              <p className="text-xs text-red-500">{errors.name.message}</p>
-            )}
+            {errors.name && <p className="text-xs text-red-500">{errors.name.message}</p>}
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="description">Opis</Label>
-            <Input
-              id="description"
-              placeholder="Super opis"
-              {...register('description')}
-              disabled={isSubmitting}
-            />
-            {errors.description && (
-              <p className="text-xs text-red-500">
-                {errors.description.message}
-              </p>
-            )}
+            <Input id="description" placeholder="Super opis" {...register("description")} disabled={isSubmitting} />
+            {errors.description && <p className="text-xs text-red-500">{errors.description.message}</p>}
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleReset}
+              disabled={isSubmitting}
+              className="mr-auto"
+            >
+              <RotateCcw className="w-4 h-4 mr-2" />
+              Resetuj
+            </Button>
+
             <DialogClose asChild>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={isSubmitting}
-                onClick={handleClose}
-              >
+              <Button type="button" variant="outline" disabled={isSubmitting} onClick={handleClose}>
                 Anuluj
               </Button>
             </DialogClose>
-            <Button type="submit" disabled={isSubmitting || !isValid}>
-              {isSubmitting ? 'Tworzenie…' : 'Utwórz'}
+            <Button type="submit" disabled={isSubmitting || !isValid || !hasChanges()}>
+              {isSubmitting ? "Edytowanie…" : "Edytuj"}
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
-  );
-};
+  )
+}
