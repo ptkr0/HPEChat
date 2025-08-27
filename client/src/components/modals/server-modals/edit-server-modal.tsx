@@ -103,7 +103,8 @@ export const EditServerModal = ({ existingServer, isOpen, onClose }: EditServerM
   const handleClose = () => {
     setIsClosing(true)
     onClose()
-    // Delay reset until after modal close animation (typically 200-300ms)
+
+    // delay reset until after modal close animation
     setTimeout(() => {
       reset()
       setImagePreview(null)
@@ -131,7 +132,8 @@ export const EditServerModal = ({ existingServer, isOpen, onClose }: EditServerM
         name: original.name,
         description: original.description,
       })
-      // Set image preview immediately when modal opens
+      
+      // set image preview immediately when modal opens
       setImagePreview(original.image)
     }
   }, [isOpen, isClosing, reset, originalValues])
@@ -302,7 +304,7 @@ export const EditServerModal = ({ existingServer, isOpen, onClose }: EditServerM
             </Button>
 
             <DialogClose asChild>
-              <Button type="button" variant="outline" disabled={isSubmitting} onClick={handleClose}>
+              <Button type="button" variant="outline" disabled={isSubmitting}>
                 Anuluj
               </Button>
             </DialogClose>

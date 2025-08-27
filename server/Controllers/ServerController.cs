@@ -131,11 +131,14 @@ namespace HPEChat_Server.Controllers
 			if (server == null) return NotFound("Server not found");
 			if (server.OwnerId != userId) return BadRequest("You are not the owner of this server");
 
+			// track old image for best‑effort cleanup after DB commit
+			string? oldImageToDelete = null;
+
 			// check if user wants to delete image (deleteImage = true and no new image provided)
 			if (deleteImage && !string.IsNullOrWhiteSpace(server.Image))
 			{
-				_fileService.DeleteFile(server.Image);
-				server.Image = "";
+				oldImageToDelete = server.Image;
+				server.Image = null;
 			}
 
 			// check if user provided a new image (wants to change or add new)
@@ -145,10 +148,7 @@ namespace HPEChat_Server.Controllers
 
 				if (uploadedImage == null) return StatusCode(500, "Failed to save server image.");
 
-				if (!string.IsNullOrWhiteSpace(server.Image))
-				{
-					_fileService.DeleteFile(server.Image);
-				}
+				oldImageToDelete = server.Image;
 				server.Image = uploadedImage;
 			}
 
@@ -156,6 +156,11 @@ namespace HPEChat_Server.Controllers
 			server.Description = updateServerDto.Description ?? server.Description;
 
 			await _context.SaveChangesAsync();
+
+			if (!string.IsNullOrWhiteSpace(oldImageToDelete))
+			{
+			    try { _fileService.DeleteFile(oldImageToDelete); } catch { }
+			}
 
 			await _hub
 					.Clients
