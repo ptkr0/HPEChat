@@ -109,8 +109,11 @@ export function ServerSidebar() {
                               <SidebarMenuButton
                                 onClick={() => handleChannelClick(channel.id)}
                                 className={clsx(
-                                  "text-left flex-1 mr-2",
-                                  channel.id === selectedChannel?.id && "bg-accent"
+                                "transition-all duration-200 hover:bg-accent/75",
+                                {
+                                  "bg-accent text-accent-foreground pointer-events-none":
+                                  channel.id === selectedChannel?.id,
+                                }
                                 )}
                               >
                                 <div className="flex items-center overflow-hidden">

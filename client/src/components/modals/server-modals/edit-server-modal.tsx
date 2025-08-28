@@ -222,7 +222,7 @@ export const EditServerModal = ({ existingServer, isOpen, onClose }: EditServerM
             <div className="relative">
               <div
                 className={`
-                  relative w-24 h-24 rounded-full border-2 border-dashed cursor-pointer transition-all duration-200 overflow-hidden
+                  relative w-24 h-24 rounded-4xl border-2 border-dashed cursor-pointer transition-all duration-200 overflow-hidden
                   ${isDragOver ? "border-primary bg-primary/5 scale-105" : "border-muted-foreground/25 hover:border-primary/50"}
                   ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}
                   ${imagePreview ? "border-solid border-muted-foreground/50" : ""}
@@ -259,7 +259,7 @@ export const EditServerModal = ({ existingServer, isOpen, onClose }: EditServerM
 
                 {/* overlay for drag state when avatar exists */}
                 {imagePreview && isDragOver && (
-                  <div className="absolute inset-0 bg-primary/10 flex items-center justify-center rounded-full">
+                  <div className="absolute inset-0 bg-primary/10 flex items-center justify-center rounded-4xl">
                     <Upload className="w-6 h-6 text-primary" />
                   </div>
                 )}

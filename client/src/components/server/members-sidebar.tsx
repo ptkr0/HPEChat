@@ -98,7 +98,7 @@ export function MembersSidebar() {
       <SidebarMenuItem key={member.id}>
         {selectedServer?.ownerId === user.id.toUpperCase() && member.id !== selectedServer.ownerId ? (
           <DropdownMenu modal={false}>
-              <SidebarMenuButton className="group relative transition-all duration-200 hover:bg-accent/50 rounded-lg mb-1" size={"lg"}>
+              <SidebarMenuButton className="group relative transition-all duration-200 hover:bg-accent/75 rounded-lg mb-1" size={"lg"}>
                 {memberContent}
                 <DropdownMenuTrigger asChild>
                   <MoreHorizontal className="ml-auto size-4" />

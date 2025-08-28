@@ -1,5 +1,5 @@
 import { Plus, MoreHorizontal, LogOut, Trash2, ChevronDown, Settings } from "lucide-react"
-import { SidebarGroupLabel, SidebarMenuItem, SidebarMenuButton, SidebarMenuAction } from "@/components/ui/sidebar"
+import { SidebarGroupLabel, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar"
 import type { Server } from "@/types/server.types"
 import clsx from "clsx"
 import { Button } from "../ui/button"
@@ -10,7 +10,7 @@ import { Skeleton } from "../ui/skeleton"
 import { JoinServerModal } from "@/components/modals/server-modals/join-server-modal"
 import { Avatar, AvatarImage, AvatarFallback } from "@radix-ui/react-avatar"
 import AuthContext from "@/context/AuthProvider"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, } from "../ui/dropdown-menu"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { ScrollArea } from "../ui/scroll-area"
 import { EditServerModal } from "../modals/server-modals/edit-server-modal"
@@ -37,7 +37,7 @@ export function NavServers({ servers, selectedServerId, onServerSelect, onLeaveS
     if (a.name.toLowerCase() < b.name.toLowerCase()) return -1
     if (a.name.toLowerCase() > b.name.toLowerCase()) return 1
     return 0
-  });
+  })
 
   // calculate height based on number of servers
   // each server item is approximately 56px (size="lg" + margins)
@@ -46,40 +46,6 @@ export function NavServers({ servers, selectedServerId, onServerSelect, onLeaveS
   const maxHeight = window.innerHeight * 0.3 // 30vh in pixels
   const calculatedHeight = Math.min(sortedServers.length * itemHeight, maxHeight)
   const scrollAreaHeight = sortedServers.length > 0 ? calculatedHeight : 60 // minimum height when no servers
-
-  const renderDropdownMenu = (server: Server) => {
-    return (
-      <DropdownMenu modal={false}>
-        <DropdownMenuTrigger asChild>
-          <SidebarMenuAction>
-            <MoreHorizontal />
-          </SidebarMenuAction>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent side="right" align="center">
-          {server.ownerId.toUpperCase() === user.id.toUpperCase() ? (
-            <>
-              <DropdownMenuItem onClick={() => {
-                setSelectedServer(server);
-                setShowEditServerModal(true);
-              }}>
-                <Settings className="mr-2 h-4 w-4" />
-                <span className="text-blue-400 focus:text-blue-400">Edytuj Serwer</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Trash2 className="mr-2 h-4 w-4" />
-              <span className="text-red-500 focus:text-red-500">Usuń Serwer</span>
-            </DropdownMenuItem>
-            </>
-          ) : (
-            <DropdownMenuItem onClick={() => onLeaveServer(server.id)}>
-              <LogOut className="mr-2 h-4 w-4" />
-              <span className="text-red-500 focus:text-red-500">Opuść Serwer</span>
-            </DropdownMenuItem>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
-    );
-  };
 
   return (
     <div>
@@ -96,45 +62,86 @@ export function NavServers({ servers, selectedServerId, onServerSelect, onLeaveS
         <CollapsibleContent>
           <div className="mt-1 space-y-0.5">
             <ScrollArea className="pr-3" style={{ height: `${scrollAreaHeight}px` }} type="hover">
-              {serversLoading || loading ? (
-                Array.from({ length: 4 }).map((_, index) => (
-                  <Skeleton key={index} className="h-10 w-full mb-2 flex items-center justify-center"/>
+              {serversLoading || loading
+                ? Array.from({ length: 4 }).map((_, index) => (
+                  <Skeleton key={index} className="h-10 w-full mb-2 flex items-center justify-center" />
                 ))
-              ) : (
-                sortedServers.map((server) => (
-                  <SidebarMenuItem key={server.id}>
-                    <SidebarMenuButton
-                      size={"lg"}
-                      onClick={() => onServerSelect(server.id)}
-                      className={clsx("items-center mt-1", {
-                        "bg-accent text-accent-foreground": server.id === selectedServerId,
-                      })}
-                    >
-                      {(() => {
-                        const serverImage = serverImageBlobs.get(server.id);
-                        return (
-                          <Avatar className="size-10 rounded-lg flex items-center justify-center shrink-0 mr-2 overflow-hidden">
-                            <AvatarImage src={serverImage || (serverImage ? '' : undefined)} />
-                            <AvatarFallback className="bg-muted flex items-center justify-center text-sm font-medium w-full h-full">
-                              {server.name[0].toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                        );
-                      })()}
-                      <div className="flex flex-col min-w-0 flex-1 w-0">
-                        <div className="truncate font-medium w-full">{server.name}</div>
-                        <div className="truncate text-xs text-muted-foreground w-full">{server.description}</div>
-                      </div>
-                    </SidebarMenuButton>
-                    {renderDropdownMenu(server)}
+                : sortedServers.map((server) => (
+                  <SidebarMenuItem key={server.id} className="space-y-1 relative">
+                    <DropdownMenu modal={false}>
+                      <SidebarMenuButton
+                        size={"lg"}
+                        onClick={() => onServerSelect(server.id)}
+                        className={clsx("transition-all duration-200 hover:bg-accent/75", {
+                          "bg-accent text-accent-foreground pointer-events-none": server.id === selectedServerId,
+                        })}
+                      >
+                        {(() => {
+                          const serverImage = serverImageBlobs.get(server.id)
+                          return (
+                            <Avatar className="size-10 rounded-lg flex items-center justify-center shrink-0 mr-2 overflow-hidden">
+                              <AvatarImage src={serverImage || (serverImage ? "" : undefined)} />
+                              <AvatarFallback className="bg-muted flex items-center justify-center text-sm font-medium w-full h-full">
+                                {server.name[0].toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                          )
+                        })()}
+                        <div className="flex flex-col min-w-0 flex-1 w-0">
+                          <div className="truncate font-medium w-full">{server.name}</div>
+                          <div className="truncate text-xs text-muted-foreground w-full">{server.description}</div>
+                        </div>
+                      </SidebarMenuButton>
+
+                      { /* dropdown trigger for server actions */ }
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="ml-auto h-8 w-8 absolute right-2 top-1/2 -translate-y-1/2 hover:bg-accent/75"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                          }}
+                        >
+                          <MoreHorizontal className="size-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+
+                      { /* dropdown menu for server actions */ }
+                      <DropdownMenuContent side="right" align="center">
+                        {server.ownerId.toUpperCase() === user.id.toUpperCase() ? (
+                          <>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedServer(server)
+                                setShowEditServerModal(true)
+                              }}
+                            >
+                              <Settings className="mr-2 h-4 w-4" />
+                              <span className="text-blue-400 focus:text-blue-400">Edytuj Serwer</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              <span className="text-red-500 focus:text-red-500">Usuń Serwer</span>
+                            </DropdownMenuItem>
+                          </>
+                        ) : (
+                          <DropdownMenuItem onClick={() => onLeaveServer(server.id)}>
+                            <LogOut className="mr-2 h-4 w-4" />
+                            <span className="text-red-500 focus:text-red-500">Opuść Serwer</span>
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </SidebarMenuItem>
-                ))
-              )}
+                ))}
             </ScrollArea>
           </div>
         </CollapsibleContent>
       </Collapsible>
 
+      { /* dropdown for creating/joining servers */}
       <SidebarMenuItem className="mt-1">
         <div className="relative">
           <SidebarMenuButton
@@ -179,7 +186,15 @@ export function NavServers({ servers, selectedServerId, onServerSelect, onLeaveS
       <JoinServerModal isOpen={showJoinServerModal} onClose={() => setShowJoinServerModal(false)} />
 
       <EditServerModal
-        existingServer={selectedServer || { id: '', name: '', description: '', ownerId: '', image: '' }}
+        existingServer={
+          selectedServer || {
+            id: "",
+            name: "",
+            description: "",
+            ownerId: "",
+            image: "",
+          }
+        }
         isOpen={showEditServerModal}
         onClose={() => setShowEditServerModal(false)}
       />

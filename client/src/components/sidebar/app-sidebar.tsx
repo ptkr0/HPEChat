@@ -38,11 +38,12 @@ export function AppSidebar() {
 
   const handleServerSelect = (serverId: string | null) => {
     console.log("Selecting server:", serverId);
-    selectServer(serverId);
 
     if (serverId) {
+      selectServer(serverId);
       navigate(`/servers/${serverId}`);
     } else {
+      selectServer(null);
       navigate(`/home`);
     }
   };
@@ -57,7 +58,7 @@ export function AppSidebar() {
         <SidebarMenuButton
           size={"lg"}
           onClick={() => handleServerSelect(null)}
-          className={`py-3 ${!selectedServer ? "bg-accent" : ""}`}
+          className={`transition-all duration-200 hover:bg-accent/75 ${!selectedServer ? "bg-accent text-accent-foreground pointer-events-none" : ""}`}
         >
           <span className="font-semibold text-lg">HPEChat</span>
         </SidebarMenuButton>
