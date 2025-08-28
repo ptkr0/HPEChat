@@ -50,7 +50,7 @@ Client: React 19, Zustand, TailwindCSS, shadcn/ui
 - [X] Creating server
 - [X] Joining server
 - [X] Leaving server
-- [ ] Edititing server (frontend not done)
+- [X] Edititing server
 - [X] Displaying list of servers
 - [X] Displaying server info
 - [ ] Deleting server

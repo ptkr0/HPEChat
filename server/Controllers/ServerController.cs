@@ -138,7 +138,7 @@ namespace HPEChat_Server.Controllers
 			if (deleteImage && !string.IsNullOrWhiteSpace(server.Image))
 			{
 				oldImageToDelete = server.Image;
-				server.Image = null;
+				server.Image = "";
 			}
 
 			// check if user provided a new image (wants to change or add new)
@@ -153,7 +153,7 @@ namespace HPEChat_Server.Controllers
 			}
 
 			server.Name = updateServerDto.Name ?? server.Name;
-			server.Description = updateServerDto.Description ?? server.Description;
+			server.Description = updateServerDto.Description ?? "";
 
 			await _context.SaveChangesAsync();
 
@@ -297,6 +297,7 @@ namespace HPEChat_Server.Controllers
 						Name = server.Name,
 						Description = server.Description,
 						OwnerId = server.OwnerId.ToString().ToUpper(),
+						Image = server.Image ?? string.Empty,
 						Members = server.Members.Select(m => new UserInfoDto
 						{
 							Id = m.Id.ToString().ToUpper(),

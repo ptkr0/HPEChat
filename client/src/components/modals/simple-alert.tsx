@@ -1,13 +1,13 @@
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { CheckCircle, AlertCircle } from "lucide-react"
 
-interface FormAlertProps {
+interface SimpleAlertProps {
   type: "success" | "error"
   message: string
   small?: boolean
 }
 
-export function FormAlert({ type, message, small = false }: FormAlertProps) {
+export function SimpleAlert({ type, message, small = false }: SimpleAlertProps) {
   const Icon = type === "success" ? CheckCircle : AlertCircle
   const variant = type === "success" ? "default" : "destructive"
 

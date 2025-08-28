@@ -9,7 +9,7 @@ import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { useState } from 'react';
-import { FormAlert } from '@/components/modals/simple-alert';
+import { SimpleAlert } from '@/components/modals/simple-alert';
 
 const joinServerSchema = z.object({
   name: z
@@ -91,7 +91,7 @@ export const JoinServerModal = ({ isOpen, onClose }: JoinServerModalProps) => {
               />
             </div>
           {error && (
-            <FormAlert type="error" message={error} small />
+            <SimpleAlert type="error" message={error} small />
           )}
           </div>
           <DialogFooter>

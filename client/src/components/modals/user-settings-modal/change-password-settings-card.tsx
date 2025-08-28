@@ -7,7 +7,7 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { userService } from "@/services/userService"
-import { FormAlert } from "../simple-alert"
+import { SimpleAlert } from "../simple-alert"
 
 const changePasswordSchema = z
   .object({
@@ -84,7 +84,7 @@ export function ChangePasswordSettingsCard() {
 
             {/* on submit feedback */}
             {feedback.type && (
-              <FormAlert type={feedback.type} message={feedback.message} />
+              <SimpleAlert type={feedback.type} message={feedback.message} />
             )}
 
             <div className="space-y-4">
@@ -103,7 +103,7 @@ export function ChangePasswordSettingsCard() {
                   disabled={isSubmitting}
                 />
                 {errors.oldPassword && (
-                    <FormAlert type="error" message={errors.oldPassword.message || ""} small />
+                    <SimpleAlert type="error" message={errors.oldPassword.message || ""} small />
                 )}
               </div>
 
@@ -121,7 +121,7 @@ export function ChangePasswordSettingsCard() {
                   disabled={isSubmitting}
                 />
                 {errors.newPassword && (
-                    <FormAlert type="error" message={errors.newPassword.message || ""} small />
+                    <SimpleAlert type="error" message={errors.newPassword.message || ""} small />
                 )}
               </div>
             </div>

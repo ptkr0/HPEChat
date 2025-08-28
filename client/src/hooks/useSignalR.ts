@@ -5,6 +5,7 @@ import { User } from "@/types/user.type";
 import { Channel } from "@/types/channel.types";
 import { ServerMessage } from "@/types/server-message.type";
 import { setSignalRConnection } from "@/services/signalrService";
+import { ServerDetails } from "@/types/server.types";
 
 const SERVER_HUB_URL = 'https://localhost:7056/hubs/server';
 const USER_HUB_URL = 'https://localhost:7056/hubs/user';
@@ -18,6 +19,7 @@ const ServerEventNames = {
     ChannelUpdated: "ChannelUpdated",
     UserJoined: "UserJoined",
     UserLeft: "UserLeft",
+    ServerUpdated: "ServerUpdated",
 };
 
 const UserEventNames = {
@@ -63,6 +65,9 @@ export const useSignalR = () => {
         });
         connection.on(ServerEventNames.UserLeft, (serverId: string, userId: string) => {
             appStoreActions.removeUserFromServer(serverId.toUpperCase(), userId.toUpperCase());
+        });
+        connection.on(ServerEventNames.ServerUpdated, (server: Omit<ServerDetails, "members" | "channels">) => {
+            appStoreActions.updateServer(server);
         });
 
         // in case of losing connection, reconnect to all server groups

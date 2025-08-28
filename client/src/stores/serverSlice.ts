@@ -37,6 +37,7 @@ export interface ServerSlice {
 
   createServer: (name: string, description?: string, image?: File) => Promise<Server | null>;
   joinServer: (inviteCode: string) => Promise<ServerDetails | null>;
+  updateServer: (server: Omit<ServerDetails, 'channels' | 'members'>) => Promise<Server | null>;
   leaveServer: (serverId: string) => Promise<void>;
   leaveServerAction: (serverId: string) => Promise<void>;
   kickUser: (serverId: string, userId: string) => Promise<void>;
@@ -285,6 +286,72 @@ export const createServerSlice: StateCreator<AppState, [], [], ServerSlice> = (s
     }
   },
 
+  updateServer: async (server: Omit<ServerDetails, 'members' | 'channels'>) => {
+    set((state) => {
+      const oldServerData = state.servers.find((s) => s.id === server.id);
+
+      // if server doesn't exist, simply return the current state.
+      if (!oldServerData) {
+        return state;
+      }
+
+      // handle server image updates
+      if (oldServerData.image && !server.image) {
+        // old server had image, but new one doesn't? delete old server image blob.
+        get().revokeServerImage(oldServerData.id);
+      } else if (
+        server.image &&
+        oldServerData.image !== server.image
+      ) {
+        // old server didn't have an image, or new one has a different one?
+        // replace or fetch it.
+        if (oldServerData.image) {
+          get().revokeServerImage(oldServerData.id);
+        }
+        get().fetchAndCacheServerImage(server.id, server.image);
+      }
+
+      const newServerData = { ...oldServerData, ...server };
+
+      // update the main servers array
+      const newServers = state.servers.map((s) =>
+        s.id === newServerData.id ? newServerData : s,
+      );
+
+      // update cached server data
+      const newCachedServers = new Map(state.cachedServers);
+      const prevCachedServer = newCachedServers.get(newServerData.id);
+
+      if (prevCachedServer) {
+        newCachedServers.set(newServerData.id, {
+          ...prevCachedServer,
+          ...newServerData,
+          members: prevCachedServer.members,
+          channels: prevCachedServer.channels,
+        });
+      }
+
+      // update currently selected server if it is the one being updated
+      let newSelectedServer = state.selectedServer;
+      if (state.selectedServer?.id === server.id) {
+        newSelectedServer = {
+          ...state.selectedServer,
+          ...server,
+          members: state.selectedServer.members,
+          channels: state.selectedServer.channels,
+        };
+      }
+
+      return {
+        servers: newServers,
+        cachedServers: newCachedServers,
+        selectedServer: newSelectedServer,
+      };
+    });
+
+    return server;
+  },
+
   createChannel: async (newChannelData) => {
     const selectedServer = get().selectedServer;
     if (!selectedServer || !selectedServer.id) return null;
@@ -299,7 +366,8 @@ export const createServerSlice: StateCreator<AppState, [], [], ServerSlice> = (s
   },
 
   removeChannel: async (serverId: string, channelId: string) => {
-    // Only update if the server is selected or cached
+
+    // only update if the server is selected or cached
     if (!get().cachedServers.has(serverId) && get().selectedServer?.id !== serverId) return;
 
     const wasSelectedChannel = get().selectedChannel?.id === channelId;
@@ -327,7 +395,7 @@ export const createServerSlice: StateCreator<AppState, [], [], ServerSlice> = (s
       const messages = newCachedChannelMessages.get(channelId) || [];
       newCachedChannelMessages.delete(channelId);
 
-      // Revoke attachment preview blobs for all messages that will be cleared
+      // revoke attachment preview blobs for all messages that will be cleared
       messages.forEach(message => {
         if (message.attachment) {
           get().revokeAttachmentPreview(message.attachment.id);

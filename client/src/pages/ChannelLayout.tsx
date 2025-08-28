@@ -15,6 +15,7 @@ export default function ChannelLayout() {
   const serverMessages = useAppStore((state) => state.selectedChannelMessages);
 
   const [messageInputHeight, setMessageInputHeight] = useState(64);
+  const [isInitialLoad, setIsInitialLoad] = useState(true)
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messageInputRef = useRef<HTMLDivElement>(null);
@@ -39,6 +40,17 @@ export default function ChannelLayout() {
       return () => resizeObserver.disconnect();
     }
   }, []);
+
+  useEffect(() => {
+    if (isInitialLoad && !serverMessagesLoading && serverMessages && serverMessages.length > 0) {
+      scrollToBottom();
+      setIsInitialLoad(false);
+    }
+  }, [serverMessagesLoading, serverMessages, isInitialLoad, selectedChannel]);
+
+  useEffect(() => {
+    setIsInitialLoad(true);
+  }, [selectedChannel]);
 
   const scrollToBottom = () => {
     if (scrollAreaRef.current) {
@@ -67,14 +79,6 @@ export default function ChannelLayout() {
       scrollToBottom();
     }
   };
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      scrollToBottom();
-    }, 100);
-
-    return () => clearTimeout(timer);
-  }, [selectedChannel]);
 
   // also scroll to bottom when new messages arrive if user is already at bottom
   useEffect(() => {

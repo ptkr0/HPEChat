@@ -97,11 +97,14 @@ export const EditChannelModal = ({ existingChannel, isOpen, onClose }: EditChann
               id="name"
               placeholder="Nazwa"
               disabled={isSubmitting}
+              autoFocus={false}
               {...register("name")}
             />
-            {errors.name && (
-              <p className="text-xs text-red-500">{errors.name.message}</p>
-            )}
+            <div className="min-h-[16px] w-full">
+              {errors.name && (
+                <p className="text-xs text-red-500">{errors.name.message}</p>
+              )}
+            </div>
           </div>
 
           <DialogFooter>

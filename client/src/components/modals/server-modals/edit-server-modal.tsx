@@ -19,6 +19,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { toast } from "sonner"
+import { serverService } from "@/services/serverService"
 
 const editServerSchema = z.object({
   name: z.string().min(1, "Nazwa jest wymagana").max(50, "Maksymalnie 50 znaków"),
@@ -94,7 +96,22 @@ export const EditServerModal = ({ existingServer, isOpen, onClose }: EditServerM
 
   const submitHandler = async (data: EditServerValues) => {
     try {
-      console.log(data)
+      // determine if image was changed or deleted
+      const original = originalValues()
+      const hadOriginalImage = Boolean(original.image);
+      const hasCurrentImage = Boolean(watchedImage);
+      const imageDeleted: boolean = hadOriginalImage && !hasCurrentImage;
+      const imageChanged: boolean = watchedImage !== undefined && imagePreview !== original.image;
+
+      await serverService.edit(
+        existingServer.id,
+        data.name,
+        data.description || "",
+        imageChanged ? data.image : undefined,
+        imageDeleted,
+      )
+      toast.success("Serwer zaktualizowany pomyślnie.")
+      handleClose()
     } catch (err) {
       console.error("API error creating server:", err)
     }
@@ -283,12 +300,16 @@ export const EditServerModal = ({ existingServer, isOpen, onClose }: EditServerM
               disabled={isSubmitting}
               autoFocus={false}
             />
-            {errors.name && <p className="text-xs text-red-500">{errors.name.message}</p>}
+            <div className="min-h-[16px] w-full">
+              {errors.name && <p className="text-xs text-red-500">{errors.name.message}</p>}
+            </div>
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="description">Opis</Label>
             <Input id="description" placeholder="Super opis" {...register("description")} disabled={isSubmitting} />
-            {errors.description && <p className="text-xs text-red-500">{errors.description.message}</p>}
+            <div className="min-h-[16px] w-full">
+              {errors.description && <p className="text-xs text-red-500">{errors.description.message}</p>}
+            </div>
           </div>
 
           <DialogFooter className="gap-2">

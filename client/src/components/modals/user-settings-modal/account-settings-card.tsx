@@ -11,7 +11,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import AuthContext from "@/context/AuthProvider"
 import { userService } from "@/services/userService"
 import { ACCEPTED_AVATAR_TYPES, MAX_PROFILE_PICTURE_SIZE } from "@/constants/constants"
-import { FormAlert } from "../simple-alert"
+import { SimpleAlert } from "../simple-alert"
 import { useAppStore } from "@/stores/useAppStore"
 
 // username validation schema
@@ -273,7 +273,7 @@ export function AccountSettingsCard() {
             </div>
             <div className="mt-3">
               {avatarFeedback.type && (
-                <FormAlert type={avatarFeedback.type} message={avatarFeedback.message} small />
+                <SimpleAlert type={avatarFeedback.type} message={avatarFeedback.message} small />
               )}
             </div>
           </form>
@@ -312,12 +312,14 @@ export function AccountSettingsCard() {
               </Button>
             </div>
           </form>
-          {usernameForm.formState.errors.username && (
-            <FormAlert type="error" message={usernameForm.formState.errors.username.message || ""} small />
-          )}
-          {usernameFeedback.type && (
-            <FormAlert type={usernameFeedback.type} message={usernameFeedback.message} small />
-          )}
+          <div className="min-h-[40px] w-full">
+            {usernameForm.formState.errors.username && (
+              <SimpleAlert type="error" message={usernameForm.formState.errors.username.message || ""} small />
+            )}
+            {usernameFeedback.type && (
+              <SimpleAlert type={usernameFeedback.type} message={usernameFeedback.message} small />
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>

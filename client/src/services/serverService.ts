@@ -41,7 +41,7 @@ export const serverService = {
             formData.append("Image", image);
         }
 
-        const response = await axiosPrivate.put(`${SERVER_URL}/${serverId}?deleteImage=${deleteImage}`, formData, {
+        const response = await axiosPrivate.patch(`${SERVER_URL}/${serverId}?deleteImage=${deleteImage}`, formData, {
             headers: {
                 "Content-Type": "multipart/form-data",
             },
