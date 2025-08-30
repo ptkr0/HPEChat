@@ -4,7 +4,7 @@ import MessageInput from "@/components/channel/message-input";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbSeparator, BreadcrumbPage } from "@/components/ui/breadcrumb";
 import AuthContext from "@/context/AuthProvider";
 import { useAppStore } from "@/stores/useAppStore";
-import { useContext, useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function ChannelLayout() {
@@ -14,7 +14,7 @@ export default function ChannelLayout() {
   const serverMessagesLoading = useAppStore((state) => state.channelMessagesLoading);
   const serverMessages = useAppStore((state) => state.selectedChannelMessages);
 
-  const [messageInputHeight, setMessageInputHeight] = useState(64);
+  const [messageInputHeight, setMessageInputHeight] = useState(44);
   const [isInitialLoad, setIsInitialLoad] = useState(true)
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -41,6 +41,18 @@ export default function ChannelLayout() {
     }
   }, []);
 
+  useLayoutEffect(() => {
+    const scrollContainer = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
+    if (!scrollContainer) return;
+
+    const isScrolledToBottom = scrollContainer.scrollHeight - scrollContainer.scrollTop - scrollContainer.clientHeight < messageInputHeight + 100;
+    if (isScrolledToBottom) {
+
+      scrollContainer.scrollTop = scrollContainer.scrollHeight;
+
+    }
+  }, [serverMessages, messageInputHeight]);
+
   useEffect(() => {
     if (isInitialLoad && !serverMessagesLoading && serverMessages && serverMessages.length > 0) {
       scrollToBottom();
@@ -61,31 +73,6 @@ export default function ChannelLayout() {
       }
     }
   };
-
-  const isNearBottom = () => {
-    if (scrollAreaRef.current) {
-      const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
-
-      if (scrollContainer) {
-        const isAtBottom = scrollContainer.scrollHeight - scrollContainer.scrollTop - scrollContainer.clientHeight < 100;
-        return isAtBottom;
-      }
-    }
-    return true;
-  };
-
-  const newMessage = () => {
-    if (isNearBottom()) {
-      scrollToBottom();
-    }
-  };
-
-  // also scroll to bottom when new messages arrive if user is already at bottom
-  useEffect(() => {
-    if (isNearBottom()) {
-      scrollToBottom();
-    }
-  }, [serverMessages?.length]);
 
   return (
     <div className="mx-auto p-2 flex flex-col w-full h-full">
@@ -113,9 +100,9 @@ export default function ChannelLayout() {
 
       <div className="flex flex-col flex-1" style={{ height: `calc(100% - 3rem)` }}>
 
-        <div className="flex-1 relative" style={{ height: `calc(100% - ${messageInputHeight}px - 1rem)` }}>
+        <div className="relative" style={{ height: `calc(100% - ${messageInputHeight}px - 1rem)` }}>
           {serverMessagesLoading || !selectedServer || loading ? (
-            <div className="flex-1 overflow-y-auto p-2 w-full">
+            <div className="overflow-y-auto p-2 w-full">
               {[...Array(6)].map((_, i) => (
                 <MessageBubbleSkeleton key={i} />
               ))}
@@ -123,7 +110,7 @@ export default function ChannelLayout() {
           ) : (
             <ScrollArea
               ref={scrollAreaRef}
-              className="h-full pr-4"
+              className="h-full pr-4 overflow-hidden"
               type="always"
             >
               <div className="p-2">
@@ -161,7 +148,7 @@ export default function ChannelLayout() {
         </div>
 
         <div ref={messageInputRef} className="mt-2">
-          <MessageInput onMessageSend={() => newMessage()} />
+          <MessageInput onMessageSend={() => scrollToBottom()} onInputChange={(height) => { setMessageInputHeight(height)}} />
         </div>
       </div>
     </div>

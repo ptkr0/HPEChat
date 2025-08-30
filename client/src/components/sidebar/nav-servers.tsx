@@ -94,18 +94,8 @@ export function NavServers({ servers, selectedServerId, onServerSelect, onLeaveS
                       </SidebarMenuButton>
 
                       { /* dropdown trigger for server actions */ }
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="ml-auto h-8 w-8 absolute right-2 top-1/2 -translate-y-1/2 hover:bg-accent/75"
-                          onClick={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                          }}
-                        >
+                      <DropdownMenuTrigger asChild className="ml-auto absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer">
                           <MoreHorizontal className="size-4" />
-                        </Button>
                       </DropdownMenuTrigger>
 
                       { /* dropdown menu for server actions */ }

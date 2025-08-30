@@ -28,39 +28,59 @@ export function ImageAttachment({ attachment }: ImageAttachmentProps) {
 		}
 	}, [isVisible, previewSrc, isLoading, attachment, fetchAndCacheAttachmentPreview]);
 
+	// calculate aspect ratio for container
+	const aspectRatio = attachment.width && attachment.height 
+		? attachment.height / attachment.width 
+		: 9 / 16;
+		
+	// calculate width and height with maximum constraint
+	const width = Math.min(attachment.width || 250, 300);
+	const height = attachment.width && attachment.height
+		? width * aspectRatio
+		: Math.min(attachment.height || 150, 200);
+
+	const [imageLoaded, setImageLoaded] = useState(false);
+
 	return (
 		<div
 			ref={ref}
-			className="bg-muted overflow-hidden rounded-lg flex items-center justify-center w-fit h-fit"
+			className="overflow-hidden rounded-lg"
 			style={{
-				maxWidth: Math.min(attachment.width || 550, 550),
-				maxHeight: Math.min(attachment.height || 300, 300),
+				width: `${width}px`,
+				height: `${height}px`,
+				position: 'relative'
 			}}
 		>
-			{!previewSrc ? (
+			{/* skeleton shows until image is loaded */}
+			{(!previewSrc || !imageLoaded) && (
 				<Skeleton
-					className="w-full h-full"
+					className="absolute inset-0 z-0"
 					style={{
-						width: Math.min(attachment.width || 550, 550),
-						height: Math.min(attachment.height || 300, 300),
+						width: '100%',
+						height: '100%',
 					}}
 				/>
-			) : (
+			)}
+			
+			{previewSrc && (
 				<ImageDetailsModal
 					attachment={attachment}
 					previewSrc={previewSrc}
 					isOpen={isDialogOpen}
 					onOpenChange={setIsDialogOpen}
 					trigger={
-						<img
-							src={previewSrc}
-							alt={attachment.name}
-							className="max-w-full max-h-full w-auto h-auto object-contain cursor-pointer transition-transform hover:scale-105"
-							style={{
-								maxWidth: Math.min(attachment.width || 550, 550),
-								maxHeight: Math.min(attachment.height || 300, 300),
-							}}
-						/>
+						<div className="absolute inset-0 flex items-center justify-center">
+							<img
+								src={previewSrc}
+								alt={attachment.name}
+								className={`max-w-full max-h-full w-auto h-auto object-contain cursor-pointer ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+								style={{
+									maxWidth: '100%',
+									maxHeight: '100%',
+								}}
+								onLoad={() => setImageLoaded(true)}
+							/>
+						</div>
 					}
 				/>
 			)}

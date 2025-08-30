@@ -38,7 +38,7 @@ namespace HPEChat_Server.Controllers
 
 			Guid channelGuid = messagesDto.ChannelId;
 			DateTimeOffset? lastCreatedAt = messagesDto.LastCreatedAt;
-			int pageSize = 20;
+			int pageSize = 50;
 
 			var query = _context.ServerMessages
 				.Where(m =>

@@ -3,7 +3,7 @@ import type { ServerMessage } from "@/types/server-message.type"
 import { format } from "date-fns"
 import { Button } from "../ui/button"
 import { cn } from "@/lib/utils"
-import { Edit2, FileText, Trash2, File, Music, Video } from 'lucide-react'
+import { Edit2, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from "react"
 import { Textarea } from "../ui/textarea"
 import { useForm, Controller } from "react-hook-form"
@@ -12,10 +12,10 @@ import z from "zod"
 import { serverMessageService } from "@/services/serverMessageService"
 import { useAppStore } from "@/stores/useAppStore"
 import { ScrollArea } from "../ui/scroll-area"
-import { Attachment, AttachmentType } from "@/types/attachment.types"
+import { AttachmentType } from "@/types/attachment.types"
 import { ImageAttachment } from "./image-attachment"
-import { fileService } from "@/services/fileService"
 import { useOnScreen } from "@/hooks/useOnScreen"
+import { AttachmentButton } from "./attachment-button"
 
 const messageEditSchema = z.object({
   editedContent: z
@@ -74,27 +74,6 @@ export function Message({ message, isSenderCurrentUser, isContinuation }: Messag
   const handleEdit = () => {
     reset({ editedContent: message.message })
     setIsEditing(true)
-  }
-
-  const downloadAttachment = async (attachment: Attachment) => {
-    if (!attachment.fileName) return;
- 
-    try {
-      const blob = await fileService.getServerAttachment(attachment.fileName);
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-
-      link.href = url;
-      link.download = attachment.name;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      URL.revokeObjectURL(url);
-      
-    } catch (error) {
-      console.error('Error downloading file:', error);
-    }
   }
 
   const urlifyMessage = (message: string) => {
@@ -219,75 +198,23 @@ export function Message({ message, isSenderCurrentUser, isContinuation }: Messag
         {message.attachment && (
           <div className="my-1">
             {message.attachment.type === AttachmentType.IMAGE && message.attachment.previewName ? (
-                <ImageAttachment attachment={message.attachment} />
+              <ImageAttachment attachment={message.attachment} />
             ) : (null)}
             
             {message.attachment.type === AttachmentType.VIDEO && (
-              <Button
-                onClick={() => downloadAttachment(message.attachment!)}
-                variant="ghost"
-                className="flex items-center gap-2 p-3 h-auto hover:bg-accent/50 rounded-lg border border-border"
-              >
-                <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Video className="h-5 w-5 text-purple-500" />
-                </div>
-                <div className="flex flex-col items-start">
-                  <span className="text-sm font-medium">{message.attachment.name || 'Plik Wideo'}</span>
-                  <span className="text-[10px] text-muted-foreground">{Math.ceil(message.attachment.size / 1000)} KB</span>
-                  <span className="text-xs text-muted-foreground">Kliknij aby odtworzyć</span>
-                </div>
-              </Button>
+              <AttachmentButton type="video" attachment={message.attachment} />
             )}
             
             {message.attachment.type === AttachmentType.AUDIO && (
-              <Button
-                variant="ghost"
-                className="flex items-center gap-2 p-3 h-auto hover:bg-accent/50 rounded-lg border border-border"
-                onClick={() => downloadAttachment(message.attachment!)}
-              >
-                <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Music className="h-5 w-5 text-orange-500" />
-                </div>
-                <div className="flex flex-col items-start">
-                  <span className="text-sm font-medium">{message.attachment.name || 'Plik Audio'}</span>
-                  <span className="text-[10px] text-muted-foreground">{Math.ceil(message.attachment.size / 1000)} KB</span>
-                  <span className="text-xs text-muted-foreground">Kliknij aby posłuchać</span>
-                </div>
-              </Button>
+              <AttachmentButton type="music" attachment={message.attachment} />
             )}
             
             {message.attachment.type === AttachmentType.DOCUMENT && (
-              <Button
-                variant="ghost"
-                className="flex items-center gap-2 p-3 h-auto hover:bg-accent/50 rounded-lg border border-border"
-                onClick={() => downloadAttachment(message.attachment!)}
-              >
-                <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <FileText className="h-5 w-5 text-blue-500" />
-                </div>
-                <div className="flex flex-col items-start">
-                  <span className="text-sm font-medium">{message.attachment.name || 'Dokument'}</span>
-                  <span className="text-[10px] text-muted-foreground">{Math.ceil(message.attachment.size / 1000)} KB</span>
-                  <span className="text-xs text-muted-foreground">Kliknij aby otworzyć</span>
-                </div>
-              </Button>
+              <AttachmentButton type="document" attachment={message.attachment} />
             )}
             
             {message.attachment.type === AttachmentType.OTHER && (
-              <Button
-                variant="ghost"
-                className="flex items-center gap-2 p-3 h-auto hover:bg-accent/50 rounded-lg border border-border"
-                onClick={() => downloadAttachment(message.attachment!)}
-              >
-                <div className="size-10 rounded-lg bg-muted/50 flex items-center justify-center">
-                  <File className="h-5 w-5 text-gray-500" />
-                </div>
-                <div className="flex flex-col items-start">
-                  <span className="text-sm font-medium">{message.attachment.name || 'Plik'}</span>
-                  <span className="text-[10px] text-muted-foreground">{Math.ceil(message.attachment.size / 1000)} KB</span>
-                  <span className="text-xs text-muted-foreground">Kliknij aby pobrać</span>
-                </div>
-              </Button>
+              <AttachmentButton type="other" attachment={message.attachment} />
             )}
           </div>
         )}

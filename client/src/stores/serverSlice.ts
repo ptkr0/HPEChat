@@ -50,7 +50,6 @@ export interface ServerSlice {
   removeChannel: (serverId: string, channelId: string) => void;
 
   addMessageToChannel: (serverId: string, message: ServerMessage) => void;
-  sendMessage: (channelId: string, message: string) => Promise<ServerMessage | null>;
   removeMessageFromChannel: (serverId: string, channelId: string, messageId: string) => void;
   editMessageInChannel: (serverId: string, message: ServerMessage) => void;
 
@@ -415,16 +414,6 @@ export const createServerSlice: StateCreator<AppState, [], [], ServerSlice> = (s
       } else {
         get().selectChannel(null);
       }
-    }
-  },
-
-  sendMessage: async (channelId, messageContent) => {
-    try {
-      const sentMessage = await serverMessageService.send(channelId, messageContent);
-      return sentMessage;
-    } catch (error) {
-      console.error("Error sending message:", error);
-      return null;
     }
   },
 

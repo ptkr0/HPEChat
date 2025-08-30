@@ -37,15 +37,17 @@ const sendMessageSchema = z.object({
   );
 
 interface MessageInputProps {
+  onInputChange: (height: number) => void;
   onMessageSend: () => void;
 }
 
 type SendMessageValues = z.infer<typeof sendMessageSchema>;
 
-export default function MessageInput({ onMessageSend }: MessageInputProps) {
+export default function MessageInput({ onMessageSend, onInputChange }: MessageInputProps) {
   const selectedChannel = useAppStore((state) => state.selectedChannel);
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const ref = useRef<HTMLDivElement>(null)
 
   const {
     register,
@@ -75,6 +77,7 @@ export default function MessageInput({ onMessageSend }: MessageInputProps) {
     const file = e.target.files?.[0]
     if (file) {
       handleFileSelect(file)
+      calculateComponentHeight()
     }
   }
   const removeFile = () => {
@@ -109,6 +112,13 @@ export default function MessageInput({ onMessageSend }: MessageInputProps) {
     }
   };
 
+  const calculateComponentHeight = () => {
+    if (ref.current) {
+      const height = ref.current.clientHeight
+      onInputChange(height)
+    }
+  }
+
   // auto-resize textarea as content grows
   useEffect(() => {
     const textarea = textareaRef.current
@@ -129,9 +139,9 @@ export default function MessageInput({ onMessageSend }: MessageInputProps) {
   }, [filePreview])
 
   return (
-    <div className='border rounded-lg bg-background relative'>
+    <div ref={ref} className='border rounded-lg bg-background relative'>
 
-      <form onSubmit={handleSubmit(submitHandler)} className='flex flex-col'>
+      <form onSubmit={handleSubmit(submitHandler)} className='flex flex-col' onChange={calculateComponentHeight}>
 
         {filePreview && (
           <div className="flex items-center gap-3 p-3 border-b bg-muted/30 animate-in fade-in duration-200">
@@ -254,7 +264,7 @@ export default function MessageInput({ onMessageSend }: MessageInputProps) {
             autoCorrect='off'
             autoCapitalize='none'
             placeholder={`Napisz na #${selectedChannel?.name || ""}`}
-            className='min-h-[44px] max-h-[200px] resize-none pl-14 pr-24 py-3 border-0 focus-visible:ring-0 overflow-hidden focus-visible:ring-offset-0'
+            className='min-h-[44px] resize-none pl-14 pr-24 py-3 border-0 focus-visible:ring-0 overflow-hidden focus-visible:ring-offset-0'
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
