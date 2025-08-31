@@ -2,42 +2,46 @@ import { Attachment } from "@/types/attachment.types"
 import { Video, Music, File, FileText } from "lucide-react"
 import { Button } from "../ui/button"
 import { fileService } from "@/services/fileService"
+import type { AttachmentType } from "@/types/attachment.types"
 
 interface AttachmentButtonProps {
-  type: "video" | "music" | "document" | "other"
   attachment: Attachment
 }
 
-export function AttachmentButton({ type, attachment }: AttachmentButtonProps) {
-  const iconMap = {
-    video: Video,
-    music: Music,
-    document: FileText,
-    other: File,
+export function AttachmentButton({ attachment }: AttachmentButtonProps) {
+  const iconMap: Record<AttachmentType, React.ElementType> = {
+    Video: Video,
+    Audio: Music,
+    Document: FileText,
+    Image: File,
+    Other: File,
   }
-  const colorMap = {
-    video: "text-purple-500",
-    music: "text-green-500",
-    document: "text-blue-500",
-    other: "text-gray-500",
+  const colorMap: Record<AttachmentType, string> = {
+    Video: "text-purple-500",
+    Audio: "text-green-500",
+    Document: "text-blue-500",
+    Image: "text-pink-500",
+    Other: "text-gray-500",
   }
-  const nameMap = {
-    video: "Plik Wideo",
-    music: "Plik Muzyczny",
-    document: "Dokument",
-    other: "Załącznik",
+  const nameMap: Record<AttachmentType, string> = {
+    Video: "Plik Wideo",
+    Audio: "Plik Muzyczny",
+    Document: "Dokument",
+    Image: "Obraz",
+    Other: "Załącznik",
   }
-  const downloadTextMap = {
-    video: "Pobierz Wideo",
-    music: "Pobierz Muzykę",
-    document: "Pobierz Dokument",
-    other: "Pobierz Załącznik",
+  const downloadTextMap: Record<AttachmentType, string> = {
+    Video: "Pobierz Wideo",
+    Audio: "Pobierz Muzykę",
+    Document: "Pobierz Dokument",
+    Image: "Pobierz Obraz",
+    Other: "Pobierz Załącznik",
   }
 
-  const Icon = iconMap[type]
-  const color = colorMap[type]
-  const name = attachment.name || nameMap[type]
-  const downloadText = downloadTextMap[type]
+  const Icon = iconMap[attachment.type] || File
+  const color = colorMap[attachment.type] || "text-gray-500"
+  const name = attachment.name || nameMap[attachment.type] || "Załącznik"
+  const downloadText = downloadTextMap[attachment.type] || "Pobierz Załącznik"
 
   
   const downloadAttachment = async (attachment: Attachment) => {

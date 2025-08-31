@@ -140,40 +140,41 @@ namespace HPEChat_Server.Controllers
 			var channel = await _context.Channels
 				.FirstOrDefaultAsync(c => c.Id == id && c.Server.OwnerId == userId);
 
+			if (channel == null) return NotFound("Channel not found or access denied");
+
 			// attachments that were sent on the channel
-			var files = await _context.Attachments
+			var filePaths = await _context.Attachments
 				.AsNoTracking()
 				.Where(a => a.ServerMessage!.ChannelId == id)
+				.Select(a => new { a.StoredFileName, a.PreviewName })
 				.ToListAsync();
-
-			if (channel == null) return NotFound("Channel not found or access denied");
 
 			await using (var transaction = await _context.Database.BeginTransactionAsync())
 			{
 				try
 				{
-					foreach (var file in files)
+					_context.Channels.Remove(channel);
+					await _context.SaveChangesAsync();
+
+					foreach (var file in filePaths)
 					{
 						if (file.PreviewName != null) _fileService.DeleteFile(file.PreviewName);
 						if (file.StoredFileName != null) _fileService.DeleteFile(file.StoredFileName);
 					}
 
-					_context.Channels.Remove(channel);
-					await _context.SaveChangesAsync();
+					await transaction.CommitAsync();
 
 					await _hub
 						.Clients
 						.Group(ServerHub.GroupName(channel.ServerId))
 						.ChannelRemoved(channel.ServerId, channel.Id);
 
-					await transaction.CommitAsync();
-
 					return Ok(new { message = "Server deleted successfully" });
 				}
 				catch (Exception ex)
 				{
 					await transaction.RollbackAsync();
-					return BadRequest($"Error deleting channel: {ex.Message}");
+					return StatusCode(500, $"Error deleting channel: {ex.Message}");
 				}
 			}
 		}

@@ -8,21 +8,23 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { channelService } from "@/services/channelService";
+import { serverService } from "@/services/serverService";
+import { toast } from "sonner";
 
-interface ConfirmationDialogProps {
-  channelId: string;
+interface DeleteServerDialogProps {
+  serverId: string;
   isOpen: boolean;
   onClose: () => void;
 }
 
-export function ConfirmationDialog({ channelId, isOpen, onClose }: ConfirmationDialogProps) {
+export function DeleteServerDialog({ serverId, isOpen, onClose }: DeleteServerDialogProps) {
 
   const handleDelete = async () => {
     try {
-      await channelService.delete(channelId);
+      await serverService.delete(serverId);
+      toast.success("Serwer został pomyślnie usunięty.");
     } catch (err) {
-      console.error("API error deleting channel:", err);
+      console.error("API error deleting server:", err);
     }
     finally {
       onClose();
@@ -35,8 +37,7 @@ export function ConfirmationDialog({ channelId, isOpen, onClose }: ConfirmationD
         <AlertDialogHeader>
           <AlertDialogTitle>Jesteś absolutnie pewny?</AlertDialogTitle>
           <AlertDialogDescription>
-            Tej akcji nie można cofnąć. Wszystkie wysłane na tym kanale wiadomości oraz załączniki
-            zostaną permanentnie usunięte z serwera.
+            Tej akcji nie można cofnąć. Zostaną usunięte wszystkie kanały, wiadomości oraz załączniki.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

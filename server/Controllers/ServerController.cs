@@ -47,7 +47,7 @@ namespace HPEChat_Server.Controllers
 			var server = new Server
 			{
 				Name = createServerDto.Name,
-				Description = createServerDto.Description,
+				Description = createServerDto.Description ?? string.Empty,
 				OwnerId = (Guid)userId,
 			};
 
@@ -102,7 +102,7 @@ namespace HPEChat_Server.Controllers
 			{
 				Id = server.Id.ToString().ToUpper(),
 				Name = server.Name,
-				Description = server.Description,
+				Description = server.Description ?? string.Empty,
 				OwnerId = server.OwnerId.ToString().ToUpper(),
 				Image = server.Image ?? string.Empty,
 				Members = new List<UserInfoDto>()
@@ -374,21 +374,60 @@ namespace HPEChat_Server.Controllers
 		[Authorize]
 		public async Task<ActionResult> DeleteServer(Guid id)
 		{
+			if (!ModelState.IsValid) return BadRequest(ModelState);
+
 			var userId = User.GetUserId();
 			if (userId == null) return BadRequest("User not found");
 
-			Guid serverGuid = id;
-
 			var server = await _context.Servers
-				.FirstOrDefaultAsync(s => s.Id == serverGuid && s.OwnerId == userId);
+				.Include(s => s.Members) // for later hub notifications
+				.FirstOrDefaultAsync(s => s.Id == id && s.OwnerId == userId);
+
 			if (server == null) return NotFound("Server not found");
 
-			if (server.Image != null) _fileService.DeleteFile(server.Image);
+			// collect file paths before deletion
+			var filePaths = await _context.Attachments
+				.AsNoTracking()
+				.Where(a => a.ServerMessage!.Channel.ServerId == id)
+				.Select(a => new { a.StoredFileName, a.PreviewName })
+				.ToListAsync();
 
-			_context.Servers.Remove(server);
+			if (!string.IsNullOrWhiteSpace(server.Image))
+				filePaths.Add(new { StoredFileName = server.Image, PreviewName = (string?)null });
 
-			await _context.SaveChangesAsync();
-			return Ok(new { message = "Server deleted successfully" });
+			using var transaction = await _context.Database.BeginTransactionAsync();
+			try
+			{
+				_context.Servers.Remove(server);
+				await _context.SaveChangesAsync();
+
+				// clean up files
+				foreach (var f in filePaths)
+				{
+					if (f.PreviewName != null) _fileService.DeleteFile(f.PreviewName);
+					if (f.StoredFileName != null) _fileService.DeleteFile(f.StoredFileName);
+				}
+
+				await transaction.CommitAsync();
+
+				// notify clients
+				foreach (var member in server.Members)
+				{
+					await _hub.Clients.Group(ServerHub.GroupName(server.Id))
+						.UserLeft(server.Id, member.Id);
+
+					var connectionIds = _mapper.GetConnections(member.Id);
+					foreach (var connId in connectionIds)
+						await _hub.Groups.RemoveFromGroupAsync(connId, ServerHub.GroupName(server.Id));
+				}
+
+				return Ok(new { message = "Server deleted successfully" });
+			}
+			catch (Exception ex)
+			{
+				await transaction.RollbackAsync();
+				return BadRequest($"Error deleting server: {ex.Message}");
+			}
 		}
 
 		[HttpDelete("kick/{serverId}/{userId}")]

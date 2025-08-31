@@ -21,7 +21,7 @@ import { useContext, useState } from "react";
 import AuthContext from "@/context/AuthProvider";
 import { CreateChannelModal } from "../modals/channel-modals/create-channel-modal";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "../ui/dropdown-menu";
-import { ConfirmationDialog } from "../modals/channel-modals/confirmation-modal";
+import { DeleteChannelDialog } from "../modals/channel-modals/delete-channel-dialog";
 import { ServerInfoModal } from "../modals/server-modals/server-info-modal";
 import { EditChannelModal } from "../modals/channel-modals/edit-channel-modal";
 import { Channel } from "@/types/channel.types";
@@ -163,7 +163,7 @@ export function ServerSidebar() {
         onClose={() => setShowCreateChannelModal(false)}
       />
 
-      <ConfirmationDialog
+      <DeleteChannelDialog
         channelId={selectedChannelOptions?.id || ''}
         isOpen={showDeleteChannelModal}
         onClose={() => setShowDeleteChannelModal(false)}

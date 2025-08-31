@@ -14,6 +14,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { ScrollArea } from "../ui/scroll-area"
 import { EditServerModal } from "../modals/server-modals/edit-server-modal"
+import { DeleteServerDialog } from "../modals/server-modals/delete-server-modal"
 
 interface NavServersProps {
   servers: Server[]
@@ -28,6 +29,7 @@ export function NavServers({ servers, selectedServerId, onServerSelect, onLeaveS
   const [showCreateServerModal, setShowCreateServerModal] = useState(false)
   const [showJoinServerModal, setShowJoinServerModal] = useState(false)
   const [showEditServerModal, setShowEditServerModal] = useState(false)
+  const [showDeleteServerModal, setShowDeleteServerModal] = useState(false)
   const serversLoading = useAppStore((state) => state.serversLoading)
   const [isServersOpen, setIsServersOpen] = useState(true)
   const serverImageBlobs = useAppStore((state) => state.serverImageBlobs)
@@ -111,7 +113,12 @@ export function NavServers({ servers, selectedServerId, onServerSelect, onLeaveS
                               <Settings className="mr-2 h-4 w-4" />
                               <span className="text-blue-400 focus:text-blue-400">Edytuj Serwer</span>
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem
+                                onClick={() => {
+                                setSelectedServer(server)
+                                setShowDeleteServerModal(true)
+                              }}
+                            >
                               <Trash2 className="mr-2 h-4 w-4" />
                               <span className="text-red-500 focus:text-red-500">Usuń Serwer</span>
                             </DropdownMenuItem>
@@ -171,9 +178,15 @@ export function NavServers({ servers, selectedServerId, onServerSelect, onLeaveS
         </div>
       </SidebarMenuItem>
 
-      <CreateServerModal isOpen={showCreateServerModal} onClose={() => setShowCreateServerModal(false)} />
+      <CreateServerModal 
+        isOpen={showCreateServerModal} 
+        onClose={() => setShowCreateServerModal(false)} 
+      />
 
-      <JoinServerModal isOpen={showJoinServerModal} onClose={() => setShowJoinServerModal(false)} />
+      <JoinServerModal 
+        isOpen={showJoinServerModal} 
+        onClose={() => setShowJoinServerModal(false)} 
+      />
 
       <EditServerModal
         existingServer={
@@ -187,6 +200,12 @@ export function NavServers({ servers, selectedServerId, onServerSelect, onLeaveS
         }
         isOpen={showEditServerModal}
         onClose={() => setShowEditServerModal(false)}
+      />
+
+      <DeleteServerDialog
+        serverId={selectedServer?.id || ""}
+        isOpen={showDeleteServerModal}
+        onClose={() => setShowDeleteServerModal(false)}
       />
     </div>
   )

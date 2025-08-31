@@ -53,7 +53,7 @@ Client: React 19, Zustand, TailwindCSS, shadcn/ui
 - [X] Edititing server
 - [X] Displaying list of servers
 - [X] Displaying server info
-- [ ] Deleting server
+- [X] Deleting server
 
 ### Channel
 - [X] Creating channel
@@ -84,6 +84,7 @@ Client: React 19, Zustand, TailwindCSS, shadcn/ui
 - [X] User logout
 - [X] Editing user info
 - [X] Password change
+- [ ] Deleting user
 - [ ] Granting admin privileges (frontend not done)
 - [ ] Revoking admin privileges (frontend not done)
 - [ ] User status

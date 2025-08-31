@@ -200,21 +200,8 @@ export function Message({ message, isSenderCurrentUser, isContinuation }: Messag
             {message.attachment.type === AttachmentType.IMAGE && message.attachment.previewName ? (
               <ImageAttachment attachment={message.attachment} />
             ) : (null)}
-            
-            {message.attachment.type === AttachmentType.VIDEO && (
-              <AttachmentButton type="video" attachment={message.attachment} />
-            )}
-            
-            {message.attachment.type === AttachmentType.AUDIO && (
-              <AttachmentButton type="music" attachment={message.attachment} />
-            )}
-            
-            {message.attachment.type === AttachmentType.DOCUMENT && (
-              <AttachmentButton type="document" attachment={message.attachment} />
-            )}
-            
-            {message.attachment.type === AttachmentType.OTHER && (
-              <AttachmentButton type="other" attachment={message.attachment} />
+            {message.attachment.type !== AttachmentType.IMAGE && (
+              <AttachmentButton attachment={message.attachment} />
             )}
           </div>
         )}
