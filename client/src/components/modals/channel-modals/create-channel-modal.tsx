@@ -14,6 +14,7 @@ import {
   DialogClose,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { channelService } from '@/services/channelService';
 
 const createChannelSchema = z.object({
   name: z
@@ -40,11 +41,10 @@ export const CreateChannelModal = ({ isOpen, onClose }: CreateChannelModalProps)
     mode: 'onChange',
   });
 
-  const createChannel = useAppStore((state) => state.createChannel);
-
   const submitHandler = async (data: CreateChannelValues) => {
     try {
-      const newChannel = await createChannel({
+      const newChannel = await channelService.create({
+        serverId: useAppStore.getState().selectedServer?.id || '',
         name: data.name.trim(),
       });
 

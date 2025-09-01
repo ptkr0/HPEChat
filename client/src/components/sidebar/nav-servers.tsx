@@ -188,25 +188,21 @@ export function NavServers({ servers, selectedServerId, onServerSelect, onLeaveS
         onClose={() => setShowJoinServerModal(false)} 
       />
 
-      <EditServerModal
-        existingServer={
-          selectedServer || {
-            id: "",
-            name: "",
-            description: "",
-            ownerId: "",
-            image: "",
-          }
-        }
-        isOpen={showEditServerModal}
-        onClose={() => setShowEditServerModal(false)}
-      />
+      {selectedServer && (
+        <EditServerModal
+          existingServer={selectedServer}
+          isOpen={showEditServerModal}
+          onClose={() => setShowEditServerModal(false)}
+        />
+      )}
 
-      <DeleteServerDialog
-        serverId={selectedServer?.id || ""}
-        isOpen={showDeleteServerModal}
-        onClose={() => setShowDeleteServerModal(false)}
-      />
+      {selectedServer && (
+        <DeleteServerDialog
+          serverId={selectedServer.id}
+          isOpen={showDeleteServerModal}
+          onClose={() => setShowDeleteServerModal(false)}
+        />
+      )}
     </div>
   )
 }

@@ -197,12 +197,11 @@ export function Message({ message, isSenderCurrentUser, isContinuation }: Messag
         {/* section that shows when the message has an attachment */}
         {message.attachment && (
           <div className="my-1">
-            {message.attachment.type === AttachmentType.IMAGE && message.attachment.previewName ? (
+            {(message.attachment.type === AttachmentType.IMAGE && message.attachment.previewName) ? (
               <ImageAttachment attachment={message.attachment} />
-            ) : (null)}
-            {message.attachment.type !== AttachmentType.IMAGE && (
+            ) : (
               <AttachmentButton attachment={message.attachment} />
-            )}
+            )}          
           </div>
         )}
       </div>

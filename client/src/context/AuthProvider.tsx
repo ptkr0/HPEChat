@@ -17,7 +17,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const { initializeServerHub, initializeUserHub, closeUserHub, closeServerHub } = useSignalR();
   const fetchAndCacheAvatar = useAppStore((state) => state.fetchAndCacheAvatar);
-  const clearStore = useAppStore((state) => state.clearStore);
+  const clearServerSlice = useAppStore((state) => state.clearServerSlice);
+  const clearChannelSlice = useAppStore((state) => state.clearChannelSlice);
+  const clearBlobSlice = useAppStore((state) => state.clearBlobs);
   const fetchServers = useAppStore((state) => state.fetchServers);
 
   useEffect(() => {
@@ -78,7 +80,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.error("AuthProvider: Error fetching servers before SignalR init:", error);
       });
     } else if (!user.id && !loading) {
-      clearStore();
+      clearServerSlice();
+      clearChannelSlice();
+      clearBlobSlice();
       closeServerHub();
       closeUserHub();
     }

@@ -35,7 +35,8 @@ import { UserSettingsModal } from "../modals/user-settings-modal"
 export function NavUser() {
   const { isMobile } = useSidebar()
   const { user, setUser } = useContext(AuthContext);
-  const clearStore = useAppStore((state) => state.clearStore);
+  const clearServerSlice = useAppStore((state) => state.clearServerSlice);
+  const clearChannelSlice = useAppStore((state) => state.clearChannelSlice);
   const avatarBlob = useAppStore((state) => state.avatarBlobs.get(user.id));
   const navigate = useNavigate();
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -57,7 +58,8 @@ export function NavUser() {
 
     finally {
       setUser({ id: '', username: '', role: '', image: '' });
-      clearStore();
+      clearServerSlice();
+      clearChannelSlice();
       navigate("/login", { replace: true });
     }
   }

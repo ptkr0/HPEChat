@@ -9,6 +9,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { serverService } from "@/services/serverService";
+import { useState } from "react";
 import { toast } from "sonner";
 
 interface DeleteServerDialogProps {
@@ -18,16 +19,19 @@ interface DeleteServerDialogProps {
 }
 
 export function DeleteServerDialog({ serverId, isOpen, onClose }: DeleteServerDialogProps) {
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleDelete = async () => {
     try {
+      setIsLoading(true);
       await serverService.delete(serverId);
       toast.success("Serwer został pomyślnie usunięty.");
+      onClose();
     } catch (err) {
       console.error("API error deleting server:", err);
     }
     finally {
-      onClose();
+      setIsLoading(false);
     }
   }
 
@@ -42,7 +46,9 @@ export function DeleteServerDialog({ serverId, isOpen, onClose }: DeleteServerDi
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel onClick={() => onClose()}>Anuluj</AlertDialogCancel>
-          <AlertDialogAction onClick={() => handleDelete()}>Kontynuuj</AlertDialogAction>
+          <AlertDialogAction onClick={() => handleDelete()} disabled={isLoading}>
+            {isLoading ? "Usuwanie..." : "Kontynuuj"}
+          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

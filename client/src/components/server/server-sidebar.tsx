@@ -169,11 +169,13 @@ export function ServerSidebar() {
         onClose={() => setShowDeleteChannelModal(false)}
       />
 
-      <EditChannelModal
-        existingChannel={selectedChannelOptions || { id: '', name: '' }}
-        isOpen={showEditChannelModal}
-        onClose={() => setShowEditChannelModal(false)}
-      />
+      {selectedChannelOptions && (
+        <EditChannelModal
+          existingChannel={selectedChannelOptions}
+          isOpen={showEditChannelModal}
+          onClose={() => setShowEditChannelModal(false)}
+        />
+      )}
 
       {selectedServer && <ServerInfoModal isOpen={isServerDetailsOpen} onClose={() => setServerDetailsOpen(false)} server={selectedServer} />}
     </Sidebar>

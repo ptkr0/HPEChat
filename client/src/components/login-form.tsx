@@ -22,7 +22,7 @@ const LoginForm = () => {
 
   const { setUser } = useContext(AuthContext);
   const navigate = useNavigate();
-  const clearStore = useAppStore((state) => state.clearStore);
+  const clearStore = useAppStore((state) => state.clearServerSlice);
   const fetchAndCacheAvatar = useAppStore((state) => state.fetchAndCacheAvatar);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {

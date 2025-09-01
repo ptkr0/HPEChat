@@ -3,9 +3,7 @@
 
 import { StateCreator } from 'zustand';
 import { Server, ServerDetails } from '@/types/server.types';
-import { Channel } from '@/types/channel.types';
 import { serverService } from '@/services/serverService';
-import { channelService } from '@/services/channelService';
 import { ServerMessage } from '@/types/server-message.type';
 import { serverMessageService } from '@/services/serverMessageService';
 import { User } from '@/types/user.type';
@@ -27,13 +25,10 @@ export interface ServerSlice {
   cachedServers: Map<string, ServerDetails>;
   selectServer: (serverId: string | null) => Promise<void>;
 
-  selectedChannel: Channel | null;
   selectedChannelMessages: ServerMessage[];
   channelMessagesLoading: boolean;
   channelMessagesError: string | null;
   cachedChannelMessages: Map<string, ServerMessage[]>; // map of all cached server messages (channelId -> messages array)
-
-  selectChannel: (channelId: string | null) => void;
 
   createServer: (name: string, description?: string, image?: File) => Promise<Server | null>;
   joinServer: (inviteCode: string) => Promise<ServerDetails | null>;
@@ -44,20 +39,14 @@ export interface ServerSlice {
   addUserToServer: (serverId: string, user: User) => void;
   removeUserFromServer: (serverId: string, userId: string) => void;
 
-  addChannel: (serverId: string, channel: Channel) => Promise<void>;
-  createChannel: (newChannelData: Omit<Channel, 'id'>) => Promise<Channel | null>;
-  updateChannel: (serverId: string, channel: Channel) => void;
-  removeChannel: (serverId: string, channelId: string) => void;
-
   addMessageToChannel: (serverId: string, message: ServerMessage) => void;
   removeMessageFromChannel: (serverId: string, channelId: string, messageId: string) => void;
   editMessageInChannel: (serverId: string, message: ServerMessage) => void;
 
-  getMeInfo: () => Promise<User | null>;
-  clearStore: () => void;
+  clearServerSlice: () => void;
 
   changeAvatar: (user: User) => Promise<void>;
-  changeUsername: (user: User, newUsername: string) => Promise<void>;
+  changeUsernameOnServer: (user: User, newUsername: string) => Promise<void>;
 }
 
 export const createServerSlice: StateCreator<AppState, [], [], ServerSlice> = (set, get) => ({
@@ -70,7 +59,6 @@ export const createServerSlice: StateCreator<AppState, [], [], ServerSlice> = (s
   serverDetailsLoading: false,
   serverDetailsError: null,
 
-  selectedChannel: null,
   selectedChannelMessages: [],
   channelMessagesLoading: false,
   channelMessagesError: null,
@@ -351,72 +339,6 @@ export const createServerSlice: StateCreator<AppState, [], [], ServerSlice> = (s
     return server;
   },
 
-  createChannel: async (newChannelData) => {
-    const selectedServer = get().selectedServer;
-    if (!selectedServer || !selectedServer.id) return null;
-
-    try {
-      const newChannel = await channelService.create({ serverId: selectedServer.id, ...newChannelData });
-      return newChannel ?? null;
-    } catch (error) {
-      console.error("Error creating channel:", error);
-      return null;
-    }
-  },
-
-  removeChannel: async (serverId: string, channelId: string) => {
-
-    // only update if the server is selected or cached
-    if (!get().cachedServers.has(serverId) && get().selectedServer?.id !== serverId) return;
-
-    const wasSelectedChannel = get().selectedChannel?.id === channelId;
-
-    set((state) => {
-      const newCachedServers = new Map(state.cachedServers);
-      const cachedServer = newCachedServers.get(serverId);
-
-      if (cachedServer) {
-        newCachedServers.set(serverId, {
-          ...cachedServer,
-          channels: cachedServer.channels.filter(c => c.id !== channelId)
-        });
-      }
-
-      let newSelectedServer = state.selectedServer;
-      if (state.selectedServer?.id === serverId) {
-        newSelectedServer = {
-          ...state.selectedServer,
-          channels: state.selectedServer.channels.filter(c => c.id !== channelId)
-        };
-      }
-
-      const newCachedChannelMessages = new Map(state.cachedChannelMessages);
-      const messages = newCachedChannelMessages.get(channelId) || [];
-      newCachedChannelMessages.delete(channelId);
-
-      // revoke attachment preview blobs for all messages that will be cleared
-      messages.forEach(message => {
-        if (message.attachment) {
-          get().revokeAttachmentPreview(message.attachment.id);
-        }
-      });
-
-      return {
-        selectedServer: newSelectedServer,
-        cachedServers: newCachedServers,
-        cachedChannelMessages: newCachedChannelMessages,
-      };
-    });
-
-    if (wasSelectedChannel && get().selectedServer?.id === serverId) {
-      if (get().selectedServer?.channels.length) {
-        get().selectChannel(get().selectedServer!.channels[0].id);
-      } else {
-        get().selectChannel(null);
-      }
-    }
-  },
-
   removeMessageFromChannel: (serverId: string, channelId: string, messageId: string) => {
     set((state) => {
 
@@ -554,7 +476,7 @@ export const createServerSlice: StateCreator<AppState, [], [], ServerSlice> = (s
     }
   },
 
-clearStore: () => {
+clearServerSlice: () => {
   set({
     servers: [],
     serversLoading: false,
@@ -563,49 +485,11 @@ clearStore: () => {
     serverDetailsLoading: false,
     serverDetailsError: null,
     cachedServers: new Map(),
-    selectedChannel: null,
     selectedChannelMessages: [],
     channelMessagesLoading: false,
     channelMessagesError: null,
   });
 },
-
-  getMeInfo: async () => {
-    try {
-      const user = await userService.getMe();
-      return user;
-    } catch (error) {
-      console.error("Error fetching user info:", error);
-      return null;
-    }
-  },
-
-  addChannel: async (serverId: string, channel: Channel) => {
-
-    // only update if the server is selected or cached
-    if (get().selectedServer?.id === serverId || get().cachedServers.has(serverId)) {
-      set((state) => {
-        const newCachedServers = new Map(state.cachedServers);
-        const cachedServer = newCachedServers.get(serverId);
-
-        if (cachedServer) {
-          newCachedServers.set(serverId, {
-            ...cachedServer,
-            channels: [...cachedServer.channels.filter(c => c.id !== channel.id), channel]
-          });
-        }
-
-        let newSelectedServer = state.selectedServer;
-        if (state.selectedServer?.id === serverId && state.selectedServer) {
-          newSelectedServer = {
-            ...state.selectedServer,
-            channels: [...state.selectedServer.channels.filter(c => c.id !== channel.id), channel]
-          };
-        }
-        return { selectedServer: newSelectedServer, cachedServers: newCachedServers };
-      });
-    }
-  },
 
   addMessageToChannel: (serverId: string, message: ServerMessage) => {
     set((state) => {
@@ -633,39 +517,6 @@ clearStore: () => {
         cachedChannelMessages: newCachedChannelMessages
       };
     });
-  },
-
-  updateChannel: (serverId: string, channel: Channel) => {
-
-    // only update if the server is selected or cached
-    if (get().selectedServer?.id === serverId || get().cachedServers.has(serverId)) {
-      set((state) => {
-        const newCachedServers = new Map(state.cachedServers);
-        const cachedServer = newCachedServers.get(serverId);
-
-        if (cachedServer) {
-          newCachedServers.set(serverId, {
-            ...cachedServer,
-            channels: cachedServer.channels.map(c => c.id === channel.id ? channel : c)
-          });
-        }
-
-        let newSelectedServer = state.selectedServer;
-        if (state.selectedServer?.id === serverId && state.selectedServer) {
-          newSelectedServer = {
-            ...state.selectedServer,
-            channels: state.selectedServer.channels.map(c => c.id === channel.id ? channel : c)
-          };
-        }
-
-        let newSelectedChannel = state.selectedChannel;
-        if (state.selectedChannel?.id === channel.id) {
-          newSelectedChannel = channel;
-        }
-
-        return { selectedServer: newSelectedServer, cachedServers: newCachedServers, selectedChannel: newSelectedChannel };
-      });
-    }
   },
 
   addUserToServer: (serverId: string, user: User) => {
@@ -702,8 +553,8 @@ clearStore: () => {
   removeUserFromServer: async (serverId: string, userId: string) => {
 
     // if the user that left is the current user, leave the server (this is the case when the user is kicked)
-    const currentUser = await get().getMeInfo();
-    if (currentUser && currentUser.id === userId) {
+    const user = await userService.getMe();
+    if (user && user.id === userId) {
       get().leaveServer(serverId);
       return;
     }
@@ -741,7 +592,7 @@ clearStore: () => {
     }
   },
 
-  changeUsername: async (user, newUsername) => {
+  changeUsernameOnServer: async (user, newUsername) => {
     set(state => {
 
       // update cached servers
