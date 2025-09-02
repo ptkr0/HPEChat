@@ -6,6 +6,7 @@ import AuthContext from "@/context/AuthProvider";
 import { useAppStore } from "@/stores/useAppStore";
 import { useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Loader2 } from "lucide-react";
 
 export default function ChannelLayout() {
   const { user, loading } = useContext(AuthContext);
@@ -13,6 +14,9 @@ export default function ChannelLayout() {
   const selectedChannel = useAppStore((state) => state.selectedChannel);
   const serverMessagesLoading = useAppStore((state) => state.channelMessagesLoading);
   const serverMessages = useAppStore((state) => state.selectedChannelMessages);
+  const loadingMoreMessages = useAppStore((state) => state.loadingMoreMessages);
+  const hasMoreMessages = useAppStore((state) => state.hasMoreMessages.get(selectedChannel?.id || '')) ?? false;
+  const fetchMoreMessages = useAppStore((state) => state.fetchMoreMessages);
 
   const [messageInputHeight, setMessageInputHeight] = useState(44);
   const [isInitialLoad, setIsInitialLoad] = useState(true)
@@ -74,6 +78,20 @@ export default function ChannelLayout() {
     }
   };
 
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget;
+    if (target.scrollTop === 0 && !serverMessagesLoading && hasMoreMessages && !loadingMoreMessages && selectedChannel) {
+      console.log("Loading more messages...");
+      const oldScrollHeight = target.scrollHeight;
+      fetchMoreMessages(selectedChannel.id).then(() => {
+        // preserve scroll position after loading more messages
+        requestAnimationFrame(() => {
+          target.scrollTop = target.scrollHeight - oldScrollHeight;
+        });
+      });
+    }
+  };
+
   return (
     <div className="mx-auto p-2 flex flex-col w-full h-full">
       <header className="flex h-12 shrink-0 items-center gap-3 px-4">
@@ -112,8 +130,14 @@ export default function ChannelLayout() {
               ref={scrollAreaRef}
               className="h-full pr-4 overflow-hidden"
               type="always"
+              onScroll={handleScroll}
             >
               <div className="p-2">
+                {loadingMoreMessages && (
+                  <div className="flex justify-center items-center p-4">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                )}
                 {serverMessages && serverMessages.length > 0 ? (
                   sortedMessages.map((message, index) => {
                     // check if the previous message is from the same user and within 10 minutes

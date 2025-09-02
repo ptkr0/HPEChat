@@ -29,6 +29,9 @@ export interface ServerSlice {
   channelMessagesLoading: boolean;
   channelMessagesError: string | null;
   cachedChannelMessages: Map<string, ServerMessage[]>; // map of all cached server messages (channelId -> messages array)
+  hasMoreMessages: Map<string, boolean>; // map of channelId to whether there are more messages to load
+  loadingMoreMessages: boolean;
+  fetchMoreMessages: (channelId: string) => Promise<void>;
 
   createServer: (name: string, description?: string, image?: File) => Promise<Server | null>;
   joinServer: (inviteCode: string) => Promise<ServerDetails | null>;
@@ -63,6 +66,8 @@ export const createServerSlice: StateCreator<AppState, [], [], ServerSlice> = (s
   channelMessagesLoading: false,
   channelMessagesError: null,
   cachedChannelMessages: new Map(),
+  hasMoreMessages: new Map(),
+  loadingMoreMessages: false,
 
   cachedServers: new Map(),
 
@@ -163,52 +168,55 @@ export const createServerSlice: StateCreator<AppState, [], [], ServerSlice> = (s
     }
   },
 
-  selectChannel: (channelId: string | null) => {
-
-    // if the channelId is the same as the current one, do nothing
-    if (get().selectedChannel?.id === channelId && channelId !== null) {
+  fetchMoreMessages: async (channelId: string) => {
+    if (get().loadingMoreMessages || !get().hasMoreMessages.get(channelId)) {
       return;
     }
 
-    if (channelId && get().selectedServer) {
-      const basicChannelInfo = get().selectedServer?.channels.find(c => c.id === channelId);
-      set({
-        selectedChannel: basicChannelInfo || null,
-        channelMessagesLoading: true,
-        selectedChannelMessages: [],
-        channelMessagesError: null,
-      });
+    set({ loadingMoreMessages: true });
 
-      const cachedMessages = get().cachedChannelMessages.get(channelId);
-      if (cachedMessages) {
-        set({
-          selectedChannelMessages: cachedMessages,
-          channelMessagesLoading: false,
+    const cachedMessages = get().cachedChannelMessages.get(channelId) || [];
+    if (cachedMessages.length === 0) {
+      set({ loadingMoreMessages: false });
+      return;
+    }
+
+    const oldestMessage = cachedMessages.reduce((oldest, current) =>
+      new Date(current.sentAt) < new Date(oldest.sentAt) ? current : oldest
+    );
+    const lastCreatedAt = oldestMessage.sentAt;
+
+    try {
+      const olderMessages = await serverMessageService.getAll(channelId, lastCreatedAt);
+
+      if (olderMessages.length > 0) {
+        set(state => {
+          const newCachedMessages = new Map(state.cachedChannelMessages);
+          const currentMessages = newCachedMessages.get(channelId) || [];
+          const allMessages = [...olderMessages, ...currentMessages];
+          newCachedMessages.set(channelId, allMessages);
+
+          let newSelectedChannelMessages = state.selectedChannelMessages;
+          if (state.selectedChannel?.id === channelId) {
+            newSelectedChannelMessages = allMessages;
+          }
+
+          return {
+            cachedChannelMessages: newCachedMessages,
+            selectedChannelMessages: newSelectedChannelMessages,
+            loadingMoreMessages: false,
+            hasMoreMessages: new Map(state.hasMoreMessages).set(channelId, olderMessages.length === 50),
+          };
         });
       } else {
-        serverMessageService.getAll(channelId).then(fetchedMessages => {
-          if (get().selectedChannel?.id === channelId) {
-            set((state) => ({
-              selectedChannelMessages: fetchedMessages,
-              channelMessagesLoading: false,
-              cachedChannelMessages: new Map(state.cachedChannelMessages).set(channelId, fetchedMessages),
-            }));
-          }
-        }).catch(error => {
-          console.error(`Error fetching messages for channel ${channelId}:`, error);
-
-          if (get().selectedChannel?.id === channelId) {
-            set({ channelMessagesError: 'Nie udało się pobrać wiadomości.', channelMessagesLoading: false });
-          }
-        });
+        set(state => ({
+          hasMoreMessages: new Map(state.hasMoreMessages).set(channelId, false),
+          loadingMoreMessages: false,
+        }));
       }
-    } else {
-      set({
-        selectedChannel: null,
-        selectedChannelMessages: [],
-        channelMessagesLoading: false,
-        channelMessagesError: null,
-      });
+    } catch (error) {
+      console.error("Error fetching more messages:", error);
+      set({ loadingMoreMessages: false });
     }
   },
 

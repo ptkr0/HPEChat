@@ -16,7 +16,7 @@ export interface ChannelSlice {
 export const createChannelSlice: StateCreator<AppState, [], [], ChannelSlice> = (set, get) => ({
   selectedChannel: null,
 
-  selectChannel: (channelId: string | null) => {
+selectChannel: (channelId: string | null) => {
 
     // if the channelId is the same as the current one, do nothing
     if (get().selectedChannel?.id === channelId && channelId !== null) {
@@ -45,6 +45,7 @@ export const createChannelSlice: StateCreator<AppState, [], [], ChannelSlice> = 
               selectedChannelMessages: fetchedMessages,
               channelMessagesLoading: false,
               cachedChannelMessages: new Map(state.cachedChannelMessages).set(channelId, fetchedMessages),
+              hasMoreMessages: new Map(state.hasMoreMessages).set(channelId, fetchedMessages.length === 50), // server fetches messages in batches of 50
             }));
           }
         }).catch(error => {
