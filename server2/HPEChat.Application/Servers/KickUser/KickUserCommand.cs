@@ -1,12 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using MediatR;
 
 namespace HPEChat.Application.Servers.KickUser
 {
-	internal class KickUserCommand
+	internal class KickUserCommand : IRequest
 	{
+		public Guid ServerId { get; set; }
+		public Guid KickerId { get; set; }
+		public Guid KickeeId { get; set; }
 	}
 }

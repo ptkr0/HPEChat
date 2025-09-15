@@ -47,6 +47,15 @@ namespace HPEChat.Infrastructure.Repositories
 		{
 			return await _context.Servers
 				.AsSplitQuery()
+				.Include(s => s.Members)
+				.Include(s => s.Channels)
+				.FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
+		}
+
+		public async Task<Server?> GetServerWithMemebersAndChannelsAsyncNoTracking(Guid id, CancellationToken cancellationToken = default)
+		{
+			return await _context.Servers
+				.AsSplitQuery()
 				.AsNoTracking()
 				.Include(s => s.Members)
 				.Include(s => s.Channels)

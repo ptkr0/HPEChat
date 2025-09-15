@@ -11,6 +11,7 @@ namespace HPEChat.Domain.Interfaces.Repositories
 		void Update(Server server);
 		void Remove(Server server);
 		Task<Server?> GetServerWithMemebersAndChannelsAsync(Guid id, CancellationToken cancellationToken = default);
+		Task<Server?> GetServerWithMemebersAndChannelsAsyncNoTracking(Guid id, CancellationToken cancellationToken = default);
 		Task<ICollection<Server>> GetServersByUserIdAsync(Guid userId, CancellationToken cancellationToken = default);
 	}
 }

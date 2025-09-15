@@ -75,7 +75,6 @@ namespace HPEChat.Application.Servers.DeleteServer
 			try
 			{
 				_serverRepository.Remove(server);
-
 				await _unitOfWork.CommitTransactionAsync();
 
 				foreach (var filePath in filesToDelete)
@@ -97,7 +96,9 @@ namespace HPEChat.Application.Servers.DeleteServer
 
 					var connectionIds = _connectionMapperService.GetConnections(member.Id);
 					foreach (var connId in connectionIds)
-						await _serverHub.Groups.RemoveFromGroupAsync(connId, ServerHub.GroupName(server.Id));
+						await _serverHub
+								.Groups
+								.RemoveFromGroupAsync(connId, ServerHub.GroupName(server.Id), cancellationToken);
 				}
 
 				_logger.LogInformation("Server with ID {ServerId} deleted successfully by owner with ID {OwnerId}.", request.ServerId, request.OwnerId);
@@ -105,7 +106,7 @@ namespace HPEChat.Application.Servers.DeleteServer
 			catch (Exception ex)
 			{
 				_logger.LogError(ex, "Error occurred while deleting server with ID {ServerId}. Transaction is being rolled back.", request.ServerId);
-				_unitOfWork.RollbackTransaction();
+				await _unitOfWork.RollbackTransactionAsync();
 				throw;
 			}
 		}

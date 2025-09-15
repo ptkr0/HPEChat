@@ -1,12 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using HPEChat.Application.Servers.Dtos;
+using MediatR;
 
 namespace HPEChat.Application.Servers.GetServers
 {
-	internal class GetServersQuery
+	public class GetServersQuery : IRequest<ICollection<ServerDto>>
 	{
+		public Guid UserId { get; set; }
 	}
 }

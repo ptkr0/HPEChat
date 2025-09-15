@@ -6,6 +6,6 @@
 
 		Task BeginTransactionAsync();
 		Task CommitTransactionAsync();
-		void RollbackTransaction();
+		Task RollbackTransactionAsync();
 	}
 }

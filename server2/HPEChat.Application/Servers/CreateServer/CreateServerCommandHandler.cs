@@ -117,7 +117,7 @@ namespace HPEChat.Application.Servers.CreateServer
 			catch (Exception ex)
 			{
 				_logger.LogError(ex, "Error occurred while creating server.");
-				_unitOfWork.RollbackTransaction();
+				await _unitOfWork.RollbackTransactionAsync();
 
 				if (imagePath != null)
 				{
