@@ -1,4 +1,5 @@
-﻿using HPEChat_Server.Data;
+﻿using HPEChat_Server;
+using HPEChat_Server.Data;
 using HPEChat_Server.Hubs;
 using HPEChat_Server.Initialization;
 using HPEChat_Server.Services;
@@ -8,7 +9,6 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
-
 
 builder.Services.AddEndpointsApiExplorer();
 
@@ -71,6 +71,8 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<FileService>();
+
+builder.Services.Configure<FileStorageSettings>(builder.Configuration.GetSection("FileStorageSettings"));
 
 var app = builder.Build();
 

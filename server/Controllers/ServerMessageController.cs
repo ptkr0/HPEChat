@@ -20,32 +20,37 @@ namespace HPEChat_Server.Controllers
 		private readonly ApplicationDBContext _context;
 		private readonly IHubContext<ServerHub, IServerClient> _hub;
 		private readonly FileService _fileService;
-		public ServerMessageController(ApplicationDBContext context, IHubContext<ServerHub, IServerClient> hub, FileService fileService)
+		private readonly ILogger<ServerMessageController> _logger;
+		public ServerMessageController(
+			ApplicationDBContext context, 
+			IHubContext<ServerHub, IServerClient> hub, 
+			FileService fileService,
+			ILogger<ServerMessageController> logger)
 		{
 			_context = context;
 			_hub = hub;
 			_fileService = fileService;
+			_logger = logger;
 		}
 
 		[HttpGet]
 		[Authorize]
-		public async Task<ActionResult<ICollection<ServerMessageDto>>> GetMessages([FromQuery] GetServerMessagesDto messagesDto)
+		public async Task<ActionResult<ICollection<ServerMessageDto>>> GetMessages([FromQuery] GetServerMessagesDto getMessages)
 		{
 			if (!ModelState.IsValid) return BadRequest(ModelState);
 
 			var userId = User.GetUserId();
 			if (userId == null) return BadRequest("User not found");
 
-			Guid channelGuid = messagesDto.ChannelId;
-			DateTimeOffset? lastCreatedAt = messagesDto.LastCreatedAt;
+
 			int pageSize = 50;
 
 			var query = _context.ServerMessages
 				.Where(m =>
-					m.ChannelId == channelGuid && // only messages from the specified channel  
+					m.ChannelId == getMessages.ChannelId && // only messages from the specified channel  
 					m.Channel.Server.Members.Any(mem => mem.Id == userId)); // only messages from channels the user is a member of  
 
-			if (lastCreatedAt.HasValue) query = query.Where(m => m.SentAt < lastCreatedAt.Value); // only messages sent before the last loaded message  
+			if (getMessages.LastCreatedAt.HasValue) query = query.Where(m => m.SentAt < getMessages.LastCreatedAt.Value); // only messages sent before the last loaded message  
 
 			var messages = await query
 				.AsNoTracking()
@@ -73,7 +78,7 @@ namespace HPEChat_Server.Controllers
 						Width = m.Attachment.Width,
 						Height = m.Attachment.Height,
 						FileName = m.Attachment.StoredFileName,
-						PreviewName = m.Attachment.PreviewName != null ? m.Attachment.PreviewName : string.Empty
+						PreviewName = m.Attachment.PreviewName ?? string.Empty
 					} : null
 				})
 				.Take(pageSize)
@@ -100,6 +105,7 @@ namespace HPEChat_Server.Controllers
 				.Include(c => c.Server)
 				.ThenInclude(c => c.Members)
 				.FirstOrDefaultAsync(c => c.Id == messageDto.ChannelId && c.Server.Members.Any(m => m.Id == userId));
+
 			if (channel == null) return NotFound("Channel not found or you are not a member of the server");
 
 			await using (var transaction = await _context.Database.BeginTransactionAsync())
@@ -221,27 +227,27 @@ namespace HPEChat_Server.Controllers
 						_fileService.DeleteFile(uploadedPreviewPath);
 					}
 
-					return BadRequest($"Error sending message: {ex.Message}");
+					_logger.LogError(ex, "Error sending message in channel {ChannelId} by user {UserId}", messageDto.ChannelId, userId);
+
+					return StatusCode(500, $"Error sending message: {ex.Message}");
 				}
 			}
 		}
 
 		[HttpPatch("{id}")]
 		[Authorize]
-		public async Task<ActionResult<ServerMessageDto>> EditMessage([Required] Guid id, [FromBody][Required][MaxLength(2000)] string message)
+		public async Task<ActionResult<ServerMessageDto>> EditMessage(Guid id, [FromBody][MaxLength(2000)] string message)
 		{
 			if (!ModelState.IsValid) return BadRequest(ModelState);
 
 			var userId = User.GetUserId();
 			if (userId == null) return BadRequest("User not found");
 
-			Guid messageGuid = id;
-
 			var serverMessage = await _context.ServerMessages
 				.Include(u => u.Sender)
 				.Include(s => s.Channel.Server)
 				.FirstOrDefaultAsync(m =>
-					m.Id == messageGuid && // check if message exists
+					m.Id == id && // check if message exists
 					m.SenderId == userId && // check if the user is the sender
 					m.Channel.Server.Members.Any(u => u.Id == userId)); // check if the user is still a member of the server
 
@@ -293,7 +299,7 @@ namespace HPEChat_Server.Controllers
 				catch (Exception ex)
 				{
 					await transaction.RollbackAsync();
-					return BadRequest($"Error editing message: {ex.Message}");
+					return StatusCode(500, $"Error editing message: {ex.Message}");
 				}
 			}
 		}
@@ -307,7 +313,7 @@ namespace HPEChat_Server.Controllers
 			var userId = User.GetUserId();
 			if (userId == null) return BadRequest("User not found");
 
-			var serverMessage = await _context.ServerMessages
+			ServerMessage? serverMessage = await _context.ServerMessages
 				.Include(u => u.Sender)
 				.Include(s => s.Channel.Server)
 				.Include(a => a.Attachment) // include attachment if it exists
@@ -317,8 +323,8 @@ namespace HPEChat_Server.Controllers
 					m.Channel.Server.Members.Any(u => u.Id == userId)); // check if the user is still a member of the server
 			if (serverMessage == null) return NotFound("Message not found or you are not the sender");
 
-			var serverId = serverMessage.Channel.ServerId;
-			var channelId = serverMessage.ChannelId;
+			Guid serverId = serverMessage.Channel.ServerId;
+			Guid channelId = serverMessage.ChannelId;
 
 			await using (var transaction = await _context.Database.BeginTransactionAsync())
 			{
@@ -355,7 +361,9 @@ namespace HPEChat_Server.Controllers
 				catch (Exception ex)
 				{
 					await transaction.RollbackAsync();
-					return BadRequest($"Error deleting message: {ex.Message}");
+
+					_logger.LogError(ex, "Error deleting message {MessageId} in server {ServerId} by user {UserId}", id, serverId, userId);
+					return StatusCode(500, $"Error deleting message: {ex.Message}");
 				}
 			}
 		}

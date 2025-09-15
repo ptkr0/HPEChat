@@ -1,0 +1,17 @@
+﻿using Microsoft.AspNetCore.Http;
+using System.ComponentModel.DataAnnotations;
+
+namespace HPEChat.Application.Servers.Dtos
+{
+	public class CreateServerDto
+	{
+		[Required]
+		[MaxLength(50)]
+		public string Name { get; set; } = string.Empty;
+
+		[MaxLength(1000)]
+		public string? Description { get; set; } = string.Empty;
+
+		public IFormFile? Image { get; set; }
+	}
+}

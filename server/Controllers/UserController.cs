@@ -10,7 +10,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
-using System.Runtime.InteropServices;
 
 namespace HPEChat_Server.Controllers
 {
@@ -22,13 +21,19 @@ namespace HPEChat_Server.Controllers
 		private readonly IHubContext<UserHub, IUserClient> _hub;
 		private readonly FileService _fileService;
 		private readonly UserService _userService;
-
-		public UserController(ApplicationDBContext context, FileService fileService, UserService userService, IHubContext<UserHub, IUserClient> hub)
+		private readonly ILogger<UserController> _logger;
+		public UserController(
+			ApplicationDBContext context, 
+			FileService fileService, 
+			UserService userService, 
+			IHubContext<UserHub, IUserClient> hub, 
+			ILogger<UserController> logger)
 		{
 			_context = context;
 			_fileService = fileService;
 			_userService = userService;
 			_hub = hub;
+			_logger = logger;
 		}
 
 		[HttpPost("register")]
@@ -65,18 +70,23 @@ namespace HPEChat_Server.Controllers
 						}
 
 						await transaction.CommitAsync();
+
+						_logger.LogInformation("New user registered: {Username} (ID: {UserId})", user.Username, user.Id);
+
 						return user;
 					}
 				catch (Exception ex)
 				{
-					Console.WriteLine(ex.Message);
 					await transaction.RollbackAsync();
 
 					if (imagePath != null)
 					{
 						_fileService.DeleteFile(imagePath);
 					}
-					return BadRequest("Error registering user: " + ex.Message);
+
+					_logger.LogError(ex, "Error registering user: {Message}", ex.Message);
+
+					return StatusCode(500, "Error registering user: " + ex.Message);
 				}
 			}
 		}
@@ -134,6 +144,8 @@ namespace HPEChat_Server.Controllers
 				_context.Users.Update(user);
 				await _context.SaveChangesAsync();
 
+				_logger.LogInformation("User {Username} (ID: {UserId}) granted admin role by owner (ID: {OwnerId})", user.Username, user.Id, userId);
+
 				return Ok(new
 				{
 					Id = user.Id.ToString().ToUpper(),
@@ -143,8 +155,8 @@ namespace HPEChat_Server.Controllers
 			}
 			catch (Exception ex)
 			{
-				Console.WriteLine(ex.Message);
-				return BadRequest("Error updating user privileges: " + ex.Message);
+				_logger.LogError(ex, "Error granting admin role to user {Username} (ID: {UserId}): {Message}", user.Username, user.Id, ex.Message);
+				return StatusCode(500, "Error updating user privileges: " + ex.Message);
 			}
 		}
 
@@ -167,6 +179,8 @@ namespace HPEChat_Server.Controllers
 				_context.Users.Update(user);
 				await _context.SaveChangesAsync();
 
+				_logger.LogInformation("Admin role revoked from user {Username} (ID: {UserId}) by owner (ID: {OwnerId})", user.Username, user.Id, userId);
+
 				return Ok(new
 				{
 					Id = user.Id.ToString().ToUpper(),
@@ -176,8 +190,8 @@ namespace HPEChat_Server.Controllers
 			}
 			catch (Exception ex)
 			{
-				Console.WriteLine(ex.Message);
-				return BadRequest("Error updating user privileges: " + ex.Message);
+				_logger.LogError(ex, "Error revoking admin role from user {Username} (ID: {UserId}): {Message}", user.Username, user.Id, ex.Message);
+				return StatusCode(500, "Error updating user privileges: " + ex.Message);
 			}
 		}
 
@@ -208,8 +222,8 @@ namespace HPEChat_Server.Controllers
 			}
 			catch (Exception ex)
 			{
-				Console.WriteLine(ex.Message);
-				return BadRequest("Error changing password: " + ex.Message);
+				_logger.LogError(ex, "Error changing password for user {Username} (ID: {UserId}): {Message}", user.Username, user.Id, ex.Message);
+				return StatusCode(500, "Error changing password: " + ex.Message);
 			}
 		}
 
@@ -249,8 +263,8 @@ namespace HPEChat_Server.Controllers
 			}
 			catch (Exception ex)
 			{
-				Console.WriteLine(ex.Message);
-				return BadRequest("Error changing username: " + ex.Message);
+				_logger.LogError(ex, "Error changing username for user {Username} (ID: {UserId}): {Message}", user.Username, user.Id, ex.Message);
+				return StatusCode(500, "Error changing username: " + ex.Message);
 			}
 		}
 
@@ -296,7 +310,7 @@ namespace HPEChat_Server.Controllers
 					}
 					else
 					{
-						return BadRequest("Error deleting avatar image");
+						return StatusCode(500, "Error deleting avatar image");
 					}
 				}
 
@@ -306,7 +320,7 @@ namespace HPEChat_Server.Controllers
 					// first save the new one, because if that fails we don't want to delete the old one
 					var imagePath = await _fileService.UploadAvatar(avatar, user.Id);
 
-					if (string.IsNullOrEmpty(imagePath)) return BadRequest("Failed to save avatar image.");
+					if (string.IsNullOrEmpty(imagePath)) return StatusCode(500, "Failed to save avatar image.");
 
 					// if user already has an avatar we need to delete the old one
 					if (!string.IsNullOrEmpty(user.Image))
@@ -314,7 +328,7 @@ namespace HPEChat_Server.Controllers
 						if (!_fileService.DeleteFile(user.Image))
 						{
 							_fileService.DeleteFile(imagePath);
-							return BadRequest("Error deleting old avatar image");
+							return StatusCode(500, "Error deleting old avatar image");
 						}
 					}
 
@@ -339,8 +353,8 @@ namespace HPEChat_Server.Controllers
 			}
 			catch (Exception ex)
 			{
-				Console.WriteLine(ex.Message);
-				return BadRequest("Error changing avatar: " + ex.Message);
+				_logger.LogError(ex, "Error changing avatar for user {Username} (ID: {UserId}): {Message}", user.Username, user.Id, ex.Message);
+				return StatusCode(500, $"Error changing avatar: {ex.Message}");
 			}
 		}
 

@@ -19,11 +19,18 @@ namespace HPEChat_Server.Controllers
 		private readonly ApplicationDBContext _context;
 		private readonly IHubContext<ServerHub, IServerClient> _hub;
 		private readonly FileService _fileService;
-		public ChannelController(ApplicationDBContext context, IHubContext<ServerHub, IServerClient> hub, FileService fileService)
+		private readonly ILogger<ChannelController> _logger;
+		public ChannelController(
+			ApplicationDBContext context, 
+			IHubContext<ServerHub, 
+			IServerClient> hub,
+			FileService fileService, 
+			ILogger<ChannelController> logger)
 		{
 			_context = context;
 			_hub = hub;
 			_fileService = fileService;
+			_logger = logger;
 		}
 
 		[HttpPost]
@@ -35,9 +42,7 @@ namespace HPEChat_Server.Controllers
 			var userId = User.GetUserId();
 			if (userId == null) return Unauthorized("User not found");
 
-			Guid serverGuid = createChannelDto.ServerId;
-
-			var server = await _context.Servers.FindAsync(serverGuid);
+			var server = await _context.Servers.FindAsync(createChannelDto.ServerId);
 			if (server == null) return NotFound("Server not found");
 			if (server.OwnerId != userId) return Unauthorized("You are not the owner of this server");
 
@@ -45,7 +50,7 @@ namespace HPEChat_Server.Controllers
 			{
 				try
 				{
-					var channel = new Channel
+					Channel channel = new ()
 					{
 						Name = createChannelDto.Name,
 						ServerId = createChannelDto.ServerId,
@@ -56,14 +61,16 @@ namespace HPEChat_Server.Controllers
 
 					await _hub
 							.Clients
-							.Group(ServerHub.GroupName(serverGuid))
-							.ChannelAdded(serverGuid, new ChannelDto
+							.Group(ServerHub.GroupName(createChannelDto.ServerId))
+							.ChannelAdded(createChannelDto.ServerId, new ChannelDto
 							{
 								Id = channel.Id.ToString().ToUpper(),
 								Name = channel.Name,
 							});
 
 					await transaction.CommitAsync();
+
+					_logger.LogInformation("Channel {ChannelName} created in server {ServerName} by user {UserId}", channel.Id, server.Name, userId);
 
 					return Ok(new ChannelDto
 					{
@@ -74,6 +81,7 @@ namespace HPEChat_Server.Controllers
 				catch (Exception ex)
 				{
 					await transaction.RollbackAsync();
+					_logger.LogError(ex, "Error creating channel in server {ServerName} by user {UserId}", server.Name, userId);
 					return BadRequest($"Error creating channel: {ex.Message}");
 				}
 			}
@@ -81,7 +89,7 @@ namespace HPEChat_Server.Controllers
 
 		[HttpPatch("{id}")]
 		[Authorize]
-		public async Task<ActionResult<ChannelDto>> UpdateChannel(Guid id, [FromBody][Required] string name)
+		public async Task<ActionResult<ChannelDto>> UpdateChannel(Guid id, [FromBody] string name)
 		{
 			if (!ModelState.IsValid) return BadRequest(ModelState);
 
@@ -113,6 +121,8 @@ namespace HPEChat_Server.Controllers
 
 					await transaction.CommitAsync();
 
+					_logger.LogInformation("Channel {ChannelId} updated in server {ServerName} by user {UserId}", channel.Id, channel.Server!.Name, userId);
+
 					return Ok(new ChannelDto
 					{
 						Id = channel.Id.ToString().ToUpper(),
@@ -122,7 +132,8 @@ namespace HPEChat_Server.Controllers
 				catch (Exception ex)
 				{
 					await transaction.RollbackAsync();
-					return BadRequest($"Error updating channel: {ex.Message}");
+					_logger.LogError(ex, "Error updating channel {ChannelId} in server {ServerName} by user {UserId}", channel.Id, channel.Server!.Name, userId);
+					return StatusCode(500, $"Error updating channel: {ex.Message}");
 				}
 			}
 		}
@@ -169,11 +180,14 @@ namespace HPEChat_Server.Controllers
 						.Group(ServerHub.GroupName(channel.ServerId))
 						.ChannelRemoved(channel.ServerId, channel.Id);
 
+					_logger.LogInformation("Channel {ChannelId} deleted in server {ServerName} by user {UserId}", channel.Id, channel.Server!.Name, userId);
+
 					return Ok(new { message = "Server deleted successfully" });
 				}
 				catch (Exception ex)
 				{
 					await transaction.RollbackAsync();
+					_logger.LogError(ex, "Error deleting channel {ChannelId} in server {ServerName} by user {UserId}", channel.Id, channel.Server!.Name, userId);
 					return StatusCode(500, $"Error deleting channel: {ex.Message}");
 				}
 			}
@@ -188,10 +202,8 @@ namespace HPEChat_Server.Controllers
 			var userId = User.GetUserId();
 			if (userId == null) return Unauthorized("User not found");
 
-			Guid channelGuid = id;
-
 			var channel = await _context.Channels
-			.FirstOrDefaultAsync(c => c.Id == channelGuid && c.Server.Members.Any(m => m.Id == userId));
+			.FirstOrDefaultAsync(c => c.Id == id && c.Server.Members.Any(m => m.Id == userId));
 
 			if (channel == null) return NotFound("Channel not found or access denied");
 

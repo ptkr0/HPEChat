@@ -21,12 +21,19 @@ namespace HPEChat_Server.Controllers
 		private readonly IHubContext<ServerHub, IServerClient> _hub;
 		private readonly ConnectionMapperService _mapper;
 		private readonly FileService _fileService;
-		public ServerController(ApplicationDBContext context, IHubContext<ServerHub, IServerClient> hub, ConnectionMapperService mapper, FileService fileService)
+		private readonly ILogger<ServerController> _logger;
+		public ServerController(
+			ApplicationDBContext context, 
+			IHubContext<ServerHub, IServerClient> hub, 
+			ConnectionMapperService mapper, 
+			FileService fileService,
+			ILogger<ServerController> logger)
 		{
 			_context = context;
 			_hub = hub;
 			_mapper = mapper;
 			_fileService = fileService;
+			_logger = logger;
 		}
 
 		[HttpPost]
@@ -85,8 +92,10 @@ namespace HPEChat_Server.Controllers
 
 					await _context.SaveChangesAsync();
 					await transaction.CommitAsync();
+
+					_logger.LogInformation("Server {ServerName} created by user {UserId}", server.Name, userId);
 				}
-				catch
+				catch (Exception ex)
 				{
 					await transaction.RollbackAsync();
 
@@ -94,7 +103,10 @@ namespace HPEChat_Server.Controllers
 					{
 						_fileService.DeleteFile(uploadedServerImage);
 					}
-					return StatusCode(500);
+
+					_logger.LogError(ex, "Error creating server {ServerName} by user {UserId}", createServerDto.Name, userId);
+
+					return StatusCode(500, $"Error creating server: {ex.Message}");
 				}
 			}
 
@@ -107,7 +119,7 @@ namespace HPEChat_Server.Controllers
 				Image = server.Image ?? string.Empty,
 				Members = new List<UserInfoDto>()
 				{
-					new UserInfoDto
+					new ()
 					{
 						Id = user.Id.ToString().ToUpper(),
 						Username = user.Username,
@@ -146,7 +158,11 @@ namespace HPEChat_Server.Controllers
 			{
 				var uploadedImage = await _fileService.UploadServerPicture(updateServerDto.Image, server.Id);
 
-				if (uploadedImage == null) return StatusCode(500, "Failed to save server image.");
+				if (uploadedImage == null)
+				{
+					_logger.LogError("Failed to upload new server image for server {ServerName} by user {UserId}", server.Name, userId);
+					return StatusCode(500, "Failed to save server image.");
+				}
 
 				oldImageToDelete = server.Image;
 				server.Image = uploadedImage;
@@ -173,6 +189,8 @@ namespace HPEChat_Server.Controllers
 						OwnerId = server.OwnerId.ToString().ToUpper(),
 						Image = server.Image ?? string.Empty,
 					});
+
+			_logger.LogInformation("Server {ServerName} updated by user {UserId}", server.Name, userId);
 
 			return Ok(new ServerDto
 			{
@@ -315,10 +333,11 @@ namespace HPEChat_Server.Controllers
 						.ToList()
 					});
 				}
-				catch
+				catch (Exception ex)
 				{
 					await transaction.RollbackAsync();
-					return StatusCode(500);
+					_logger.LogError(ex, "Error joining server {ServerId} by user {UserId}", server.Id, userId);
+					return StatusCode(500, $"Error joining server: {ex.Message}");
 				}
 			}
 		}
@@ -362,10 +381,11 @@ namespace HPEChat_Server.Controllers
 					await transaction.CommitAsync();
 					return Ok(new { message = "User successfully left the server" });
 				}
-				catch
+				catch (Exception ex)
 				{
 					await transaction.RollbackAsync();
-					return StatusCode(500, "An error occurred while leaving the server");
+					_logger.LogError(ex, "Error leaving server {ServerId} by user {UserId}", serverId, userId);
+					return StatusCode(500, $"Error leaving server: {ex.Message}");
 				}
 			}
 		}
@@ -402,10 +422,10 @@ namespace HPEChat_Server.Controllers
 				await _context.SaveChangesAsync();
 
 				// clean up files
-				foreach (var f in filePaths)
+				foreach (var file in filePaths)
 				{
-					if (f.PreviewName != null) _fileService.DeleteFile(f.PreviewName);
-					if (f.StoredFileName != null) _fileService.DeleteFile(f.StoredFileName);
+					if (file.PreviewName != null) _fileService.DeleteFile(file.PreviewName);
+					if (file.StoredFileName != null) _fileService.DeleteFile(file.StoredFileName);
 				}
 
 				await transaction.CommitAsync();
@@ -421,12 +441,15 @@ namespace HPEChat_Server.Controllers
 						await _hub.Groups.RemoveFromGroupAsync(connId, ServerHub.GroupName(server.Id));
 				}
 
+				_logger.LogInformation("Server {ServerId} deleted by user {UserId}", id, userId);
+
 				return Ok(new { message = "Server deleted successfully" });
 			}
 			catch (Exception ex)
 			{
 				await transaction.RollbackAsync();
-				return BadRequest($"Error deleting server: {ex.Message}");
+				_logger.LogError(ex, "Error deleting server {ServerId} by user {UserId}", id, userId);
+				return StatusCode(500, $"Error deleting server: {ex.Message}");
 			}
 		}
 
@@ -470,10 +493,11 @@ namespace HPEChat_Server.Controllers
 
 					return Ok(new { message = "User kicked from server" });
 				}
-				catch
+				catch (Exception ex)
 				{
 					await transaction.RollbackAsync();
-					return StatusCode(500);
+					_logger.LogError(ex, "Error kicking user {KickedUserId} from server {ServerId} by owner {OwnerId}", userId, serverId, ownerId);
+					return StatusCode(500, $"Error kicking user: {ex.Message}");
 				}
 			}
 		}
