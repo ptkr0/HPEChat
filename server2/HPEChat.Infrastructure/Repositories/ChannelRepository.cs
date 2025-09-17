@@ -17,11 +17,29 @@ namespace HPEChat.Infrastructure.Repositories
 			await _context.Channels.AddAsync(channel, cancellationToken);
 		}
 
+		public Task<bool> CanAccessChannel(Guid channelId, Guid userId, CancellationToken cancellationToken = default)
+		{
+			return _context.Channels
+				.AsNoTracking()
+				.Where(c => c.Id == channelId)
+				.AnyAsync(c => c.Server.Members.Any(m => m.Id == userId), cancellationToken);
+		}
+
 		public async Task<Channel?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
 		{
 			return await _context.Channels
-			.Include(s => s.Server)
-			.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+				.Include(s => s.Server)
+				.ThenInclude(c => c.Members)
+				.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+		}
+
+		public async Task<Guid?> GetServerIdByChannelIdAsync(Guid channelId, CancellationToken cancellationToken = default)
+		{
+			return await _context.Channels
+				.AsNoTracking()
+				.Where(c => c.Id == channelId)
+				.Select(c => c.ServerId)
+				.FirstOrDefaultAsync(cancellationToken);
 		}
 
 		public void Remove(Channel channel)

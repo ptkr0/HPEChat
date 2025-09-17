@@ -41,7 +41,7 @@ namespace HPEChat.Application.Channels.CreateChannel
 
 			if (server.OwnerId != request.UserId)
 			{
-				_logger.LogWarning("User with ID {CreatorId} is not the owner of server with ID {ServerId}. Channel creation denied.", request.UserId, request.ServerId);
+				_logger.LogWarning("User with ID {UserId} is not the owner of server with ID {ServerId}. Channel creation denied.", request.UserId, request.ServerId);
 				throw new UnauthorizedAccessException("Only the server owner can create channels.");
 			}
 
@@ -72,7 +72,7 @@ namespace HPEChat.Application.Channels.CreateChannel
 							Name = channel.Name,
 						});
 
-				_logger.LogInformation("Channel {ChannelName} created in server {ServerName} by user {UserId}", channel.Id, server.Id, request.UserId);
+				_logger.LogInformation("Channel {ChannelId} created in server {ServerId} by user {UserId}", channel.Id, server.Id, request.UserId);
 
 				return channelDto;
 			}

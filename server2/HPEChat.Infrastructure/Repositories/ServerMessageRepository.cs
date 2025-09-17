@@ -17,18 +17,31 @@ namespace HPEChat.Infrastructure.Repositories
 			await _context.ServerMessages.AddAsync(serverMessage, cancellationToken);
 		}
 
+		public async Task<ServerMessage?> GetAccessibleMessageSentByUserAsync(Guid messageId, Guid userId, CancellationToken cancellationToken = default)
+		{
+			return await _context.ServerMessages
+				.Include(u => u.Sender)
+				.Include(s => s.Channel.Server)
+				.Include(a => a.Attachment)
+				.FirstOrDefaultAsync(m =>
+					m.Id == messageId && // check if message exists
+					m.SenderId == userId && // check if the user is the sender
+					m.Channel.Server.Members.Any(u => u.Id == userId), cancellationToken); // check if the user is still a member of the server
+		}
+
 		public async Task<ServerMessage?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
 		{
 			return await _context.ServerMessages.FindAsync([id], cancellationToken);
 		}
 
-		public async Task<ICollection<ServerMessage>> GetMessagesWithAttachmentsOlderThanAsync(Guid channelId, DateTimeOffset? lastCreatedAt, int pageSize = 50, CancellationToken cancellationToken = default)
+		public async Task<ICollection<ServerMessage>> GetMessagesWithAttachmentsOlderThanAsync(Guid channelId, DateTimeOffset? before, int pageSize = 50, CancellationToken cancellationToken = default)
 		{
 			var messages = await _context.ServerMessages
 					.AsNoTracking()
 					.Include(m => m.Attachment)
+					.Include(m => m.Sender)
 					.Where(m => m.ChannelId == channelId &&
-								(!lastCreatedAt.HasValue || m.SentAt < lastCreatedAt.Value))
+								(!before.HasValue || m.SentAt < before.Value))
 					.OrderByDescending(m => m.SentAt)
 					.ThenByDescending(m => m.Id)
 					.Take(pageSize)

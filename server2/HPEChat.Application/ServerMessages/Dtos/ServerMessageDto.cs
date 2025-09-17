@@ -5,8 +5,8 @@ namespace HPEChat.Application.ServerMessages.Dtos
 {
 	public class ServerMessageDto
 	{
-		public string Id { get; set; } = string.Empty;
-		public string ChannelId { get; set; } = string.Empty;
+		public Guid Id { get; set; }
+		public Guid ChannelId { get; set; }
 		public string Message { get; set; } = string.Empty;
 		public DateTimeOffset SentAt { get; set; }
 		public bool IsEdited { get; set; }

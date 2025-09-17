@@ -1,10 +1,12 @@
-﻿namespace HPEChat.Application.ServerMessages.Dtos
+﻿using HPEChat.Domain.Enums;
+
+namespace HPEChat.Application.ServerMessages.Dtos
 {
 	public class AttachmentDto
 	{
-		public string Id { get; set; } = string.Empty;
+		public Guid Id { get; set; }
 		public string Name { get; set; } = string.Empty;
-		public string Type { get; set; } = string.Empty;
+		public AttachmentType Type { get; set; }
 		public long Size { get; set; }
 		public int? Width { get; set; }
 		public int? Height { get; set; }

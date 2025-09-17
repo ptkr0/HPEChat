@@ -1,12 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using HPEChat.Application.ServerMessages.Dtos;
+using MediatR;
 
 namespace HPEChat.Application.ServerMessages.GetServerMessages
 {
-	internal class GetServerMessagesQuery
+	internal class GetServerMessagesQuery : IRequest<ICollection<ServerMessageDto>>
 	{
+		public Guid ChannelId { get; set; }
+		public Guid UserId { get; set; }
+		public int PageSize { get; set; } = 50;
+		public DateTimeOffset? Before { get; set; }
 	}
 }
