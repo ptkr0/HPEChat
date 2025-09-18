@@ -1,5 +1,4 @@
-﻿using HPEChat.Application.ServerMessages.UpdateServerMessage;
-using HPEChat.Application.Services;
+﻿using HPEChat.Application.Services;
 using HPEChat.Domain.Interfaces;
 using HPEChat.Domain.Interfaces.Repositories;
 using HPEChat_Server.Hubs;
@@ -56,7 +55,7 @@ namespace HPEChat.Application.ServerMessages.DeleteServerMessage
 				_serverMessageRepository.Remove(message);
 				await _unitOfWork.CommitTransactionAsync();
 
-				// best effort attempt to delete files, if it fails, move on :/
+				// best effort attempt to delete files, if it fails - move on :/
 				foreach (var file in filesToDelete)
 				{
 					_fileService.DeleteFile(file);

@@ -1,4 +1,4 @@
-﻿using HPEChat_Server;
+﻿using HPEChat_Server.Configuration;
 using HPEChat_Server.Data;
 using HPEChat_Server.Hubs;
 using HPEChat_Server.Initialization;
@@ -26,11 +26,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 			ValidateLifetime = true,
 			ValidateIssuerSigningKey = true,
 			ValidateIssuer = true,
-			ValidIssuer = builder.Configuration["JWT:Issuer"],
+			ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
 			ValidateAudience = true,
-			ValidAudience = builder.Configuration["JWT:Audience"],
+			ValidAudience = builder.Configuration["JwtSettings:Audience"],
 			IssuerSigningKey = new SymmetricSecurityKey(
-				Encoding.UTF8.GetBytes(builder.Configuration["JWT:SigningKey"]!)),
+				Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:SigningKey"]!)),
 		};
 
 		options.Events = new JwtBearerEvents
@@ -62,7 +62,8 @@ builder.Services.AddCors(options =>
 {
 	options.AddPolicy("CorsPolicy",
 		policy => policy
-			.WithOrigins("http://localhost:5173",
+			.WithOrigins(
+				"http://localhost:5173",
 				"https://localhost:5173")
 			.AllowCredentials()
 			.AllowAnyMethod()
@@ -73,6 +74,7 @@ builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<FileService>();
 
 builder.Services.Configure<FileStorageSettings>(builder.Configuration.GetSection("FileStorageSettings"));
+builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
 
 var app = builder.Build();
 

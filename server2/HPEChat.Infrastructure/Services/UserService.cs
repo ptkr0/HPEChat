@@ -1,5 +1,6 @@
 ﻿using HPEChat.Domain.Entities;
-using Microsoft.Extensions.Configuration;
+using HPEChat_Server.Configuration;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -9,11 +10,11 @@ namespace HPEChat_Server.Services
 {
 	public class UserService
 	{
-		private readonly IConfiguration _configuration;
+		private readonly JwtSettings _jwtSettings;
 
-		public UserService(IConfiguration configuration)
+		public UserService(IOptions<JwtSettings> jwtSettings)
 		{
-			_configuration = configuration;
+			_jwtSettings = jwtSettings.Value;
 		}
 
 		public string CreateToken(User user)
@@ -23,13 +24,13 @@ namespace HPEChat_Server.Services
 					new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
 				};
 
-			var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration.GetValue<string>("JWT:SigningKey")!));
+			var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.SigningKey));
 
 			var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
 			var token = new JwtSecurityToken(
-				issuer: _configuration.GetValue<string>("JWT:Issuer"),
-				audience: _configuration.GetValue<string>("JWT:Audience"),
+				issuer: _jwtSettings.Issuer,
+				audience: _jwtSettings.Audience,
 				expires: DateTime.Now.AddDays(7),
 				claims: claims,
 				signingCredentials: creds);

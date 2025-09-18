@@ -1,4 +1,4 @@
-﻿namespace HPEChat_Server
+﻿namespace HPEChat_Server.Configuration
 {
 	public class FileStorageSettings
 	{
