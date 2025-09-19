@@ -52,6 +52,11 @@ namespace HPEChat.Application.Servers.CreateServer
 				throw new ApplicationException("Server with the same name already exists.");
 			}
 
+			if (request.Image != null && !FileExtension.IsValidAvatar(request.Image))
+			{
+				throw new ApplicationException("Invalid image file type or size.");
+			}
+
 			await _unitOfWork.BeginTransactionAsync();
 
 			string? imagePath = null;
@@ -72,11 +77,6 @@ namespace HPEChat.Application.Servers.CreateServer
 
 				if (request.Image != null)
 				{
-					if (!FileExtension.IsValidAvatar(request.Image))
-					{
-						throw new ApplicationException("Invalid image file type or size.");
-					}
-
 					imagePath = await _fileService.UploadServerPicture(request.Image, server.Id);
 
 					if (imagePath == null)

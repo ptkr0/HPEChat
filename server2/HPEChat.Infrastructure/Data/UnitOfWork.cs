@@ -14,24 +14,24 @@ namespace HPEChat.Infrastructure.Data
 			_context = context;
 		}
 
-		public async Task BeginTransactionAsync()
+		public async Task BeginTransactionAsync(CancellationToken cancellationToken = default)
 		{
 			_currentTransaction ??= await _context.Database.BeginTransactionAsync();
 		}
 
-		public async Task CommitTransactionAsync()
+		public async Task CommitTransactionAsync(CancellationToken cancellationToken = default)
 		{
 			try
 			{
-				await _context.SaveChangesAsync();
+				await _context.SaveChangesAsync(cancellationToken);
 				if (_currentTransaction != null)
 				{
-					await _currentTransaction.CommitAsync();
+					await _currentTransaction.CommitAsync(cancellationToken);
 				}
 			}
 			catch
 			{
-				await RollbackTransactionAsync();
+				await RollbackTransactionAsync(cancellationToken);
 				throw;
 			}
 			finally
@@ -44,13 +44,13 @@ namespace HPEChat.Infrastructure.Data
 			}
 		}
 
-		public async Task RollbackTransactionAsync()
+		public async Task RollbackTransactionAsync(CancellationToken cancellationToken = default)
 		{
 			try
 			{
 				if (_currentTransaction != null)
 				{
-					await _currentTransaction.RollbackAsync();
+					await _currentTransaction.RollbackAsync(cancellationToken);
 				}
 			}
 			finally
