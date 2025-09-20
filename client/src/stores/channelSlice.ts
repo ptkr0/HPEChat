@@ -16,7 +16,7 @@ export interface ChannelSlice {
 export const createChannelSlice: StateCreator<AppState, [], [], ChannelSlice> = (set, get) => ({
   selectedChannel: null,
 
-selectChannel: (channelId: string | null) => {
+  selectChannel: (channelId: string | null) => {
 
     // if the channelId is the same as the current one, do nothing
     if (get().selectedChannel?.id === channelId && channelId !== null) {
@@ -38,6 +38,26 @@ selectChannel: (channelId: string | null) => {
           selectedChannelMessages: cachedMessages,
           channelMessagesLoading: false,
         });
+        
+      // If we have fewer than 50 cached messages, try to fetch more
+      if (cachedMessages.length < 50) {
+        serverMessageService.getAll(channelId).then(fetchedMessages => {
+      if (get().selectedChannel?.id === channelId) {
+        set((state) => ({
+          selectedChannelMessages: fetchedMessages,
+          cachedChannelMessages: new Map(state.cachedChannelMessages).set(channelId, fetchedMessages),
+          hasMoreMessages: new Map(state.hasMoreMessages).set(channelId, fetchedMessages.length === 50),
+        }));
+      }
+        }).catch(error => {
+      console.error(`Error fetching messages for channel ${channelId}:`, error);
+        });
+      } else {
+        // We have 50 or more cached messages, assume there might be more
+        set((state) => ({
+      hasMoreMessages: new Map(state.hasMoreMessages).set(channelId, true),
+        }));
+      }
       } else {
         serverMessageService.getAll(channelId).then(fetchedMessages => {
           if (get().selectedChannel?.id === channelId) {
@@ -52,7 +72,7 @@ selectChannel: (channelId: string | null) => {
           console.error(`Error fetching messages for channel ${channelId}:`, error);
 
           if (get().selectedChannel?.id === channelId) {
-            set({ channelMessagesError: 'Nie udało się pobrać wiadomości.', channelMessagesLoading: false });
+          set({ channelMessagesError: 'Nie udało się pobrać wiadomości.', channelMessagesLoading: false });
           }
         });
       }
