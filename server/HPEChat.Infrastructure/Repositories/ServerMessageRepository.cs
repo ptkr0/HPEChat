@@ -52,12 +52,12 @@ namespace HPEChat.Infrastructure.Repositories
 
 		public void Remove(ServerMessage serverMessage)
 		{
-			throw new NotImplementedException();
+			_context.Remove(serverMessage);
 		}
 
 		public void Update(ServerMessage serverMessage)
 		{
-			throw new NotImplementedException();
+			_context.ServerMessages.Update(serverMessage);
 		}
 	}
 }

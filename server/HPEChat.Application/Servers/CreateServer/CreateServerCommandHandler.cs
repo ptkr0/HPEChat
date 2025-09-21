@@ -56,7 +56,7 @@ namespace HPEChat.Application.Servers.CreateServer
 				throw new ApplicationException("Invalid image file type or size.");
 			}
 
-			await _unitOfWork.BeginTransactionAsync();
+			await _unitOfWork.BeginTransactionAsync(cancellationToken);
 
 			string? imagePath = null;
 
@@ -70,9 +70,11 @@ namespace HPEChat.Application.Servers.CreateServer
 					Image = string.Empty,
 				};
 
-				server.Members.Add(user);
+				await _serverRepository.AddAsync(server, cancellationToken);
 
-				await _serverRepository.AddAsync(server);
+				await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+				server.Members.Add(user);
 
 				if (request.Image != null)
 				{
@@ -87,7 +89,7 @@ namespace HPEChat.Application.Servers.CreateServer
 					_serverRepository.Update(server);
 				}
 
-				await _unitOfWork.CommitTransactionAsync();
+				await _unitOfWork.CommitTransactionAsync(cancellationToken);
 
 				var userDto = new UserInfoDto
 				{
@@ -113,7 +115,7 @@ namespace HPEChat.Application.Servers.CreateServer
 			catch (Exception ex)
 			{
 				_logger.LogError(ex, "Error occurred while creating server.");
-				await _unitOfWork.RollbackTransactionAsync();
+				await _unitOfWork.RollbackTransactionAsync(cancellationToken);
 
 				if (imagePath != null)
 				{

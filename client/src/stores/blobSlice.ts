@@ -11,7 +11,7 @@ export interface BlobSlice {
   fetchAndCacheAvatar: (user: User) => Promise<void>;
   revokeAvatar: (userId: string) => void;
 
-  fetchAndCacheServerImage: (serverId: string, imageName: string) => Promise<void>;
+  fetchAndCacheServerImage: (serverId: string) => Promise<void>;
   revokeServerImage: (serverId: string) => void;
 
   fetchAndCacheAttachmentPreview: (attachmentId: string, previewName: string) => Promise<void>;
@@ -28,7 +28,7 @@ export const createBlobSlice: StateCreator<AppState, [], [], BlobSlice> = (set, 
   fetchAndCacheAvatar: async (user: User) => {
     if (!user.image || get().avatarBlobs.has(user.id)) return;
     try {
-      const blob = await fileService.getAvatar(user.image);
+      const blob = await fileService.getAvatar(user.id);
       const blobUrl = URL.createObjectURL(blob);
       set((state: AppState) => ({
         avatarBlobs: new Map<string, string>(state.avatarBlobs).set(user.id, blobUrl),
@@ -50,10 +50,11 @@ export const createBlobSlice: StateCreator<AppState, [], [], BlobSlice> = (set, 
     });
   },
 
-  fetchAndCacheServerImage: async (serverId: string, imageName: string) => {
-    if (!imageName || get().serverImageBlobs.has(serverId)) return;
+  fetchAndCacheServerImage: async (serverId: string) => {
+    const server = get().servers?.find(s => s.id === serverId);
+    if (!server?.image || get().serverImageBlobs.has(serverId)) return;
     try {
-      const blob = await fileService.getServerImage(imageName);
+      const blob = await fileService.getServerImage(server.id);
       const blobUrl = URL.createObjectURL(blob);
       set((state) => ({
         serverImageBlobs: new Map(state.serverImageBlobs).set(serverId, blobUrl),
@@ -62,7 +63,7 @@ export const createBlobSlice: StateCreator<AppState, [], [], BlobSlice> = (set, 
       console.error(`Error fetching image for server ${serverId}:`, error);
     }
   },
-
+  
   revokeServerImage: (serverId: string) => {
     set((state) => {
       const newServerImageBlobs = new Map(state.serverImageBlobs);

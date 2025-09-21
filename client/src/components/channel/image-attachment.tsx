@@ -17,16 +17,27 @@ export function ImageAttachment({ attachment }: ImageAttachmentProps) {
 
 	const [isLoading, setIsLoading] = useState(false);
 	const [isDialogOpen, setIsDialogOpen] = useState(false)
+	const [fetchAttempts, setFetchAttempts] = useState(0);
+	const MAX_FETCH_ATTEMPTS = 3;
 
-	// fetch preview when the component is visible for the first time
+	// fetch preview when the component is visible for the first time, with retry limiter
 	useEffect(() => {
-		if (isVisible && !previewSrc && !isLoading && attachment.previewName) {
+		if (
+			isVisible &&
+			!previewSrc &&
+			!isLoading &&
+			attachment.previewName &&
+			fetchAttempts < MAX_FETCH_ATTEMPTS
+		) {
 			setIsLoading(true);
 			fetchAndCacheAttachmentPreview(attachment.id, attachment.previewName)
-				.catch(() => console.error("Failed to fetch attachment preview"))
+				.catch(() => {
+					console.error("Failed to fetch attachment preview");
+					setFetchAttempts((prev) => prev + 1);
+				})
 				.finally(() => setIsLoading(false));
 		}
-	}, [isVisible, previewSrc, isLoading, attachment, fetchAndCacheAttachmentPreview]);
+	}, [isVisible, previewSrc, isLoading, attachment, fetchAndCacheAttachmentPreview, fetchAttempts]);
 
 	// calculate aspect ratio for container
 	const aspectRatio = attachment.width && attachment.height 

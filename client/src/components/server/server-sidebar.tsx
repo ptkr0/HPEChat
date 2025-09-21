@@ -96,7 +96,7 @@ export function ServerSidebar() {
               (() => {
                 return (
                   <>
-                    {selectedServer.ownerId === user.id.toUpperCase() && (
+                    {selectedServer.ownerId === user.id && (
                       <SidebarGroupAction onClick={() => setShowCreateChannelModal(true)}>
                         <Plus />
                       </SidebarGroupAction>
@@ -121,7 +121,7 @@ export function ServerSidebar() {
                                   <span className="truncate">{channel.name}</span>
                                 </div>
                               </SidebarMenuButton>
-                              {selectedServer.ownerId === user.id.toUpperCase() && (
+                              {selectedServer.ownerId === user.id && (
                                 <DropdownMenu modal={false}>
                                   <DropdownMenuTrigger asChild>
                                     <SidebarMenuAction>
