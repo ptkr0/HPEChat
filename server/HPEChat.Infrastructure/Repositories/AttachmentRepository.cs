@@ -35,6 +35,19 @@ namespace HPEChat.Infrastructure.Repositories
 				.ToListAsync(cancellationToken);
 		}
 
+		public async Task<bool> CheckIfUserCanAccessAsync(Guid userId, string fileName, CancellationToken cancellationToken = default)
+		{
+			return await _context.Attachments
+				.AsNoTracking()
+				.AnyAsync(a =>
+					(a.StoredFileName == fileName || a.PreviewName == fileName)
+					&&
+					a.ServerMessage!.Channel.Server.Members
+					 .Any(m => m.Id == userId),
+					 cancellationToken
+				);
+		}
+
 		public async Task<Attachment?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
 		{
 			return await _context.Attachments.FindAsync([id], cancellationToken);

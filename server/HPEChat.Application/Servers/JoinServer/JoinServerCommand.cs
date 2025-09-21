@@ -5,7 +5,7 @@ namespace HPEChat.Application.Servers.JoinServer
 {
 	public class JoinServerCommand : IRequest<ServerDto>
 	{
-		public Guid ServerId { get; set; }
+		public string Name { get; set; } = string.Empty;
 		public Guid UserId { get; set; }
 	}
 }

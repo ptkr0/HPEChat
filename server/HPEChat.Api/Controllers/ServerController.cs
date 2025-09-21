@@ -3,6 +3,7 @@ using HPEChat.Application.Servers.CreateServer;
 using HPEChat.Application.Servers.Dtos;
 using HPEChat.Application.Servers.GetServer;
 using HPEChat.Application.Servers.GetServers;
+using HPEChat.Application.Servers.JoinServer;
 using HPEChat.Application.Servers.LeaveServer;
 using HPEChat.Application.Servers.UpdateServer;
 using MediatR;
@@ -111,7 +112,7 @@ namespace HPEChat.Api.Controllers
 			var userId = User.GetUserId();
 			if (userId == null) return BadRequest("User not found");
 
-			var command = new CreateServerCommand
+			var command = new JoinServerCommand
 			{
 				UserId = userId.Value,
 				Name = name

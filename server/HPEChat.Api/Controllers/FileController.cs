@@ -1,10 +1,10 @@
-﻿using HPEChat.Application.Extensions;
-using HPEChat.Domain.Configuration;
-using HPEChat.Infrastructure.Data;
+﻿using HPEChat.Application.Attachments.GetPreview;
+using HPEChat.Application.Attachments.GetServerImage;
+using HPEChat.Application.Attachments.GetUserImage;
+using HPEChat.Application.Extensions;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 
 namespace HPEChat.Api.Controllers
 {
@@ -12,120 +12,82 @@ namespace HPEChat.Api.Controllers
 	[ApiController]
 	public class FileController : ControllerBase
 	{
-		private readonly FileStorageSettings _fileStorageSettings;
-		private readonly ApplicationDBContext _context;
-
-		public FileController(IOptions<FileStorageSettings> fileStorageSettings, ApplicationDBContext context)
+		private readonly IMediator _mediator;
+		public FileController(IMediator mediator)
 		{
-			_fileStorageSettings = fileStorageSettings.Value;
-			_context = context;
+			_mediator = mediator;
 		}
 
-		[HttpGet("avatars/{fileName}")]
+		[HttpGet("avatars/{userId}")]
 		[Authorize]
-		public async Task<IActionResult> GetAvatar(string fileName)
+		public async Task<IActionResult> GetAvatar(Guid userId)
 		{
-			if (string.IsNullOrWhiteSpace(fileName))
-				return BadRequest("File name cannot be empty.");
+			var query = new GetUserImageQuery { UserId = userId };
 
-			if (!fileName.StartsWith("avatar_") || !fileName.EndsWith(".webp") || fileName.Contains(".."))
-				return BadRequest("Invalid file name format or attempt to access restricted path.");
-
-			var filePath = Path.Combine(_fileStorageSettings.FileDirectory, fileName);
-
-			if (!System.IO.File.Exists(filePath))
-				return NotFound("Avatar not found.");
-
-			var fileBytes = await System.IO.File.ReadAllBytesAsync(filePath);
+			var result = await _mediator.Send(query);
 
 			Response.Headers.Append("Cache-Control", "private, max-age=86400");
-			return File(fileBytes, "image/webp");
+			return File(result, "image/webp");
 		}
 
-		[HttpGet("serverImages/{fileName}")]
+		[HttpGet("serverImages/{id}")]
 		[Authorize]
-		public async Task<IActionResult> GetServerImage(string fileName)
+		public async Task<IActionResult> GetServerImage(Guid id)
 		{
-			if (string.IsNullOrWhiteSpace(fileName))
-				return BadRequest("File name cannot be empty.");
+			var userId = User.GetUserId();
+			if (userId == null)
+				return BadRequest("User not found");
 
-			if (!fileName.StartsWith("server_") || !fileName.EndsWith(".webp") || fileName.Contains(".."))
-				return BadRequest("Invalid file name format or attempt to access restricted path.");
+			var query = new GetServerImageQuery
+			{
+				UserId = userId.Value,
+				ServerId = id
+			};
 
-			var filePath = Path.Combine(_fileStorageSettings.FileDirectory, fileName);
-			if (!System.IO.File.Exists(filePath))
-				return NotFound("Server image not found.");
-
-			var fileBytes = await System.IO.File.ReadAllBytesAsync(filePath);
+			var result = await _mediator.Send(query);
 
 			Response.Headers.Append("Cache-Control", "private, max-age=86400");
-			return File(fileBytes, "image/webp");
+			return File(result, "image/webp");
 		}
 
 		[HttpGet("serverPreviews/{fileName}")]
 		[Authorize]
 		public async Task<IActionResult> GetPreview(string fileName)
 		{
-			if (string.IsNullOrWhiteSpace(fileName))
-				return BadRequest("File name cannot be empty.");
-
-			if (!fileName.StartsWith("preview_") || !fileName.EndsWith(".webp") || fileName.Contains(".."))
-				return BadRequest("Invalid file name format or attempt to access restricted path.");
-
 			var userId = User.GetUserId();
+			if (userId == null)
+				return BadRequest("User not found");
 
-			var exists = await _context.Attachments
-				.AsNoTracking()
-				.AnyAsync(a =>
-					a.PreviewName == fileName &&
-					a.ServerMessage!.Channel.Server.Members
-					 .Any(m => m.Id == userId)
-				);
+			var query = new GetPreviewQuery
+			{
+				UserId = userId.Value,
+				FileName = fileName
+			};
 
-			if (!exists)
-				return Forbid("You are not a member of this server or preview does not exist.");
-
-			var filePath = Path.Combine(_fileStorageSettings.FileDirectory, fileName);
-
-			if (!System.IO.File.Exists(filePath))
-				return NotFound("Preview image not found.");
-
-			var fileBytes = await System.IO.File.ReadAllBytesAsync(filePath);
+			var result = await _mediator.Send(query);
 
 			Response.Headers.Append("Cache-Control", "private, max-age=86400");
-			return File(fileBytes, "image/webp");
+			return File(result, "image/webp");
 		}
 
 		[HttpGet("serverAttachments/{fileName}")]
 		[Authorize]
 		public async Task<IActionResult> GetAttachment(string fileName)
 		{
-			if (string.IsNullOrWhiteSpace(fileName))
-				return BadRequest("File name cannot be empty.");
-
-			if (fileName.Contains(".."))
-				return BadRequest("Invalid file name format or attempt to access restricted path.");
-
 			var userId = User.GetUserId();
-			var exists = await _context.Attachments
-				.AsNoTracking()
-				.AnyAsync(a =>
-					a.StoredFileName == fileName &&
-					a.ServerMessage!.Channel.Server.Members
-					 .Any(m => m.Id == userId)
-				);
+			if (userId == null)
+				return BadRequest("User not found");
 
-			if (!exists)
-				return Forbid("You are not a member of this server or attachment does not exist.");
+			var query = new GetPreviewQuery
+			{
+				UserId = userId.Value,
+				FileName = fileName
+			};
 
-			var filePath = Path.Combine(_fileStorageSettings.FileDirectory, fileName);
-			if (!System.IO.File.Exists(filePath))
-				return NotFound("Attachment not found.");
-
-			var fileBytes = await System.IO.File.ReadAllBytesAsync(filePath);
+			var result = await _mediator.Send(query);
 
 			Response.Headers.Append("Cache-Control", "private, max-age=86400");
-			return File(fileBytes, "application/octet-stream");
+			return File(result, "application/octet-stream");
 		}
 	}
 }

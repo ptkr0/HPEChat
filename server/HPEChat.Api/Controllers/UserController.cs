@@ -3,6 +3,7 @@ using HPEChat.Application.Users.ChangeImage;
 using HPEChat.Application.Users.ChangePassword;
 using HPEChat.Application.Users.ChangeUsername;
 using HPEChat.Application.Users.Dtos;
+using HPEChat.Application.Users.GetUser;
 using HPEChat.Application.Users.GrantAdmin;
 using HPEChat.Application.Users.LoginUser;
 using HPEChat.Application.Users.RegisterUser;
@@ -157,7 +158,7 @@ namespace HPEChat.Api.Controllers
 		[Authorize]
 		public async Task<ActionResult<UserInfoDto>> ChangeAvatar(IFormFile? avatar = null)
 		{
-			// validate the avatar file
+			// validate avatar file
 			if (avatar != null && !FileExtension.IsValidAvatar(avatar))
 				return BadRequest("Invalid file type or file size");
 
@@ -195,7 +196,14 @@ namespace HPEChat.Api.Controllers
 			var userId = User.GetUserId();
 			if (userId == null) return Unauthorized("User not found");
 
-			return Ok(new { message = "You are authorized!" });
+			var query = new GetUserQuery
+			{
+				UserId = userId.Value
+			};
+
+			var result = _mediator.Send(query).Result;
+
+			return Ok(result);
 		}
 
 		[HttpGet("admin-test")]

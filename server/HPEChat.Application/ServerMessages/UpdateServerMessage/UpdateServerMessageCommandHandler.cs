@@ -71,7 +71,7 @@ namespace HPEChat.Application.ServerMessages.UpdateServerMessage
 			catch (Exception ex)
 			{
 				_logger.LogError(ex, "Error updating message with ID {MessageId}. Transaction is being rolled back.", request.MessageId);
-				await _unitOfWork.RollbackTransactionAsync();
+				await _unitOfWork.RollbackTransactionAsync(cancellationToken);
 				throw;
 			}
 		}

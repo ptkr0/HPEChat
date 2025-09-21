@@ -13,6 +13,9 @@ using System.Text;
 using HPEChat.Application.Interfaces.Notifications;
 using HPEChat.Api.Services;
 using HPEChat.Application.Interfaces;
+using HPEChat.Application.Users.RegisterUser;
+using Microsoft.AspNetCore.Identity;
+using HPEChat.Domain.Entities;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,12 +27,22 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton<ConnectionMapperService>();
 builder.Services.AddSignalR();
 
+var connectionStringKeys = builder.Configuration
+	.GetSection("ConnectionStrings")
+	.Get<ConnectionStringKeys>() ?? throw new InvalidOperationException("ConnectionStrings configuration is missing or invalid.");
+
 var jwtSettings = builder.Configuration
 	.GetSection("JwtSettings")
 	.Get<JwtSettings>() ?? throw new InvalidOperationException("JwtSettings configuration is missing or invalid.");
 
 builder.Services.AddSingleton(jwtSettings);
+builder.Services.AddSingleton(connectionStringKeys);
 builder.Services.Configure<FileStorageSettings>(builder.Configuration.GetSection("FileStorageSettings"));
+
+builder.Services.AddMediatR(cfg => {
+	cfg.RegisterServicesFromAssembly(typeof(RegisterUserCommand).Assembly);
+	cfg.LicenseKey = connectionStringKeys.MediatRKey;
+});
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 	.AddJwtBearer(options =>
@@ -69,7 +82,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 
 builder.Services.AddDbContext<ApplicationDBContext>(options =>
-	options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+	options.UseSqlServer(connectionStringKeys.DefaultConnection));
 
 builder.Services.AddCors(options =>
 {
@@ -88,6 +101,8 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IServerRepository, ServerRepository>();
 builder.Services.AddScoped<IChannelRepository, ChannelRepository>();
 builder.Services.AddScoped<IServerMessageRepository, ServerMessageRepository>();
+builder.Services.AddScoped<IAttachmentRepository, AttachmentRepository>();
+builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
 builder.Services.AddScoped<ITokenGenerator, TokenGenerator>();
 builder.Services.AddScoped<IServerNotificationService, ServerNotificationService>();

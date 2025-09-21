@@ -48,7 +48,7 @@ namespace HPEChat.Application.Servers.UpdateServer
 			// track old image for best‑effort cleanup after DB commit
 			string? oldImagePath = server.Image;
 
-			await _unitOfWork.BeginTransactionAsync();
+			await _unitOfWork.BeginTransactionAsync(cancellationToken);
 			try
 			{
 				// check if user wants to delete image (deleteImage = true and no new image provided)
@@ -87,7 +87,7 @@ namespace HPEChat.Application.Servers.UpdateServer
 				server.Description = request.Description ?? string.Empty;
 
 				_serverRepository.Update(server);
-				await _unitOfWork.CommitTransactionAsync();
+				await _unitOfWork.CommitTransactionAsync(cancellationToken);
 
 				// best‑effort cleanup of old image if it was changed or deleted
 				if (!string.IsNullOrWhiteSpace(oldImagePath) && oldImagePath != server.Image)
@@ -102,18 +102,7 @@ namespace HPEChat.Application.Servers.UpdateServer
 					}
 				}
 
-				await _serverNotificationService.NotifyServerUpdated(server.Id, new ServerDto
-					{
-						Id = server.Id,
-						Name = server.Name,
-						Description = server.Description,
-						OwnerId = server.OwnerId,
-						Image = server.Image ?? string.Empty,
-					});
-
-				_logger.LogInformation("Server {ServerName} updated by user {UserId}", server.Name, request.OwnerId);
-
-				return new ServerDto
+				var serverDto = new ServerDto
 				{
 					Id = server.Id,
 					Name = server.Name,
@@ -121,10 +110,16 @@ namespace HPEChat.Application.Servers.UpdateServer
 					OwnerId = server.OwnerId,
 					Image = server.Image ?? string.Empty,
 				};
+
+				await _serverNotificationService.NotifyServerUpdated(server.Id, serverDto);
+
+				_logger.LogInformation("Server {ServerName} updated by user {UserId}", server.Name, request.OwnerId);
+
+				return serverDto;
 			}
 			catch (Exception)
 			{
-				await _unitOfWork.RollbackTransactionAsync();
+				await _unitOfWork.RollbackTransactionAsync(cancellationToken);
 				_logger.LogError("An error occurred while updating server with ID {ServerId}. Transaction rolled back.", request.ServerId);
 
 				// best‑effort cleanup of newly uploaded image if an error occurred

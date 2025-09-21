@@ -93,7 +93,7 @@ namespace HPEChat.Infrastructure.Services
 
 		public async Task<string> GenerateAndUploadPreviewImage(IFormFile file, CancellationToken cancellationToken)
 		{
-			using (var image = await Image.LoadAsync(file.OpenReadStream()))
+			using (var image = await Image.LoadAsync(file.OpenReadStream(), cancellationToken))
 			{
 				image.Metadata.ExifProfile = null;
 				image.Metadata.IptcProfile = null;
@@ -111,6 +111,15 @@ namespace HPEChat.Infrastructure.Services
 
 				return fileName;
 			}
+		}
+
+		public async Task<byte[]?> GetByNameAsync(string fileName, CancellationToken cancellationToken)
+		{
+			var filePath = Path.Combine(_fileStorageSettings.FileDirectory, fileName);
+			if (!File.Exists(filePath))
+				return null;
+
+			return await File.ReadAllBytesAsync(filePath, cancellationToken);
 		}
 	}
 }

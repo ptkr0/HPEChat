@@ -9,5 +9,6 @@ namespace HPEChat.Application.Interfaces
 		Task<string> UploadAvatar(IFormFile file, Guid userId, CancellationToken cancellationToken);
 		Task<string> UploadServerPicture(IFormFile file, Guid serverId, CancellationToken cancellationToken);
 		Task<string> GenerateAndUploadPreviewImage(IFormFile file, CancellationToken cancellationToken);
+		Task<byte[]?> GetByNameAsync(string fileName, CancellationToken cancellationToken);
 	}
 }

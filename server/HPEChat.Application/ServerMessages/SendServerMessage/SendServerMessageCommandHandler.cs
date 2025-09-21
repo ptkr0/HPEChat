@@ -145,7 +145,7 @@ namespace HPEChat.Application.ServerMessages.SendServerMessage
 					{
 						Id = message.Attachment.Id,
 						Name = message.Attachment.Name,
-						Type = message.Attachment.ContentType,
+						Type = message.Attachment.ContentType.ToString(),
 						Size = message.Attachment.Size,
 						Width = message.Attachment.Width,
 						Height = message.Attachment.Height,

@@ -1,4 +1,5 @@
-﻿using HPEChat.Application.Interfaces.Notifications;
+﻿using HPEChat.Application.Channels.Dtos;
+using HPEChat.Application.Interfaces.Notifications;
 using HPEChat.Application.Servers.Dtos;
 using HPEChat.Application.Users.Dtos;
 using HPEChat.Domain.Interfaces;
@@ -30,7 +31,7 @@ namespace HPEChat.Application.Servers.JoinServer
 		}
 		public async Task<ServerDto> Handle(JoinServerCommand request, CancellationToken cancellationToken)
 		{
-			var server = await _serverRepository.GetServerWithMemebersAndChannelsAsync(request.ServerId, cancellationToken);
+			var server = await _serverRepository.GetServerWithMemebersAndChannelsByNameAsync(request.Name, cancellationToken);
 			var user = await _userRepository.GetByIdAsync(request.UserId, cancellationToken);
 
 			if (user == null)
@@ -41,13 +42,12 @@ namespace HPEChat.Application.Servers.JoinServer
 
 			if (server == null)
 			{
-				_logger.LogWarning("Server with ID {ServerId} not found.", request.ServerId);
 				throw new ApplicationException("Server not found.");
 			}
 
 			if (server.OwnerId == user.Id || server.Members.Any(m => m.Id == user.Id))
 			{
-				_logger.LogWarning("User with ID {UserId} is already a member of the server with ID {ServerId}.", request.UserId, request.ServerId);
+				_logger.LogWarning("User with ID {UserId} is already a member of the server with Name {Name}.", request.UserId, request.Name);
 				throw new ApplicationException("User is already a member of the server.");
 			}
 
@@ -67,7 +67,7 @@ namespace HPEChat.Application.Servers.JoinServer
 					Description = server.Description,
 					OwnerId = server.OwnerId,
 					Image = server.Image,
-					Members = server.Members.Select(m => new Application.Users.Dtos.UserInfoDto
+					Members = server.Members.Select(m => new UserInfoDto
 					{
 						Id = m.Id,
 						Username = m.Username,
@@ -76,7 +76,7 @@ namespace HPEChat.Application.Servers.JoinServer
 					})
 					.OrderBy(m => m.Username)
 					.ToList(),
-					Channels = server.Channels.Select(c => new Application.Channels.Dtos.ChannelDto
+					Channels = server.Channels.Select(c => new ChannelDto
 					{
 						Id = c.Id,
 						Name = c.Name,
@@ -97,7 +97,7 @@ namespace HPEChat.Application.Servers.JoinServer
 			}
 			catch (Exception ex)
 			{
-				_logger.LogError(ex, "Error occurred while user with ID {UserId} was trying to join server with ID {ServerId}.", request.UserId, request.ServerId);
+				_logger.LogError(ex, "Error occurred while user with ID {UserId} was trying to join server with Name {Name}.", request.UserId, request.Name);
 				await _unitOfWork.RollbackTransactionAsync(cancellationToken);
 				throw;
 			}

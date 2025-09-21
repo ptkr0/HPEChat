@@ -6,7 +6,7 @@ namespace HPEChat.Application.ServerMessages.Dtos
 	{
 		public Guid Id { get; set; }
 		public string Name { get; set; } = string.Empty;
-		public AttachmentType Type { get; set; }
+		public string Type { get; set; } = string.Empty;
 		public long Size { get; set; }
 		public int? Width { get; set; }
 		public int? Height { get; set; }

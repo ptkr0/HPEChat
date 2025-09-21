@@ -54,7 +54,7 @@ namespace HPEChat.Application.ServerMessages.GetServerMessages
 				{
 					Id = m.Attachment.Id,
 					Name = m.Attachment.Name,
-					Type = m.Attachment.ContentType,
+					Type = m.Attachment.ContentType.ToString(),
 					Size = m.Attachment.Size,
 					Width = m.Attachment.Width,
 					Height = m.Attachment.Height,
