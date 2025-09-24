@@ -33,13 +33,8 @@ namespace HPEChat.Application.Servers.DeleteServer
 		}
 		async Task IRequestHandler<DeleteServerCommand>.Handle(DeleteServerCommand request, CancellationToken cancellationToken)
 		{
-			var server = await _serverRepository.GetByIdAsync(request.ServerId, cancellationToken);
-
-			if (server == null)
-			{
-				_logger.LogWarning("Server with ID {ServerId} not found for deletion.", request.ServerId);
-				throw new KeyNotFoundException("Server not found.");
-			}
+			var server = await _serverRepository.GetByIdAsync(request.ServerId, cancellationToken)
+				?? throw new KeyNotFoundException("Server not found.");
 
 			if (server.OwnerId != request.OwnerId)
 			{
@@ -67,12 +62,12 @@ namespace HPEChat.Application.Servers.DeleteServer
 
 			var membersToNotify = server.Members.ToList();
 
-			await _unitOfWork.BeginTransactionAsync();
+			await _unitOfWork.BeginTransactionAsync(cancellationToken);
 
 			try
 			{
 				_serverRepository.Remove(server);
-				await _unitOfWork.CommitTransactionAsync();
+				await _unitOfWork.CommitTransactionAsync(cancellationToken);
 
 				foreach (var filePath in filesToDelete)
 				{
@@ -98,7 +93,7 @@ namespace HPEChat.Application.Servers.DeleteServer
 			catch (Exception ex)
 			{
 				_logger.LogError(ex, "Error occurred while deleting server with ID {ServerId}. Transaction is being rolled back.", request.ServerId);
-				await _unitOfWork.RollbackTransactionAsync();
+				await _unitOfWork.RollbackTransactionAsync(cancellationToken);
 				throw;
 			}
 		}

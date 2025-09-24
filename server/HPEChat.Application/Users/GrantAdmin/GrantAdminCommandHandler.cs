@@ -1,4 +1,5 @@
-﻿using HPEChat.Application.Interfaces.Notifications;
+﻿using HPEChat.Application.Exceptions.User;
+using HPEChat.Application.Interfaces.Notifications;
 using HPEChat.Domain.Interfaces;
 using HPEChat.Domain.Interfaces.Repositories;
 using MediatR;
@@ -25,32 +26,21 @@ namespace HPEChat.Application.Users.GrantAdmin
 		}
 		public async Task Handle(GrantAdminCommand request, CancellationToken cancellationToken)
 		{
-			var owner = await _userRepository.GetByIdAsync(request.OwnerId, cancellationToken);
-
-			if (owner == null)
-			{
-				_logger.LogWarning("Owner with ID {OwnerId} not found when trying to grant admin rights.", request.OwnerId);
-				throw new ApplicationException("Owner not found.");
-			}
+			var owner = await _userRepository.GetByIdAsync(request.OwnerId, cancellationToken)
+				?? throw new KeyNotFoundException("Owner not found.");
 
 			if (owner.Role != "Owner")
 			{
-				_logger.LogWarning("User with ID {OwnerId} is not an owner and cannot grant admin rights.", request.OwnerId);
 				throw new UnauthorizedAccessException("Only owners can grant admin rights.");
 			}
 
-			var user = await _userRepository.GetByIdAsync(request.UserId, cancellationToken);
-
-			if (user == null)
-			{
-				_logger.LogWarning("User with ID {UserId} not found when trying to grant admin rights.", request.UserId);
-				throw new ApplicationException("User not found.");
-			}
+			var user = await _userRepository.GetByIdAsync(request.UserId, cancellationToken)
+				?? throw new KeyNotFoundException("User not found.");
 
 			if (user.Role == "Admin")
 			{
 				_logger.LogWarning("User with ID {UserId} is already an admin.", request.UserId);
-				throw new ApplicationException("User is already an admin.");
+				throw new AlreadyAnAdminException(user.Username);
 			}
 
 			user.Role = "Admin";

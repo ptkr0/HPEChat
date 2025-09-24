@@ -28,13 +28,8 @@ namespace HPEChat.Application.Users.LoginUser
 		}
 		public async Task<ReturnLoginDto> Handle(LoginUserCommand request, CancellationToken cancellationToken)
 		{
-			var user = await _userRepository.GetByNameAsync(request.Username, cancellationToken);
-
-			if (user == null)
-			{
-				_logger.LogWarning("User with name {Username} not found when trying to login.", request.Username);
-				throw new ApplicationException("Invalid username or password.");
-			}
+			var user = await _userRepository.GetByNameAsync(request.Username, cancellationToken)
+				?? throw new ApplicationException("Invalid username or password.");
 
 			var verificationResult = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, request.Password);
 

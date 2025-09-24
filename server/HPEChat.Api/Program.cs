@@ -16,6 +16,7 @@ using HPEChat.Application.Interfaces;
 using HPEChat.Application.Users.RegisterUser;
 using Microsoft.AspNetCore.Identity;
 using HPEChat.Domain.Entities;
+using HPEChat.Api.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -103,11 +104,13 @@ builder.Services.AddScoped<IChannelRepository, ChannelRepository>();
 builder.Services.AddScoped<IServerMessageRepository, ServerMessageRepository>();
 builder.Services.AddScoped<IAttachmentRepository, AttachmentRepository>();
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
-
 builder.Services.AddScoped<ITokenGenerator, TokenGenerator>();
 builder.Services.AddScoped<IServerNotificationService, ServerNotificationService>();
 builder.Services.AddScoped<IUserNotificationService, UserNotificationService>();
 builder.Services.AddScoped<IFileService, FileService>();
+
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 var app = builder.Build();
 
@@ -128,6 +131,8 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.UseExceptionHandler();
 
 app.MapHub<ServerHub>("/hubs/server");
 app.MapHub<UserHub>("/hubs/user");

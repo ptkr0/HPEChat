@@ -1,4 +1,5 @@
-﻿using HPEChat.Application.Interfaces.Notifications;
+﻿using HPEChat.Application.Exceptions.User;
+using HPEChat.Application.Interfaces.Notifications;
 using HPEChat.Application.Users.Dtos;
 using HPEChat.Domain.Interfaces;
 using HPEChat.Domain.Interfaces.Repositories;
@@ -27,20 +28,14 @@ namespace HPEChat.Application.Users.ChangeUsername
 		}
 		public async Task<UserInfoDto> Handle(ChangeUsernameCommand request, CancellationToken cancellationToken)
 		{
-			var user = await _userRepository.GetByIdAsync(request.UserId, cancellationToken);
-
-			if (user == null)
-			{
-				_logger.LogWarning("User with ID {UserId} not found when trying to change username.", request.UserId);
-				throw new ApplicationException("User not found.");
-			}
+			var user = await _userRepository.GetByIdAsync(request.UserId, cancellationToken)
+				?? throw new KeyNotFoundException("User not found.");
 
 			var exists = await _userRepository.ExistsByUsernameAsync(request.NewUsername, cancellationToken);
 
 			if (exists)
 			{
-				_logger.LogWarning("Username {NewUsername} is already taken.", request.NewUsername);
-				throw new ApplicationException("Username is already taken.");
+				throw new DuplicateUsernameException(request.NewUsername);
 			}
 
 			user.Username = request.NewUsername;

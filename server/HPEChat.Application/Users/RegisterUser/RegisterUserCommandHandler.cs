@@ -1,4 +1,5 @@
-﻿using HPEChat.Application.Extensions;
+﻿using HPEChat.Application.Exceptions.User;
+using HPEChat.Application.Extensions;
 using HPEChat.Application.Interfaces;
 using HPEChat.Application.Interfaces.Notifications;
 using HPEChat.Application.Users.Dtos;
@@ -39,13 +40,12 @@ namespace HPEChat.Application.Users.RegisterUser
 		{
 			if (await _userRepository.ExistsByUsernameAsync(request.Username, cancellationToken))
 			{
-				_logger.LogWarning("User with name {Username} already exists.", request.Username);
-				throw new ApplicationException("User with the same name already exists.");
+				throw new DuplicateUsernameException(request.Username);
 			}
 
 			if (request.Image != null && !FileExtension.IsValidAvatar(request.Image))
 			{
-				throw new ApplicationException("Invalid image file type or size.");
+				throw new InvalidUserImageException();
 			}
 
 			await _unitOfWork.BeginTransactionAsync(cancellationToken);
@@ -101,7 +101,7 @@ namespace HPEChat.Application.Users.RegisterUser
 					_fileService.DeleteFile(imagePath);
 				}
 
-				throw new ApplicationException("User registration failed. Please try again.");
+				throw;
 			}
 		}
 	}

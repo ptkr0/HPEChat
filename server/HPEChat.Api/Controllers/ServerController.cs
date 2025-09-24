@@ -1,5 +1,6 @@
 ﻿using HPEChat.Application.Extensions;
 using HPEChat.Application.Servers.CreateServer;
+using HPEChat.Application.Servers.DeleteServer;
 using HPEChat.Application.Servers.Dtos;
 using HPEChat.Application.Servers.GetServer;
 using HPEChat.Application.Servers.GetServers;
@@ -150,10 +151,10 @@ namespace HPEChat.Api.Controllers
 			var userId = User.GetUserId();
 			if (userId == null) return BadRequest("User not found");
 
-			var command = new LeaveServerCommand
+			var command = new DeleteServerCommand
 			{
 				ServerId = id,
-				UserId = userId.Value,
+				OwnerId = userId.Value,
 			};
 
 			await _mediator.Send(command);

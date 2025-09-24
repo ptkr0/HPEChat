@@ -1,4 +1,5 @@
-﻿using HPEChat.Application.Interfaces.Notifications;
+﻿using HPEChat.Application.Exceptions.Server;
+using HPEChat.Application.Interfaces.Notifications;
 using HPEChat.Domain.Interfaces;
 using HPEChat.Domain.Interfaces.Repositories;
 using MediatR;
@@ -29,20 +30,11 @@ namespace HPEChat.Application.Servers.KickUser
 		}
 		public async Task Handle(KickUserCommand request, CancellationToken cancellationToken)
 		{
-			var server = await _serverRepository.GetServerWithMemebersAndChannelsAsync(request.ServerId, cancellationToken);
-			var kickee = await _userRepository.GetByIdAsync(request.KickeeId, cancellationToken);
+			var server = await _serverRepository.GetServerWithMemebersAndChannelsAsync(request.ServerId, cancellationToken)
+				?? throw new KeyNotFoundException("Server not found.");
 
-			if (kickee == null)
-			{
-				_logger.LogWarning("User with ID {KickeeId} not found.", request.KickeeId);
-				throw new ApplicationException("User not found.");
-			}
-
-			if (server == null)
-			{
-				_logger.LogWarning("Server with ID {ServerId} not found.", request.ServerId);
-				throw new ApplicationException("Server not found.");
-			}
+			var kickee = await _userRepository.GetByIdAsync(request.KickeeId, cancellationToken)
+				?? throw new KeyNotFoundException("User to be kicked not found.");
 
 			if (server.OwnerId != request.KickerId)
 			{
@@ -50,13 +42,18 @@ namespace HPEChat.Application.Servers.KickUser
 				throw new UnauthorizedAccessException("Only the server owner can kick members.");
 			}
 
-			if (kickee.Id == server.OwnerId || !server.Members.Any(m => m.Id == kickee.Id))
+			if (kickee.Id == server.OwnerId)
 			{
-				_logger.LogWarning("User with ID {KickeeId} is not a member of the server with ID {ServerId} or is the owner.", request.KickeeId, request.ServerId);
-				throw new ApplicationException("User is not a member of the server or is the owner.");
+				throw new UserIsOwnerException();
 			}
 
-			await _unitOfWork.BeginTransactionAsync();
+			if (!server.Members.Any(m => m.Id == kickee.Id))
+			{
+				_logger.LogWarning("User with ID {KickeeId} is not a member of the server with ID {ServerId}.", request.KickeeId, request.ServerId);
+				throw new NotAMemberException();
+			}
+
+			await _unitOfWork.BeginTransactionAsync(cancellationToken);
 
 			try
 			{
@@ -72,6 +69,7 @@ namespace HPEChat.Application.Servers.KickUser
 			{
 				await _unitOfWork.RollbackTransactionAsync(cancellationToken);
 				_logger.LogError(ex, "An error occurred while trying to kick user with ID {KickeeId} from server with ID {ServerId}.", request.KickeeId, request.ServerId);
+
 				throw;
 			}
 		}

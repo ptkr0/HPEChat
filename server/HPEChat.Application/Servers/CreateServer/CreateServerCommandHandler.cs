@@ -9,6 +9,8 @@ using Microsoft.Extensions.Logging;
 using HPEChat.Application.Interfaces.Notifications;
 using HPEChat.Application.Interfaces;
 using HPEChat.Application.Extensions;
+using HPEChat.Application.Exceptions.User;
+using HPEChat.Application.Exceptions.Server;
 
 namespace HPEChat.Application.Servers.CreateServer
 {
@@ -37,23 +39,17 @@ namespace HPEChat.Application.Servers.CreateServer
 		}
 		public async Task<ServerDto> Handle(CreateServerCommand request, CancellationToken cancellationToken)
 		{
-			var user = await _userRepository.GetByIdAsync(request.UserId, cancellationToken);
-
-			if (user == null)
-			{
-				_logger.LogWarning("User with ID {UserId} not found when trying to create a server.", request.UserId);
-				throw new ApplicationException("User not found.");
-			}
+			var user = await _userRepository.GetByIdAsync(request.UserId, cancellationToken) 
+				?? throw new KeyNotFoundException("User not found");
 
 			if (await _serverRepository.ExistsByNameAsync(request.Name, cancellationToken))
 			{
-				_logger.LogWarning("Server with name {ServerName} already exists.", request.Name);
-				throw new ApplicationException("Server with the same name already exists.");
+				throw new DuplicateServerNameException(request.Name);
 			}
 
 			if (request.Image != null && !FileExtension.IsValidAvatar(request.Image))
 			{
-				throw new ApplicationException("Invalid image file type or size.");
+				throw new InvalidServerImageException();
 			}
 
 			await _unitOfWork.BeginTransactionAsync(cancellationToken);
@@ -122,7 +118,7 @@ namespace HPEChat.Application.Servers.CreateServer
 					_fileService.DeleteFile(imagePath);
 				}
 
-				throw new ApplicationException("An error occurred while creating the server. Please try again.");
+				throw;
 			}
 
 		}

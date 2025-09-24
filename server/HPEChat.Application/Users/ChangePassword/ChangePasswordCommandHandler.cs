@@ -1,4 +1,5 @@
-﻿using HPEChat.Domain.Entities;
+﻿using HPEChat.Application.Exceptions.User;
+using HPEChat.Domain.Entities;
 using HPEChat.Domain.Interfaces;
 using HPEChat.Domain.Interfaces.Repositories;
 using MediatR;
@@ -26,20 +27,14 @@ namespace HPEChat.Application.Users.ChangePassword
 		}
 		public async Task Handle(ChangePasswordCommand request, CancellationToken cancellationToken)
 		{
-			var user = await _userRepository.GetByIdAsync(request.UserId, cancellationToken);
-
-			if (user == null)
-			{
-				_logger.LogWarning("User with ID {UserId} not found when trying to change password.", request.UserId);
-				throw new ApplicationException("User not found.");
-			}
+			var user = await _userRepository.GetByIdAsync(request.UserId, cancellationToken)
+				?? throw new KeyNotFoundException("User not found.");
 
 			var verificationResult = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, request.CurrentPassword);
 
 			if (verificationResult == PasswordVerificationResult.Failed)
 			{
-				_logger.LogWarning("Invalid current password for user ID {UserId}.", request.UserId);
-				throw new ApplicationException("Current password is incorrect.");
+				throw new InvalidPasswordException();
 			}
 
 			user.PasswordHash = _passwordHasher.HashPassword(user, request.NewPassword);

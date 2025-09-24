@@ -1,4 +1,5 @@
-﻿using HPEChat.Application.Extensions;
+﻿using HPEChat.Application.Exceptions.User;
+using HPEChat.Application.Extensions;
 using HPEChat.Application.Interfaces;
 using HPEChat.Application.Interfaces.Notifications;
 using HPEChat.Application.Users.Dtos;
@@ -37,16 +38,11 @@ namespace HPEChat.Application.Users.ChangeImage
 		{
 			if (request.Image != null && !FileExtension.IsValidAvatar(request.Image))
 			{
-				throw new ApplicationException("Invalid file type or file size.");
+				throw new InvalidUserImageException();
 			}
 
-			var user = await _userRepository.GetByIdAsync(request.UserId, cancellationToken);
-
-			if (user == null)
-			{
-				_logger.LogWarning("User with ID {UserId} not found when trying to change ", request.UserId);
-				throw new ApplicationException("User not found.");
-			}
+			var user = await _userRepository.GetByIdAsync(request.UserId, cancellationToken)
+				?? throw new KeyNotFoundException("User not found.");
 
 			var updatedUserDto = request.Image == null
 				? await HandleImageDeletionAsync(user)
@@ -68,7 +64,7 @@ namespace HPEChat.Application.Users.ChangeImage
 			if (!_fileService.DeleteFile(user.Image))
 			{
 				_logger.LogError("An error occurred while deleting the old avatar '{ImagePath}' for user {UserId}", user.Image, user.Id);
-				throw new Exception("Failed to delete old image.");
+				throw new ApplicationException("Failed to delete old image.");
 			}
 
 			user.Image = string.Empty;
@@ -85,7 +81,7 @@ namespace HPEChat.Application.Users.ChangeImage
 			var newImagePath = await _fileService.UploadAvatar(newAvatar, user.Id, cancellationToken);
 			if (string.IsNullOrEmpty(newImagePath))
 			{
-				throw new Exception("Failed to save new image.");
+				throw new ApplicationException("Failed to save new image.");
 			}
 
 			// 2. if old image exists, delete it
@@ -97,7 +93,7 @@ namespace HPEChat.Application.Users.ChangeImage
 					// if deleting the old image fails, delete the newly uploaded image to avoid orphaned files
 					_fileService.DeleteFile(newImagePath);
 					_logger.LogError("An error occurred while deleting the old avatar '{ImagePath}' for user {UserId}. Reverting avatar change.", oldImagePath, user.Id);
-					throw new Exception("Failed to delete old image.");
+					throw new ApplicationException("Failed to delete old image.");
 				}
 			}
 

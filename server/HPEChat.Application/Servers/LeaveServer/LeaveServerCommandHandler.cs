@@ -1,4 +1,5 @@
-﻿using HPEChat.Application.Interfaces.Notifications;
+﻿using HPEChat.Application.Exceptions.Server;
+using HPEChat.Application.Interfaces.Notifications;
 using HPEChat.Domain.Interfaces;
 using HPEChat.Domain.Interfaces.Repositories;
 using MediatR;
@@ -29,34 +30,23 @@ namespace HPEChat.Application.Servers.LeaveServer
 		}
 		public async Task Handle(LeaveServerCommand request, CancellationToken cancellationToken)
 		{
-			var server = await _serverRepository.GetServerWithMemebersAndChannelsAsync(request.ServerId, cancellationToken);
-			var user = await _userRepository.GetByIdAsync(request.UserId, cancellationToken);
+			var server = await _serverRepository.GetServerWithMemebersAndChannelsAsync(request.ServerId, cancellationToken)
+				?? throw new KeyNotFoundException("Server not found.");
 
-			if (server == null)
-			{
-				_logger.LogWarning("Server with ID {ServerId} not found.", request.ServerId);
-				throw new ApplicationException("Server not found.");
-			}
-
-			if (user == null)
-			{
-				_logger.LogWarning("User with ID {UserId} not found.", request.UserId);
-				throw new ApplicationException("User not found.");
-			}
+			var user = await _userRepository.GetByIdAsync(request.UserId, cancellationToken)
+				?? throw new KeyNotFoundException("User not found.");
 
 			if (user.Id == server.OwnerId)
 			{
-				_logger.LogWarning("User with ID {UserId} is the owner of the server with ID {ServerId} and cannot leave.", request.UserId, request.ServerId);
-				throw new ApplicationException("Server owner cannot leave the server. Consider deleting the server instead.");
+				throw new UserIsOwnerException();
 			}
 
 			if (!server.Members.Any(m => m.Id == user.Id))
 			{
-				_logger.LogWarning("User with ID {UserId} is not a member of the server with ID {ServerId}.", request.UserId, request.ServerId);
-				throw new ApplicationException("User is not a member of the server.");
+				throw new NotAMemberException();
 			}
 
-			await _unitOfWork.BeginTransactionAsync();
+			await _unitOfWork.BeginTransactionAsync(cancellationToken);
 
 			try
 			{
@@ -71,7 +61,7 @@ namespace HPEChat.Application.Servers.LeaveServer
 			catch (Exception ex)
 			{
 				_logger.LogError(ex, "An error occurred while user with ID {UserId} was trying to leave the server with ID {ServerId}.", request.UserId, request.ServerId);
-				await _unitOfWork.RollbackTransactionAsync();
+				await _unitOfWork.RollbackTransactionAsync(cancellationToken);
 				throw new ApplicationException("An error occurred while trying to leave the server.");
 			}
 

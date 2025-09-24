@@ -1,4 +1,5 @@
 ﻿using HPEChat.Application.Channels.Dtos;
+using HPEChat.Application.Exceptions.Server;
 using HPEChat.Application.Interfaces.Notifications;
 using HPEChat.Application.Servers.Dtos;
 using HPEChat.Application.Users.Dtos;
@@ -31,24 +32,16 @@ namespace HPEChat.Application.Servers.JoinServer
 		}
 		public async Task<ServerDto> Handle(JoinServerCommand request, CancellationToken cancellationToken)
 		{
-			var server = await _serverRepository.GetServerWithMemebersAndChannelsByNameAsync(request.Name, cancellationToken);
-			var user = await _userRepository.GetByIdAsync(request.UserId, cancellationToken);
+			var server = await _serverRepository.GetServerWithMemebersAndChannelsByNameAsync(request.Name, cancellationToken)
+				?? throw new KeyNotFoundException("Server not found.");
 
-			if (user == null)
-			{
-				_logger.LogWarning("User with ID {UserId} not found.", request.UserId);
-				throw new ApplicationException("User not found.");
-			}
 
-			if (server == null)
-			{
-				throw new ApplicationException("Server not found.");
-			}
+			var user = await _userRepository.GetByIdAsync(request.UserId, cancellationToken) 
+				?? throw new KeyNotFoundException("User not found.");
 
 			if (server.OwnerId == user.Id || server.Members.Any(m => m.Id == user.Id))
 			{
-				_logger.LogWarning("User with ID {UserId} is already a member of the server with Name {Name}.", request.UserId, request.Name);
-				throw new ApplicationException("User is already a member of the server.");
+				throw new AlreadyMemberException();
 			}
 
 			await _unitOfWork.BeginTransactionAsync(cancellationToken);

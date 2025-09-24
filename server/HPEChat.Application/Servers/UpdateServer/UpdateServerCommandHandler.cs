@@ -31,13 +31,8 @@ namespace HPEChat.Application.Servers.UpdateServer
 		}
 		public async Task<ServerDto> Handle(UpdateServerCommand request, CancellationToken cancellationToken)
 		{
-			var server = await _serverRepository.GetByIdAsync(request.ServerId, cancellationToken);
-
-			if (server == null)
-			{
-				_logger.LogWarning("Server with ID {ServerId} not found for update.", request.ServerId);
-				throw new KeyNotFoundException("Server not found.");
-			}
+			var server = await _serverRepository.GetByIdAsync(request.ServerId, cancellationToken)
+				?? throw new KeyNotFoundException("Server not found.");
 
 			if (server.OwnerId != request.OwnerId)
 			{
@@ -134,6 +129,7 @@ namespace HPEChat.Application.Servers.UpdateServer
 						_logger.LogError(ex, "Failed to delete newly uploaded image {ImagePath} after an error occurred during server update for server ID {ServerId}.", server.Image, request.ServerId);
 					}
 				}
+
 				throw;
 			}
 		}
