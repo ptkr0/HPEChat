@@ -1,10 +1,10 @@
 ﻿using HPEChat.Application.Channels.Dtos;
-using HPEChat.Application.Interfaces.Notifications;
+using HPEChat.Application.Common.Exceptions.Server;
+using HPEChat.Application.Common.Interfaces.Notifications;
 using HPEChat.Domain.Entities;
 using HPEChat.Domain.Interfaces;
 using HPEChat.Domain.Interfaces.Repositories;
 using MediatR;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 
 namespace HPEChat.Application.Channels.CreateChannel
@@ -29,23 +29,17 @@ namespace HPEChat.Application.Channels.CreateChannel
 			_serverNotificationService = serverNotificationService;
 			_logger = logger;
 		}
-		public async Task<Dtos.ChannelDto> Handle(CreateChannelCommand request, CancellationToken cancellationToken)
+		public async Task<ChannelDto> Handle(CreateChannelCommand request, CancellationToken cancellationToken)
 		{
-			var server = await _serverRepository.GetByIdAsync(request.ServerId, cancellationToken);
-
-			if (server == null)
-			{
-				_logger.LogWarning("Server with ID {ServerId} not found when trying to create a channel.", request.ServerId);
-				throw new ApplicationException("Server not found.");
-			}
+			var server = await _serverRepository.GetByIdAsync(request.ServerId, cancellationToken)
+				?? throw new KeyNotFoundException("Server not found.");
 
 			if (server.OwnerId != request.UserId)
 			{
-				_logger.LogWarning("User with ID {UserId} is not the owner of server with ID {ServerId}. Channel creation denied.", request.UserId, request.ServerId);
-				throw new UnauthorizedAccessException("Only the server owner can create channels.");
+				throw new NotAServerOwnerException();
 			}
 
-			await _unitOfWork.BeginTransactionAsync();
+			await _unitOfWork.BeginTransactionAsync(cancellationToken);
 			try
 			{
 				var channel = new Channel
@@ -55,7 +49,7 @@ namespace HPEChat.Application.Channels.CreateChannel
 				};
 
 				await _channelRepository.AddAsync(channel, cancellationToken);
-				await _unitOfWork.CommitTransactionAsync();
+				await _unitOfWork.CommitTransactionAsync(cancellationToken);
 
 				var channelDto = new ChannelDto
 				{
@@ -72,7 +66,7 @@ namespace HPEChat.Application.Channels.CreateChannel
 			catch (Exception ex)
 			{
 				_logger.LogError(ex, "Error occurred while creating channel in server with ID {ServerId}.", request.ServerId);
-				await _unitOfWork.RollbackTransactionAsync();
+				await _unitOfWork.RollbackTransactionAsync(cancellationToken);
 				throw;
 			}
 		}

@@ -1,5 +1,5 @@
 ﻿using HPEChat.Application.Attachments.GetAttachment;
-using HPEChat.Application.Interfaces;
+using HPEChat.Application.Common.Interfaces;
 using HPEChat.Domain.Interfaces.Repositories;
 using MediatR;
 using Microsoft.Extensions.Logging;

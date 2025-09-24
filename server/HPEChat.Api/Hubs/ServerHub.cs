@@ -3,7 +3,9 @@ using HPEChat.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using HPEChat.Application.Interfaces.Hubs;
+using HPEChat.Application.Common.Interfaces.Hubs;
+using MediatR;
+using HPEChat.Application.Servers.IsMember;
 
 namespace HPEChat.Api.Hubs
 {
@@ -15,12 +17,12 @@ namespace HPEChat.Api.Hubs
 	[Authorize]
 	public class ServerHub : Hub<IServerClient>, IServerHub
 	{
-		private readonly ApplicationDBContext _context;
+		private readonly IMediator _mediator;
 		private readonly ConnectionMapperService _mapper;
 
-		public ServerHub(ApplicationDBContext context, ConnectionMapperService mapper)
+		public ServerHub(IMediator mediator, ConnectionMapperService mapper)
 		{
-			_context = context;
+			_mediator = mediator;
 			_mapper = mapper;
 		}
 
@@ -34,7 +36,15 @@ namespace HPEChat.Api.Hubs
 			var http = Context.GetHttpContext()!;
 			if (Guid.TryParse(http.Request.Query["serverId"], out var serverId))
 			{
-				if (!await _context.Servers.AnyAsync(s => s.Id == serverId && s.Members.Any(u => u.Id == userId)))
+				var command = new IsMemberQuery
+				{
+					ServerId = serverId,
+					UserId = userId
+				};
+
+				bool isMember = await _mediator.Send(command);
+
+				if (!isMember)
 				{
 					// kick unauthorized users immediately
 					Context.Abort();
@@ -56,8 +66,14 @@ namespace HPEChat.Api.Hubs
 		{
 			// check if user is a member of the server
 			var userId = Guid.Parse(Context.UserIdentifier!);
-			bool isMember = await _context.Servers
-				.AnyAsync(s => s.Id == serverId && s.Members.Any(u => u.Id == userId));
+
+			var command = new IsMemberQuery
+			{
+				ServerId = serverId,
+				UserId = userId
+			};
+
+			bool isMember = await _mediator.Send(command);
 
 			if (!isMember) throw new Exception("User is not a member of the server");
 

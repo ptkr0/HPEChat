@@ -22,7 +22,7 @@ namespace HPEChat.Application.ServerMessages.GetServerMessages
 		}
 		public async Task<ICollection<ServerMessageDto>> Handle(GetServerMessagesQuery request, CancellationToken cancellationToken)
 		{
-			var canAccessChannel = await _channelRepository.CanAccessChannel(request.ChannelId, request.UserId);
+			var canAccessChannel = await _channelRepository.CanAccessChannel(request.ChannelId, request.UserId, cancellationToken);
 
 			if (!canAccessChannel)
 			{

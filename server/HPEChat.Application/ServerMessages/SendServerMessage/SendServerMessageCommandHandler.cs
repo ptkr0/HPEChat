@@ -6,9 +6,10 @@ using HPEChat.Domain.Interfaces;
 using HPEChat.Domain.Interfaces.Repositories;
 using MediatR;
 using Microsoft.Extensions.Logging;
-using HPEChat.Application.Interfaces.Notifications;
-using HPEChat.Application.Interfaces;
-using HPEChat.Application.Extensions;
+using HPEChat.Application.Common.Extensions;
+using HPEChat.Application.Common.Interfaces;
+using HPEChat.Application.Common.Interfaces.Notifications;
+using HPEChat.Application.Common.Exceptions.Attachments;
 
 namespace HPEChat.Application.ServerMessages.SendServerMessage
 {
@@ -40,12 +41,8 @@ namespace HPEChat.Application.ServerMessages.SendServerMessage
 		}
 		public async Task<ServerMessageDto> Handle(SendServerMessageCommand request, CancellationToken cancellationToken)
 		{
-			var channel = await _channelRepository.GetByIdAsync(request.ChannelId, cancellationToken);
-
-			if (channel == null) {
-				_logger.LogWarning("Channel with ID {ChannelId} not found.", request.ChannelId);
-				throw new KeyNotFoundException("Channel not found.");
-			}
+			var channel = await _channelRepository.GetByIdAsync(request.ChannelId, cancellationToken)
+				?? throw new KeyNotFoundException("Channel not found.");
 
 			if (channel.Server.Members.Any(m => m.Id == request.UserId) == false)
 			{
@@ -56,7 +53,7 @@ namespace HPEChat.Application.ServerMessages.SendServerMessage
 			string? uploadedFilePath = null;
 			string? uploadedPreviewPath = null;
 
-			await _unitOfWork.BeginTransactionAsync();
+			await _unitOfWork.BeginTransactionAsync(cancellationToken);
 			try
 			{
 				var message = new ServerMessage
@@ -71,17 +68,13 @@ namespace HPEChat.Application.ServerMessages.SendServerMessage
 				Attachment? attachment = null;
 				if (request.Attachment != null)
 				{
-					var attachmentType = FileExtension.CheckFile(request.Attachment);
-
-					if (attachmentType == null)
-					{
-						throw new Exception("Unsupported attachment type.");
-					}
+					var attachmentType = FileExtension.CheckFile(request.Attachment)
+						?? throw new TypeNotSupportedException();
 
 					long size = request.Attachment.Length;
 
 					uploadedFilePath = await _fileService.UploadFile(request.Attachment, cancellationToken);
-					if (uploadedFilePath == null) throw new Exception("Failed to upload attachment.");
+					if (uploadedFilePath == null) throw new ApplicationException("Failed to upload attachment.");
 
 					int? width = null, height = null;
 					string? previewPath = null;
@@ -106,7 +99,7 @@ namespace HPEChat.Application.ServerMessages.SendServerMessage
 					{
 						Name = request.Attachment.FileName,
 						StoredFileName = uploadedFilePath,
-						ContentType = attachmentType.Value,
+						ContentType = attachmentType,
 						Size = size,
 						Width = width,
 						Height = height,
@@ -115,7 +108,7 @@ namespace HPEChat.Application.ServerMessages.SendServerMessage
 					};
 
 					await _attachmentRepository.AddAsync(attachment, cancellationToken);
-					await _unitOfWork.SaveChangesAsync();
+					await _unitOfWork.SaveChangesAsync(cancellationToken);
 				}
 
 				message.Attachment = attachment;

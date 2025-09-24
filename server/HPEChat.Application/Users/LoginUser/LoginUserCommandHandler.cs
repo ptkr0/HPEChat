@@ -1,7 +1,6 @@
-﻿using HPEChat.Application.Interfaces;
+﻿using HPEChat.Application.Common.Interfaces;
 using HPEChat.Application.Users.Dtos;
 using HPEChat.Domain.Entities;
-using HPEChat.Domain.Interfaces;
 using HPEChat.Domain.Interfaces.Repositories;
 using MediatR;
 using Microsoft.AspNetCore.Identity;

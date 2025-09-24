@@ -1,4 +1,4 @@
-﻿using HPEChat.Application.Exceptions.User;
+﻿using HPEChat.Application.Common.Exceptions.User;
 using HPEChat.Domain.Entities;
 using HPEChat.Domain.Interfaces;
 using HPEChat.Domain.Interfaces.Repositories;

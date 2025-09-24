@@ -1,8 +1,8 @@
 ﻿using HPEChat.Domain.Interfaces.Repositories;
 using HPEChat.Domain.Interfaces;
 using Microsoft.Extensions.Logging;
-using HPEChat.Application.Interfaces.Notifications;
-using HPEChat.Application.Exceptions.User;
+using HPEChat.Application.Common.Interfaces.Notifications;
+using HPEChat.Application.Common.Exceptions.User;
 
 namespace HPEChat.Application.Users.RevokeAdmin
 {

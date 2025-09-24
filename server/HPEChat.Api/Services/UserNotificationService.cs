@@ -1,6 +1,6 @@
 ﻿using HPEChat.Api.Hubs;
-using HPEChat.Application.Interfaces.Hubs;
-using HPEChat.Application.Interfaces.Notifications;
+using HPEChat.Application.Common.Interfaces.Hubs;
+using HPEChat.Application.Common.Interfaces.Notifications;
 using HPEChat.Application.Users.Dtos;
 using Microsoft.AspNetCore.SignalR;
 

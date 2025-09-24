@@ -1,4 +1,4 @@
-﻿using HPEChat.Application.Exceptions;
+﻿using HPEChat.Application.Common.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
@@ -48,7 +48,7 @@ namespace HPEChat.Api.Middleware
 					Status = (int)HttpStatusCode.InternalServerError,
 					Type = "https://datatracker.ietf.org/doc/html/rfc7231#section-6.6.1",
 					Title = "An unexpected error occurred.",
-					Detail = "We've encountered an issue and our team has been notified."
+					Detail = "This is a server error and it shouldn't have happened."
 				}
 			};
 

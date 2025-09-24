@@ -1,4 +1,4 @@
-﻿using HPEChat.Application.Interfaces.Notifications;
+﻿using HPEChat.Application.Common.Interfaces.Notifications;
 using HPEChat.Application.ServerMessages.Dtos;
 using HPEChat.Application.Users.Dtos;
 using HPEChat.Domain.Interfaces;
@@ -27,13 +27,8 @@ namespace HPEChat.Application.ServerMessages.UpdateServerMessage
 		}
 		public async Task<ServerMessageDto> Handle(UpdateServerMessageCommand request, CancellationToken cancellationToken)
 		{
-			var message = await _serverMessageRepository.GetAccessibleMessageSentByUserAsync(request.MessageId, request.UserId, cancellationToken);
-
-			if (message == null)
-			{
-				_logger.LogWarning("Message with ID {MessageId} not found or user with ID {UserId} is not the sender or user can't access message.", request.MessageId, request.UserId);
-				throw new KeyNotFoundException("Message not found or access denied.");
-			}
+			var message = await _serverMessageRepository.GetAccessibleMessageSentByUserAsync(request.MessageId, request.UserId, cancellationToken)
+				?? throw new KeyNotFoundException("Message not found or you do not have permission to edit it.");
 
 			await _unitOfWork.BeginTransactionAsync(cancellationToken);
 			try

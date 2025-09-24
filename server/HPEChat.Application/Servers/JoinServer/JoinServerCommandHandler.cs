@@ -1,6 +1,6 @@
 ﻿using HPEChat.Application.Channels.Dtos;
-using HPEChat.Application.Exceptions.Server;
-using HPEChat.Application.Interfaces.Notifications;
+using HPEChat.Application.Common.Exceptions.Server;
+using HPEChat.Application.Common.Interfaces.Notifications;
 using HPEChat.Application.Servers.Dtos;
 using HPEChat.Application.Users.Dtos;
 using HPEChat.Domain.Interfaces;

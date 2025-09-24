@@ -6,11 +6,10 @@ using HPEChat.Domain.Interfaces;
 using HPEChat.Domain.Interfaces.Repositories;
 using MediatR;
 using Microsoft.Extensions.Logging;
-using HPEChat.Application.Interfaces.Notifications;
-using HPEChat.Application.Interfaces;
-using HPEChat.Application.Extensions;
-using HPEChat.Application.Exceptions.User;
-using HPEChat.Application.Exceptions.Server;
+using HPEChat.Application.Common.Extensions;
+using HPEChat.Application.Common.Interfaces;
+using HPEChat.Application.Common.Interfaces.Notifications;
+using HPEChat.Application.Common.Exceptions.Server;
 
 namespace HPEChat.Application.Servers.CreateServer
 {

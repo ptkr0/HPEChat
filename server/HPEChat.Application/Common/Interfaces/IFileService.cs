@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 
-namespace HPEChat.Application.Interfaces
+namespace HPEChat.Application.Common.Interfaces
 {
 	public interface IFileService
 	{

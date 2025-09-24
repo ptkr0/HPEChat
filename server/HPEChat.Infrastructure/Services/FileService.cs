@@ -3,7 +3,7 @@ using Microsoft.Extensions.Options;
 using HPEChat.Domain.Configuration;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
-using HPEChat.Application.Interfaces;
+using HPEChat.Application.Common.Interfaces;
 
 namespace HPEChat.Infrastructure.Services
 {

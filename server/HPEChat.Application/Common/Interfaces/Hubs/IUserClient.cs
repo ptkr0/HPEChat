@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace HPEChat.Application.Interfaces.Hubs
+namespace HPEChat.Application.Common.Interfaces.Hubs
 {
 	public interface IUserClient
 	{

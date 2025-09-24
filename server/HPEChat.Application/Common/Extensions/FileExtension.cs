@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Http;
 using SixLabors.ImageSharp;
 using Xabe.FFmpeg;
 
-namespace HPEChat.Application.Extensions
+namespace HPEChat.Application.Common.Extensions
 {
 	public static class FileExtension
 	{

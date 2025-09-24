@@ -1,10 +1,9 @@
-﻿using HPEChat.Application.Exceptions.User;
-using HPEChat.Application.Interfaces.Notifications;
+﻿using HPEChat.Application.Common.Exceptions.User;
+using HPEChat.Application.Common.Interfaces.Notifications;
 using HPEChat.Application.Users.Dtos;
 using HPEChat.Domain.Interfaces;
 using HPEChat.Domain.Interfaces.Repositories;
 using MediatR;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 
 namespace HPEChat.Application.Users.ChangeUsername

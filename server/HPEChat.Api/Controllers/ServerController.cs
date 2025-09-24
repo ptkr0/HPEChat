@@ -1,4 +1,4 @@
-﻿using HPEChat.Application.Extensions;
+﻿using HPEChat.Application.Common.Extensions;
 using HPEChat.Application.Servers.CreateServer;
 using HPEChat.Application.Servers.DeleteServer;
 using HPEChat.Application.Servers.Dtos;

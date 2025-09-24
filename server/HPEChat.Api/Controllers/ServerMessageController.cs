@@ -1,4 +1,4 @@
-﻿using HPEChat.Application.Extensions;
+﻿using HPEChat.Application.Common.Extensions;
 using HPEChat.Application.ServerMessages.DeleteServerMessage;
 using HPEChat.Application.ServerMessages.Dtos;
 using HPEChat.Application.ServerMessages.GetServerMessages;

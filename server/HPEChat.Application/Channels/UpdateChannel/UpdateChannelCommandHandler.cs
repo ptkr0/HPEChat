@@ -1,5 +1,6 @@
 ﻿using HPEChat.Application.Channels.Dtos;
-using HPEChat.Application.Interfaces.Notifications;
+using HPEChat.Application.Common.Exceptions.Server;
+using HPEChat.Application.Common.Interfaces.Notifications;
 using HPEChat.Domain.Interfaces;
 using HPEChat.Domain.Interfaces.Repositories;
 using MediatR;
@@ -26,18 +27,13 @@ namespace HPEChat.Application.Channels.UpdateChannel
 		}
 		public async Task<ChannelDto> Handle(UpdateChannelCommand request, CancellationToken cancellationToken)
 		{
-			var channel = await _channelRepository.GetByIdAsync(request.ChannelId, cancellationToken);
-
-			if (channel == null)
-			{
-				_logger.LogWarning("Channel with ID {ChannelId} not found.", request.ChannelId);
-				throw new ApplicationException("Channel not found.");
-			}
+			var channel = await _channelRepository.GetByIdAsync(request.ChannelId, cancellationToken)
+				?? throw new KeyNotFoundException("Channel not found.");
 
 			if (channel.Server.OwnerId != request.UserId)
 			{
 				_logger.LogWarning("User with ID {UserId} is not the owner of the server with ID {ServerId}. Update action denied.", request.UserId, channel.ServerId);
-				throw new UnauthorizedAccessException("Only the server owner can update channels.");
+				throw new NotAServerOwnerException();
 			}
 
 			await _unitOfWork.BeginTransactionAsync(cancellationToken);

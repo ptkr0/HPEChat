@@ -1,7 +1,7 @@
 ﻿using HPEChat.Application.Channels.CreateChannel;
 using HPEChat.Application.Channels.DeleteChannel;
 using HPEChat.Application.Channels.Dtos;
-using HPEChat.Application.Extensions;
+using HPEChat.Application.Common.Extensions;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

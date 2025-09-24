@@ -1,6 +1,6 @@
 ﻿using HPEChat.Domain.Entities;
 
-namespace HPEChat.Application.Interfaces
+namespace HPEChat.Application.Common.Interfaces
 {
 	public interface ITokenGenerator
 	{

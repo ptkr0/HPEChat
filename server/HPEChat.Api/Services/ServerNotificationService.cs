@@ -1,8 +1,8 @@
 ﻿using Azure.Core;
 using HPEChat.Api.Hubs;
 using HPEChat.Application.Channels.Dtos;
-using HPEChat.Application.Interfaces.Hubs;
-using HPEChat.Application.Interfaces.Notifications;
+using HPEChat.Application.Common.Interfaces.Hubs;
+using HPEChat.Application.Common.Interfaces.Notifications;
 using HPEChat.Application.ServerMessages.Dtos;
 using HPEChat.Application.Servers.Dtos;
 using HPEChat.Application.Users.Dtos;

@@ -3,7 +3,7 @@ using HPEChat.Application.ServerMessages.Dtos;
 using HPEChat.Application.Servers.Dtos;
 using HPEChat.Application.Users.Dtos;
 
-namespace HPEChat.Application.Interfaces.Hubs
+namespace HPEChat.Application.Common.Interfaces.Hubs
 {
 	public interface IServerClient
 	{

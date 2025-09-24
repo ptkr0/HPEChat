@@ -1,10 +1,10 @@
 ﻿using HPEChat.Domain.Interfaces;
 using HPEChat.Domain.Interfaces.Repositories;
 using MediatR;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
-using HPEChat.Application.Interfaces.Notifications;
-using HPEChat.Application.Interfaces;
+using HPEChat.Application.Common.Interfaces;
+using HPEChat.Application.Common.Interfaces.Notifications;
+using HPEChat.Application.Common.Exceptions.Server;
 
 namespace HPEChat.Application.Servers.DeleteServer
 {
@@ -38,8 +38,7 @@ namespace HPEChat.Application.Servers.DeleteServer
 
 			if (server.OwnerId != request.OwnerId)
 			{
-				_logger.LogWarning("User with ID {OwnerId} is not the owner of server with ID {ServerId}. Deletion denied.", request.OwnerId, request.ServerId);
-				throw new UnauthorizedAccessException("Only the server owner can delete the server.");
+				throw new NotAServerOwnerException();
 			}
 
 			var filesToDelete = new List<string>();

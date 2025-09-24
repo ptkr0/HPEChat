@@ -3,9 +3,10 @@ using HPEChat.Domain.Interfaces;
 using HPEChat.Domain.Interfaces.Repositories;
 using MediatR;
 using Microsoft.Extensions.Logging;
-using HPEChat.Application.Interfaces.Notifications;
-using HPEChat.Application.Interfaces;
-using HPEChat.Application.Extensions;
+using HPEChat.Application.Common.Extensions;
+using HPEChat.Application.Common.Interfaces;
+using HPEChat.Application.Common.Interfaces.Notifications;
+using HPEChat.Application.Common.Exceptions.Server;
 
 namespace HPEChat.Application.Servers.UpdateServer
 {
@@ -37,7 +38,18 @@ namespace HPEChat.Application.Servers.UpdateServer
 			if (server.OwnerId != request.OwnerId)
 			{
 				_logger.LogWarning("User with ID {OwnerId} is not the owner of server with ID {ServerId}. Update denied.", request.OwnerId, request.ServerId);
-				throw new UnauthorizedAccessException("Only the server owner can update the server.");
+				throw new NotAServerOwnerException();
+			}
+
+			// update name if provided and not empty or already used
+			if (!string.IsNullOrWhiteSpace(request.Name))
+			{
+				if (await _serverRepository.ExistsByNameAsync(request.Name, cancellationToken) 
+					&& !string.Equals(server.Name, request.Name, StringComparison.OrdinalIgnoreCase))
+				{
+					_logger.LogWarning("Server with name {ServerName} already exists.", request.Name);
+					throw new DuplicateServerNameException(request.Name);
+				}
 			}
 
 			// track old image for best‑effort cleanup after DB commit
@@ -69,13 +81,9 @@ namespace HPEChat.Application.Servers.UpdateServer
 				}
 
 				// update name if provided and not empty or already used
-				if (!string.IsNullOrWhiteSpace(request.Name))
+				if (!string.IsNullOrWhiteSpace(request.Name)
+					 && !string.Equals(server.Name, request.Name, StringComparison.OrdinalIgnoreCase))
 				{
-					if (await _serverRepository.ExistsByNameAsync(request.Name, cancellationToken) && !string.Equals(server.Name, request.Name, StringComparison.OrdinalIgnoreCase))
-					{
-						_logger.LogWarning("Server with name {ServerName} already exists.", request.Name);
-						throw new ApplicationException("Server with the same name already exists.");
-					}
 					server.Name = request.Name;
 				}
 

@@ -1,7 +1,7 @@
 ﻿using HPEChat.Application.Attachments.GetPreview;
 using HPEChat.Application.Attachments.GetServerImage;
 using HPEChat.Application.Attachments.GetUserImage;
-using HPEChat.Application.Extensions;
+using HPEChat.Application.Common.Extensions;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

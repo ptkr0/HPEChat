@@ -10,13 +10,13 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using HPEChat.Application.Interfaces.Notifications;
 using HPEChat.Api.Services;
-using HPEChat.Application.Interfaces;
 using HPEChat.Application.Users.RegisterUser;
 using Microsoft.AspNetCore.Identity;
 using HPEChat.Domain.Entities;
 using HPEChat.Api.Middleware;
+using HPEChat.Application.Common.Interfaces;
+using HPEChat.Application.Common.Interfaces.Notifications;
 
 var builder = WebApplication.CreateBuilder(args);
 

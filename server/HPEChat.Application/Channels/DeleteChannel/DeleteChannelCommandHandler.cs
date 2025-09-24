@@ -1,5 +1,6 @@
-﻿using HPEChat.Application.Interfaces;
-using HPEChat.Application.Interfaces.Notifications;
+﻿using HPEChat.Application.Common.Exceptions.Server;
+using HPEChat.Application.Common.Interfaces;
+using HPEChat.Application.Common.Interfaces.Notifications;
 using HPEChat.Domain.Interfaces;
 using HPEChat.Domain.Interfaces.Repositories;
 using MediatR;
@@ -32,18 +33,12 @@ namespace HPEChat.Application.Channels.DeleteChannel
 		}
 		public async Task Handle(DeleteChannelCommand request, CancellationToken cancellationToken)
 		{
-			var channel = await _channelRepository.GetByIdAsync(request.ChannelId, cancellationToken);
-
-			if (channel == null)
-			{
-				_logger.LogWarning("Channel with ID {ChannelId} not found for deletion.", request.ChannelId);
-				throw new KeyNotFoundException("Channel not found.");
-			}
+			var channel = await _channelRepository.GetByIdAsync(request.ChannelId, cancellationToken)
+				?? throw new KeyNotFoundException("Channel not found.");
 
 			if (channel.Server.OwnerId != request.UserId)
 			{
-				_logger.LogWarning("User with ID {UserId} is not the owner of the server with ID {ServerId}. Channel deletion denied.", request.UserId, channel.ServerId);
-				throw new UnauthorizedAccessException("Only the server owner can delete channels.");
+				throw new NotAServerOwnerException();
 			}
 
 			var filesToDelete = new List<string>();

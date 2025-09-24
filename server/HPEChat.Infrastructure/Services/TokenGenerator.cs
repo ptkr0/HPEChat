@@ -1,11 +1,10 @@
 ﻿using HPEChat.Domain.Entities;
-using HPEChat.Domain.Interfaces;
 using HPEChat.Domain.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using HPEChat.Application.Interfaces;
+using HPEChat.Application.Common.Interfaces;
 
 namespace HPEChat.Infrastructure.Services
 {

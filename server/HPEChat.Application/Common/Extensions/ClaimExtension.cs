@@ -1,6 +1,6 @@
 ﻿using System.Security.Claims;
 
-namespace HPEChat.Application.Extensions
+namespace HPEChat.Application.Common.Extensions
 {
 	public static class ClaimExtension
 	{

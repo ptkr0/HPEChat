@@ -1,4 +1,4 @@
-﻿using HPEChat.Application.Extensions;
+﻿using HPEChat.Application.Common.Extensions;
 using HPEChat.Application.Users.ChangeImage;
 using HPEChat.Application.Users.ChangePassword;
 using HPEChat.Application.Users.ChangeUsername;

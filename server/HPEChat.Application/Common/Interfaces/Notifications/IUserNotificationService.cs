@@ -1,6 +1,6 @@
 ﻿using HPEChat.Application.Users.Dtos;
 
-namespace HPEChat.Application.Interfaces.Notifications
+namespace HPEChat.Application.Common.Interfaces.Notifications
 {
 	public interface IUserNotificationService
 	{

@@ -79,6 +79,12 @@ namespace HPEChat.Infrastructure.Repositories
 				.FirstOrDefaultAsync(s => s.Name == name, cancellationToken);
 		}
 
+		public async Task<bool> IsMemberAsync(Guid serverId, Guid userId, CancellationToken cancellationToken = default)
+		{
+			return await _context.Servers
+				.AnyAsync(s => s.Id == serverId && s.Members.Any(u => u.Id == userId), cancellationToken);
+		}
+
 		public void Remove(Server server)
 		{
 			_context.Remove(server);
