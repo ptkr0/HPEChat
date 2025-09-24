@@ -153,7 +153,7 @@ export default function ChannelLayout() {
                       <Message
                         key={message.id}
                         message={message}
-                        isSenderCurrentUser={user.id.toUpperCase() === message.sender.id}
+                        isSenderCurrentUser={user.id === message.sender.id}
                         isContinuation={isContinuation}
                       />
                     );

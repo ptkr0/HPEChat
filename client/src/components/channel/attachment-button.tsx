@@ -32,7 +32,7 @@ export function AttachmentButton({ attachment }: AttachmentButtonProps) {
   }
   const downloadTextMap: Record<AttachmentType, string> = {
     Video: "Pobierz Wideo",
-    Audio: "Pobierz Muzykę",
+    Audio: "Pobierz Dźwięk",
     Document: "Pobierz Dokument",
     Image: "Pobierz Obraz",
     Other: "Pobierz Załącznik",

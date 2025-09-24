@@ -1,11 +1,6 @@
-// over 700 lines of code
-// i am afraid of this store
-
 import { StateCreator } from 'zustand';
 import { Server, ServerDetails } from '@/types/server.types';
 import { serverService } from '@/services/serverService';
-import { ServerMessage } from '@/types/server-message.type';
-import { serverMessageService } from '@/services/serverMessageService';
 import { User } from '@/types/user.type';
 import { userService } from '@/services/userService';
 import { joinServerGroup } from '@/services/signalrService';
@@ -25,14 +20,6 @@ export interface ServerSlice {
   cachedServers: Map<string, ServerDetails>;
   selectServer: (serverId: string | null) => Promise<void>;
 
-  selectedChannelMessages: ServerMessage[];
-  channelMessagesLoading: boolean;
-  channelMessagesError: string | null;
-  cachedChannelMessages: Map<string, ServerMessage[]>; // map of all cached server messages (channelId -> messages array)
-  hasMoreMessages: Map<string, boolean>; // map of channelId to whether there are more messages to load
-  loadingMoreMessages: boolean;
-  fetchMoreMessages: (channelId: string) => Promise<void>;
-
   createServer: (name: string, description?: string, image?: File) => Promise<Server | null>;
   joinServer: (inviteCode: string) => Promise<ServerDetails | null>;
   updateServer: (server: Omit<ServerDetails, 'channels' | 'members'>) => Promise<Server | null>;
@@ -41,10 +28,6 @@ export interface ServerSlice {
   kickUser: (serverId: string, userId: string) => Promise<void>;
   addUserToServer: (serverId: string, user: User) => void;
   removeUserFromServer: (serverId: string, userId: string) => void;
-
-  addMessageToChannel: (serverId: string, message: ServerMessage) => void;
-  removeMessageFromChannel: (serverId: string, channelId: string, messageId: string) => void;
-  editMessageInChannel: (serverId: string, message: ServerMessage) => void;
 
   clearServerSlice: () => void;
 
@@ -62,13 +45,6 @@ export const createServerSlice: StateCreator<AppState, [], [], ServerSlice> = (s
   serverDetailsLoading: false,
   serverDetailsError: null,
 
-  selectedChannelMessages: [],
-  channelMessagesLoading: false,
-  channelMessagesError: null,
-  cachedChannelMessages: new Map(),
-  hasMoreMessages: new Map(),
-  loadingMoreMessages: false,
-
   cachedServers: new Map(),
 
   fetchServers: async (initialServerId?: string) => {
@@ -80,7 +56,7 @@ export const createServerSlice: StateCreator<AppState, [], [], ServerSlice> = (s
 
       fetchedServers.forEach(server => {
         if (server.image) { // if the server has an image, fetch and cache it
-          get().fetchAndCacheServerImage(server.id, server.image);
+          get().fetchAndCacheServerImage(server.id);
         }
       });
 
@@ -114,9 +90,6 @@ export const createServerSlice: StateCreator<AppState, [], [], ServerSlice> = (s
 
     const commonStateChanges = {
       selectedChannel: null,
-      selectedChannelMessages: [],
-      channelMessagesLoading: false,
-      channelMessagesError: null,
     };
 
     if (serverId) {
@@ -168,57 +141,7 @@ export const createServerSlice: StateCreator<AppState, [], [], ServerSlice> = (s
     }
   },
 
-  fetchMoreMessages: async (channelId: string) => {
-    if (get().loadingMoreMessages || !get().hasMoreMessages.get(channelId)) {
-      return;
-    }
 
-    set({ loadingMoreMessages: true });
-
-    const cachedMessages = get().cachedChannelMessages.get(channelId) || [];
-    if (cachedMessages.length === 0) {
-      set({ loadingMoreMessages: false });
-      return;
-    }
-
-    const oldestMessage = cachedMessages.reduce((oldest, current) =>
-      new Date(current.sentAt) < new Date(oldest.sentAt) ? current : oldest
-    );
-    const lastCreatedAt = oldestMessage.sentAt;
-
-    try {
-      const olderMessages = await serverMessageService.getAll(channelId, lastCreatedAt);
-
-      if (olderMessages.length > 0) {
-        set(state => {
-          const newCachedMessages = new Map(state.cachedChannelMessages);
-          const currentMessages = newCachedMessages.get(channelId) || [];
-          const allMessages = [...olderMessages, ...currentMessages];
-          newCachedMessages.set(channelId, allMessages);
-
-          let newSelectedChannelMessages = state.selectedChannelMessages;
-          if (state.selectedChannel?.id === channelId) {
-            newSelectedChannelMessages = allMessages;
-          }
-
-          return {
-            cachedChannelMessages: newCachedMessages,
-            selectedChannelMessages: newSelectedChannelMessages,
-            loadingMoreMessages: false,
-            hasMoreMessages: new Map(state.hasMoreMessages).set(channelId, olderMessages.length === 50),
-          };
-        });
-      } else {
-        set(state => ({
-          hasMoreMessages: new Map(state.hasMoreMessages).set(channelId, false),
-          loadingMoreMessages: false,
-        }));
-      }
-    } catch (error) {
-      console.error("Error fetching more messages:", error);
-      set({ loadingMoreMessages: false });
-    }
-  },
 
   createServer: async (name: string, description?: string, image?: File) => {
     try {
@@ -230,7 +153,7 @@ export const createServerSlice: StateCreator<AppState, [], [], ServerSlice> = (s
         get().selectServer(newServer.id);
 
         if (newServer.image) {
-          get().fetchAndCacheServerImage(newServer.id, newServer.image);
+          get().fetchAndCacheServerImage(newServer.id);
         }
         joinServerGroup(newServer.id);
         return newServer;
@@ -267,7 +190,7 @@ export const createServerSlice: StateCreator<AppState, [], [], ServerSlice> = (s
         }
 
         if (joinedServer.image && !get().serverImageBlobs.has(joinedServer.id)) {
-          get().fetchAndCacheServerImage(joinedServer.id, joinedServer.image);
+          get().fetchAndCacheServerImage(joinedServer.id);
         }
 
         joinServerGroup(joinedServer.id); // join the SignalR group for the server
@@ -303,7 +226,7 @@ export const createServerSlice: StateCreator<AppState, [], [], ServerSlice> = (s
         if (oldServerData.image) {
           get().revokeServerImage(oldServerData.id);
         }
-        get().fetchAndCacheServerImage(server.id, server.image);
+        get().fetchAndCacheServerImage(server.id);
       }
 
       const newServerData = { ...oldServerData, ...server };
@@ -347,68 +270,6 @@ export const createServerSlice: StateCreator<AppState, [], [], ServerSlice> = (s
     return server;
   },
 
-  removeMessageFromChannel: (serverId: string, channelId: string, messageId: string) => {
-    set((state) => {
-
-      // always update the cache for the channel
-      const newCachedChannelMessages = new Map(state.cachedChannelMessages);
-      const messages = newCachedChannelMessages.get(channelId) || [];
-
-      const messageToRemove = messages.find(m => m.id === messageId);
-      const filteredMessages = messages.filter(m => m.id !== messageId);
-
-      newCachedChannelMessages.set(channelId, filteredMessages);
-      
-      // if message had attachment, revoke their URL
-      if (messageToRemove?.attachment) {
-        get().revokeAttachmentPreview(messageToRemove.attachment.id);
-      }
-
-      let newSelectedChannelMessages = state.selectedChannelMessages;
-
-      // only update selectedChannelMessages if both the selected channel and server match,
-      // to ensure consistency with other message update methods.
-      if (state.selectedChannel?.id === channelId && state.selectedServer?.id === serverId) {
-        newSelectedChannelMessages = state.selectedChannelMessages.filter(m => m.id !== messageId);
-      }
-
-      return {
-        selectedChannelMessages: newSelectedChannelMessages,
-        cachedChannelMessages: newCachedChannelMessages,
-      };
-    });
-  },
-
-  // edits the message but leaves the attachment unchanged
-  editMessageInChannel: (serverId: string, message: Omit<ServerMessage, "attachment">) => {
-    set((state) => {
-
-      // update the cache for the message's channel, but only if the message is already cached
-      const newCachedChannelMessages = new Map(state.cachedChannelMessages);
-      const channelMessages = newCachedChannelMessages.get(message.channelId) || [];
-      if (channelMessages.some(m => m.id === message.id)) {
-        newCachedChannelMessages.set(message.channelId, channelMessages.map(m =>
-          // ...m = original message, ...message = updated message, m.attachment = original attachment to keep it unchanged
-          m.id === message.id ? { ...m, ...message, attachment: m.attachment } : m
-        ));
-      }
-
-      let newSelectedChannelMessages = state.selectedChannelMessages;
-
-      // update selectedChannelMessages only if the message is for the currently selected channel AND server
-      if (state.selectedChannel?.id === message.channelId && state.selectedServer?.id === serverId) {
-        newSelectedChannelMessages = state.selectedChannelMessages.map(m => 
-          m.id === message.id ? { ...m, ...message, attachment: m.attachment } : m
-        );
-      }
-
-      return {
-        selectedChannelMessages: newSelectedChannelMessages,
-        cachedChannelMessages: newCachedChannelMessages
-      };
-    });
-  },
-
   // this function is used when the user leaves the server by himself
   leaveServerAction: async (serverId) => {
     try {
@@ -423,33 +284,23 @@ export const createServerSlice: StateCreator<AppState, [], [], ServerSlice> = (s
   leaveServer: async (serverId) => {
     try {
 
-      // remove server from state, cache, clear server channel messages
+      // remove server from state, cache
       // if the server was selected, select the first remaining server or null
       const wasSelectedServer = get().selectedServer?.id === serverId;
       const channelIdsToClear = get().cachedServers.get(serverId)?.channels.map(channel => channel.id) || [];
       console.log(wasSelectedServer, serverId, get().selectedServer?.id);
 
+      // notify the server messages slice to clear all messages for this server's channels
+      if (channelIdsToClear.length > 0 && get().clearChannelMessages) {
+        channelIdsToClear.forEach(channelId => {
+          get().clearChannelMessages(channelId);
+        });
+      }
+
       set((state) => {
         const newServers = state.servers.filter(server => server.id !== serverId);
         const newCachedServers = new Map(state.cachedServers);
         newCachedServers.delete(serverId);
-        const newCachedChannelMessages = new Map(state.cachedChannelMessages);
-        const messagesToClear: ServerMessage[] = [];
-
-        if (channelIdsToClear.length > 0) {
-          channelIdsToClear.forEach(chId => {
-            const messages = newCachedChannelMessages.get(chId) || [];
-            messagesToClear.push(...messages);
-            newCachedChannelMessages.delete(chId);
-          });
-        }
-
-        // revoke attachment preview blobs for all messages that will be cleared
-        messagesToClear.forEach(message => {
-          if (message.attachment) {
-            get().revokeAttachmentPreview(message.attachment.id);
-          }
-        });
 
         // revoke server image blob if it exists
         get().revokeServerImage(serverId);
@@ -457,7 +308,6 @@ export const createServerSlice: StateCreator<AppState, [], [], ServerSlice> = (s
         return {
           servers: newServers,
           cachedServers: newCachedServers,
-          cachedChannelMessages: newCachedChannelMessages,
         };
       });
 
@@ -484,46 +334,15 @@ export const createServerSlice: StateCreator<AppState, [], [], ServerSlice> = (s
     }
   },
 
-clearServerSlice: () => {
-  set({
-    servers: [],
-    serversLoading: false,
-    serversError: null,
-    selectedServer: null,
-    serverDetailsLoading: false,
-    serverDetailsError: null,
-    cachedServers: new Map(),
-    selectedChannelMessages: [],
-    channelMessagesLoading: false,
-    channelMessagesError: null,
-  });
-},
-
-  addMessageToChannel: (serverId: string, message: ServerMessage) => {
-    set((state) => {
-
-      // always update the cache for the message's channel
-      const newCachedChannelMessages = new Map(state.cachedChannelMessages);
-      const channelMessages = newCachedChannelMessages.get(message.channelId) || [];
-
-      // check if the message already exists in the cache
-      // if it doesn't, add it to the cache
-      const exists = channelMessages.some(m => m.id === message.id);
-      if (!exists) {
-        newCachedChannelMessages.set(message.channelId, [...channelMessages, message]);
-      }
-
-      let newSelectedChannelMessages = state.selectedChannelMessages;
-
-      // update selectedChannelMessages only if the message is for the currently selected channel AND server
-      if (state.selectedChannel?.id === message.channelId && state.selectedServer?.id === serverId) {
-        newSelectedChannelMessages = [...state.selectedChannelMessages, message];
-      }
-
-      return {
-        selectedChannelMessages: newSelectedChannelMessages,
-        cachedChannelMessages: newCachedChannelMessages
-      };
+  clearServerSlice: () => {
+    set({
+      servers: [],
+      serversLoading: false,
+      serversError: null,
+      selectedServer: null,
+      serverDetailsLoading: false,
+      serverDetailsError: null,
+      cachedServers: new Map(),
     });
   },
 
@@ -620,26 +439,9 @@ clearServerSlice: () => {
         newSelectedServer = newCachedServers.get(state.selectedServer.id)!;
       }
 
-      // update cached messages
-      const newCachedMessages = new Map(state.cachedChannelMessages);
-      newCachedMessages.forEach((messages, channelId) => {
-        const updatedMessages = messages.map(message =>
-          message.sender.id === user.id ? { ...message, sender: { ...message.sender, username: newUsername } } : message
-        );
-        newCachedMessages.set(channelId, updatedMessages);
-      });
-
-      // update currently selected channel messages
-      let newSelectedChannelMessages = state.selectedChannelMessages;
-      if (state.selectedChannel && newCachedMessages.has(state.selectedChannel.id)) {
-        newSelectedChannelMessages = newCachedMessages.get(state.selectedChannel.id)!;
-      }
-
       return {
         cachedServers: newCachedServers,
         selectedServer: newSelectedServer,
-        cachedChannelMessages: newCachedMessages,
-        selectedChannelMessages: newSelectedChannelMessages,
       };
     });
   },

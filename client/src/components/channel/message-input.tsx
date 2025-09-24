@@ -7,8 +7,7 @@ import { z } from "zod"
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { serverMessageService } from "@/services/serverMessageService"
-
-const MAX_FILE_SIZE = 500 * 1024 * 1024 // 500MB
+import { MAX_ATTACHMENT_SIZE } from "@/constants/constants"
 
 const sendMessageSchema = z.object({
   message: z
@@ -18,8 +17,8 @@ const sendMessageSchema = z.object({
     .transform((val) => val ?? ""), // undefined to empty string
   attachment: z
     .custom<File | undefined>()
-    .refine((file) => !file || file.size <= MAX_FILE_SIZE, {
-      message: "Maksymalny rozmiar pliku to 500MB",
+    .refine((file) => !file || file.size <= MAX_ATTACHMENT_SIZE, {
+      message: `Maksymalny rozmiar pliku to ${MAX_ATTACHMENT_SIZE / 1024 / 1024}MB`,
     })
     .optional(),
 })

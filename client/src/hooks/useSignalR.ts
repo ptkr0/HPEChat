@@ -43,28 +43,28 @@ export const useSignalR = () => {
         Object.values(ServerEventNames).forEach(eventName => connection.off(eventName));
 
         connection.on(ServerEventNames.MessageAdded, (serverId: string, message: ServerMessage) => {
-            appStoreActions.addMessageToChannel(serverId.toUpperCase(), { ...message, id: message.id.toUpperCase() });
+            appStoreActions.addMessageToChannel(serverId, { ...message, id: message.id });
         });
         connection.on(ServerEventNames.MessageEdited, (serverId: string, message: ServerMessage) => {
-            appStoreActions.editMessageInChannel(serverId.toUpperCase(), { ...message, id: message.id.toUpperCase() });
+            appStoreActions.editMessageInChannel(serverId, { ...message, id: message.id });
         });
         connection.on(ServerEventNames.MessageRemoved, (serverId: string, channelId: string, messageId: string) => {
-            appStoreActions.removeMessageFromChannel(serverId.toUpperCase(), channelId.toUpperCase(), messageId.toUpperCase());
+            appStoreActions.removeMessageFromChannel(serverId, channelId, messageId);
         });
         connection.on(ServerEventNames.ChannelAdded, (serverId: string, channel: Channel) => {
-            appStoreActions.addChannel(serverId.toUpperCase(), { ...channel, id: channel.id.toUpperCase() });
+            appStoreActions.addChannel(serverId, { ...channel, id: channel.id });
         });
         connection.on(ServerEventNames.ChannelRemoved, (serverId: string, channelId: string) => {
-            appStoreActions.removeChannel(serverId.toUpperCase(), channelId.toUpperCase());
+            appStoreActions.removeChannel(serverId, channelId);
         });
         connection.on(ServerEventNames.ChannelUpdated, (serverId: string, channel: Channel) => {
-            appStoreActions.updateChannel(serverId.toUpperCase(), { ...channel, id: channel.id.toUpperCase() });
+            appStoreActions.updateChannel(serverId, { ...channel, id: channel.id });
         });
         connection.on(ServerEventNames.UserJoined, (serverId: string, user: User) => {
-            appStoreActions.addUserToServer(serverId.toUpperCase(), { ...user, id: user.id.toUpperCase() });
+            appStoreActions.addUserToServer(serverId, { ...user, id: user.id });
         });
         connection.on(ServerEventNames.UserLeft, (serverId: string, userId: string) => {
-            appStoreActions.removeUserFromServer(serverId.toUpperCase(), userId.toUpperCase());
+            appStoreActions.removeUserFromServer(serverId, userId);
         });
         connection.on(ServerEventNames.ServerUpdated, (server: Omit<ServerDetails, "members" | "channels">) => {
             appStoreActions.updateServer(server);

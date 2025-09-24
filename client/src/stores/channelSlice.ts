@@ -1,7 +1,6 @@
 import { Channel } from "@/types/channel.types";
 import { StateCreator } from "zustand";
 import { AppState } from "./useAppStore";
-import { serverMessageService } from "@/services/serverMessageService";
 
 export interface ChannelSlice {
   selectedChannel: Channel | null;
@@ -16,53 +15,37 @@ export interface ChannelSlice {
 export const createChannelSlice: StateCreator<AppState, [], [], ChannelSlice> = (set, get) => ({
   selectedChannel: null,
 
-selectChannel: (channelId: string | null) => {
-
-    // if the channelId is the same as the current one, do nothing
+  selectChannel: (channelId: string | null) => {
+    // already selected
     if (get().selectedChannel?.id === channelId && channelId !== null) {
       return;
     }
 
-    if (channelId && get().selectedServer) {
-      const basicChannelInfo = get().selectedServer?.channels.find(c => c.id === channelId);
-      set({
-        selectedChannel: basicChannelInfo || null,
-        channelMessagesLoading: true,
-        selectedChannelMessages: [],
-        channelMessagesError: null,
-      });
-
-      const cachedMessages = get().cachedChannelMessages.get(channelId);
-      if (cachedMessages) {
-        set({
-          selectedChannelMessages: cachedMessages,
-          channelMessagesLoading: false,
-        });
-      } else {
-        serverMessageService.getAll(channelId).then(fetchedMessages => {
-          if (get().selectedChannel?.id === channelId) {
-            set((state) => ({
-              selectedChannelMessages: fetchedMessages,
-              channelMessagesLoading: false,
-              cachedChannelMessages: new Map(state.cachedChannelMessages).set(channelId, fetchedMessages),
-              hasMoreMessages: new Map(state.hasMoreMessages).set(channelId, fetchedMessages.length === 50), // server fetches messages in batches of 50
-            }));
-          }
-        }).catch(error => {
-          console.error(`Error fetching messages for channel ${channelId}:`, error);
-
-          if (get().selectedChannel?.id === channelId) {
-            set({ channelMessagesError: 'Nie udało się pobrać wiadomości.', channelMessagesLoading: false });
-          }
-        });
-      }
-    } else {
+    // reset selection
+    if (!channelId || !get().selectedServer) {
       set({
         selectedChannel: null,
-        selectedChannelMessages: [],
-        channelMessagesLoading: false,
-        channelMessagesError: null,
       });
+      return;
+    }
+
+    // find channel info from selected server
+    const selectedServer = get().selectedServer;
+    const basicChannelInfo = selectedServer?.channels.find(c => c.id === channelId);
+    if (!basicChannelInfo) {
+      set({
+        selectedChannel: null,
+      });
+      return;
+    }
+
+    set({
+      selectedChannel: basicChannelInfo,
+    });
+
+    // notify the server messages slice that a new channel is selected
+    if (get().fetchChannelMessages) {
+      get().fetchChannelMessages(channelId);
     }
   },
 
@@ -72,6 +55,11 @@ selectChannel: (channelId: string | null) => {
     if (!get().cachedServers.has(serverId) && get().selectedServer?.id !== serverId) return;
 
     const wasSelectedChannel = get().selectedChannel?.id === channelId;
+
+    // clear messages for the channel that will be removed
+    if (get().clearChannelMessages) {
+      get().clearChannelMessages(channelId);
+    }
 
     set((state) => {
       const newCachedServers = new Map(state.cachedServers);
@@ -92,21 +80,9 @@ selectChannel: (channelId: string | null) => {
         };
       }
 
-      const newCachedChannelMessages = new Map(state.cachedChannelMessages);
-      const messages = newCachedChannelMessages.get(channelId) || [];
-      newCachedChannelMessages.delete(channelId);
-
-      // revoke attachment preview blobs for all messages that will be cleared
-      messages.forEach(message => {
-        if (message.attachment) {
-          get().revokeAttachmentPreview(message.attachment.id);
-        }
-      });
-
       return {
         selectedServer: newSelectedServer,
         cachedServers: newCachedServers,
-        cachedChannelMessages: newCachedChannelMessages,
       };
     });
 
